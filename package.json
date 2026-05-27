@@ -1,6 +1,6 @@
 {
   "name": "claude-code-sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A standalone TypeScript SDK for Claude Code - decoupled from Claude Code runtime",
   "type": "module",
   "main": "./dist/index.js",
@@ -32,6 +32,8 @@
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "typedoc": "^0.28.19",
+    "typedoc-plugin-markdown": "^4.11.0",
     "typescript": "^5.5.4",
     "vitest": "^3.2.4"
   },

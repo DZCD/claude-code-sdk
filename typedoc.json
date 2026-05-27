@@ -1,0 +1,42 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "exclude": [
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/node_modules/**"
+  ],
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "includeVersion": true,
+  "cleanOutputDir": true,
+  "tsconfig": "tsconfig.json",
+  "skipErrorChecking": true,
+  "sort": ["source-order"],
+  "categorizeByGroup": true,
+  "defaultCategory": "Internal",
+  "categoryOrder": [
+    "Session Engine",
+    "Tool System",
+    "LLM Layer",
+    "Conversation",
+    "Context",
+    "Permission",
+    "Config",
+    "MCP",
+    "Core Types",
+    "Internal",
+    "*"
+  ],
+  "visibilityFilters": {
+    "@public": true,
+    "@protected": false,
+    "@private": false,
+    "@internal": false
+  },
+  "hideGenerator": true,
+  "githubPages": true,
+  "readme": "README.md"
+}

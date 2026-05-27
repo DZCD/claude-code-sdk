@@ -1,97 +1,145 @@
 /**
- * ClaudeCode SDK - Standalone TypeScript SDK for Claude Code
+ * ClaudeCode SDK — Standalone TypeScript SDK for Claude Code
  *
  * This SDK provides the core capabilities of Claude Code (LLM communication,
  * tool system, conversation management, file operations, etc.) as a standalone
  * library that does NOT depend on the Claude Code runtime.
  *
- * @module claude-code-sdk
+ * @public
  */
 
-export const VERSION = '0.1.0'
-
-// Session Engine (main entry point)
-export { ClaudeCodeSDK, AttributionManager, SessionPersistence } from './session/index.js'
-export type {
-  SessionResponse,
-  SessionConfig,
-  SessionListEntry,
-  MessageSource,
-  AttributionMode,
-  AttributionMetadata,
-  AttributionStats,
-  AttributionTexts,
-  AttributionSnapshot,
-  SessionSnapshot,
-  SessionMetadata,
-  SessionStatus,
-  InterruptionResult,
-  SerializedMessage,
-} from './session/index.js'
-
-// Tool System
-export { BaseTool, createTool, ToolRegistry } from './tools/index.js'
-export type { Tool, ToolResult, ToolContext, ToolDefinition, ToolCallRecord, AnyZodObject } from './types/tool.js'
-
-// LLM Layer
-export { createLLMConnector, AnthropicConnector, BedrockConnector, VertexConnector, FoundryConnector, getSupportedProviders } from './llm/index.js'
-export type {
-  LLMConfig,
-  AnthropicConfig,
-  BedrockConfig,
-  VertexConfig,
-  FoundryConfig,
-  LLMConnector,
-  LLMProvider,
-  StreamEvent,
-  TokenUsage,
-  SendOptions,
-} from './llm/index.js'
-
-// Conversation
-export { ConversationManager, conversationLoop, CircularBuffer, TokenTracker, TokenBudget, MicroCompactor, AutoCompactor, getTokenUsageFromMessage, getTotalTokensFromUsage, estimateContextTokens, parseTokenBudget, getBudgetContinuationMessage } from './conversation/index.js'
-export type { LoopOptions, CompactOptions, CompactResult, MicroCompactOptions, SummaryLLM } from './conversation/index.js'
-
-// Context Building
-export { ContextBuilder, findGitRoot, getGitState, getFileStatus, getBranch, getHead, getRemoteUrl, fetchGitDiff, MemoryFileLoader } from './context/index.js'
-export type { ContextOptions, GitRepoState, FileStatusResult, GitDiffResult, GitDiffStats, PerFileStats, MemoryFileInfo, MemoryType } from './context/index.js'
-
-// Permission System
-export { PermissionManager } from './permission/index.js'
+export const VERSION = "0.2.0";
 
 // Config Management
-export { ConfigManager } from './config/index.js'
-
-// MCP Protocol
-export { MCPServerManager } from './mcp/index.js'
+export { ConfigManager } from "./config/index.js";
 export type {
-  MCPServerConfig,
-  MCPServerToolConfiguration,
-  MCPConnection,
-  MCPToolDefinition,
-} from './mcp/index.js'
+	ContextOptions,
+	FileStatusResult,
+	GitDiffResult,
+	GitDiffStats,
+	GitRepoState,
+	MemoryFileInfo,
+	MemoryType,
+	PerFileStats,
+} from "./context/index.js";
+// Context Building
+export {
+	ContextBuilder,
+	fetchGitDiff,
+	findGitRoot,
+	getBranch,
+	getFileStatus,
+	getGitState,
+	getHead,
+	getRemoteUrl,
+	MemoryFileLoader,
+} from "./context/index.js";
+export type {
+	CompactOptions,
+	CompactResult,
+	LoopOptions,
+	MicroCompactOptions,
+	SummaryLLM,
+} from "./conversation/index.js";
+// Conversation
+export {
+	AutoCompactor,
+	CircularBuffer,
+	ConversationManager,
+	conversationLoop,
+	estimateContextTokens,
+	getBudgetContinuationMessage,
+	getTokenUsageFromMessage,
+	getTotalTokensFromUsage,
+	MicroCompactor,
+	parseTokenBudget,
+	TokenBudget,
+	TokenTracker,
+} from "./conversation/index.js";
+export type {
+	AnthropicConfig,
+	BedrockConfig,
+	FoundryConfig,
+	LLMConfig,
+	LLMConnector,
+	LLMProvider,
+	SendOptions,
+	StreamEvent,
+	TokenUsage,
+	VertexConfig,
+} from "./llm/index.js";
+// LLM Layer
+export {
+	AnthropicConnector,
+	BedrockConnector,
+	createLLMConnector,
+	FoundryConnector,
+	getSupportedProviders,
+	VertexConnector,
+} from "./llm/index.js";
+export type {
+	MCPConnection,
+	MCPServerConfig,
+	MCPServerToolConfiguration,
+	MCPToolDefinition,
+} from "./mcp/index.js";
+// MCP Protocol
+export { MCPServerManager } from "./mcp/index.js";
+// Permission System
+export { PermissionManager } from "./permission/index.js";
+export type {
+	AttributionMetadata,
+	AttributionMode,
+	AttributionSnapshot,
+	AttributionStats,
+	AttributionTexts,
+	InterruptionResult,
+	MessageSource,
+	SerializedMessage,
+	SessionConfig,
+	SessionListEntry,
+	SessionMetadata,
+	SessionResponse,
+	SessionSnapshot,
+	SessionStatus,
+} from "./session/index.js";
+// Session Engine (main entry point)
+export {
+	AttributionManager,
+	ClaudeCodeSDK,
+	SessionPersistence,
+} from "./session/index.js";
+// Tool System
+export { BaseTool, createTool, ToolRegistry } from "./tools/index.js";
+export type { SDKConfig } from "./types/config.js";
 
 // Core Types
 export type {
-  Message,
-  UserMessage,
-  AssistantMessage,
-  ToolResultMessage,
-  SystemMessage,
-  ContentBlock,
-  TextBlock,
-  ToolUseBlock,
-  ToolResultBlock,
-  ThinkingBlock,
-  Snowflake,
-} from './types/message.js'
+	AssistantMessage,
+	ContentBlock,
+	Message,
+	Snowflake,
+	SystemMessage,
+	TextBlock,
+	ThinkingBlock,
+	ToolResultBlock,
+	ToolResultMessage,
+	ToolUseBlock,
+	UserMessage,
+} from "./types/message.js";
 
 export type {
-  PermissionMode,
-  PermissionRequest,
-  PermissionDecision,
-  PermissionResult,
-  PermissionRule,
-} from './types/permission.js'
-
-export type { SDKConfig } from './types/config.js'
+	PermissionDecision,
+	PermissionMode,
+	PermissionRequest,
+	PermissionResult,
+	PermissionRule,
+} from "./types/permission.js";
+export type {
+	AnyZodObject,
+	Tool,
+	ToolCallRecord,
+	ToolContext,
+	ToolDefinition,
+	ToolResult,
+} from "./types/tool.js";
