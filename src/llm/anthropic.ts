@@ -14,6 +14,7 @@ import type {
   SendOptions,
 } from './types.js'
 import type { Stream } from '@anthropic-ai/sdk/streaming.js'
+import { withRetry } from './retry.js'
 
 /**
  * Raw content block start event from the Anthropic SDK.
@@ -42,14 +43,19 @@ interface MessageDelta {
     stop_reason: string | null
     stop_sequence: string | null
   }
-  usage: unknown
+  usage: { input_tokens: number; output_tokens: number }
 }
 
 interface MessageStop {
   type: 'message_stop'
 }
 
-type StreamEvent_ = ContentBlockStart | ContentBlockDelta | MessageDelta | MessageStop | { type: 'ping' } | { type: 'message_start'; message: unknown }
+interface MessageStart {
+  type: 'message_start'
+  message: { usage: { input_tokens: number; output_tokens: number } }
+}
+
+type StreamEvent_ = ContentBlockStart | ContentBlockDelta | MessageDelta | MessageStop | { type: 'ping' } | MessageStart
 
 export class AnthropicConnector implements LLMConnector {
   readonly provider: LLMProvider = 'anthropic'
@@ -61,7 +67,7 @@ export class AnthropicConnector implements LLMConnector {
     this._client = new Anthropic({
       apiKey: _config.apiKey,
       baseURL: _config.baseUrl,
-      maxRetries: 3,
+      maxRetries: 0, // We handle retries ourselves via withRetry
     })
     this._model = _config.model
     this._maxTokens = _config.maxTokens ?? 8192
@@ -78,15 +84,48 @@ export class AnthropicConnector implements LLMConnector {
       content: msg.content,
     }))
 
+    // Handle empty messages gracefully
+    if (messages.length === 0) {
+      yield { type: 'done', usage: { inputTokens: 0, outputTokens: 0 } }
+      return
+    }
+
+    // Buffer for retry events (populated during withRetry, yielded before stream processing)
+    const retryEvents: StreamEvent[] = []
+    let inputTokens = 0
+    let outputTokens = 0
+
     try {
-      const stream = await this._client.messages.create({
-        model: this._model,
-        max_tokens: options?.maxTokens ?? this._maxTokens,
-        system: systemPrompt ? [{ type: 'text' as const, text: systemPrompt }] : undefined,
-        messages: anthropicMessages,
-        tools: tools.length > 0 ? (tools as Anthropic.Messages.Tool[]) : undefined,
-        stream: true,
-      }) as unknown as Stream<StreamEvent_>
+      const stream = await withRetry(
+        async (attempt) => {
+          return await this._client.messages.create({
+            model: this._model,
+            max_tokens: options?.maxTokens ?? this._maxTokens,
+            system: systemPrompt ? [{ type: 'text' as const, text: systemPrompt }] : undefined,
+            messages: anthropicMessages,
+            tools: tools.length > 0 ? (tools as Anthropic.Messages.Tool[]) : undefined,
+            stream: true,
+          }) as unknown as Stream<StreamEvent_>
+        },
+        {
+          maxRetries: options?.maxRetries ?? 3,
+          signal: options?.signal,
+          onRetry: (event) => {
+            retryEvents.push({
+              type: 'retry',
+              attempt: event.attempt,
+              delayMs: event.delayMs,
+              error: event.error,
+              status: event.status,
+            })
+          },
+        },
+      )
+
+      // Yield any buffered retry events first
+      for (const evt of retryEvents) {
+        yield evt
+      }
 
       let toolUseId = ''
       let toolUseName = ''
@@ -118,6 +157,11 @@ export class AnthropicConnector implements LLMConnector {
             yield { type: 'thinking', thinking: delta.thinking }
           }
         } else if (event.type === 'message_delta') {
+          // Capture usage from message_delta
+          if (event.usage) {
+            inputTokens = event.usage.input_tokens ?? inputTokens
+            outputTokens = event.usage.output_tokens ?? outputTokens
+          }
           if (event.delta.stop_reason === 'tool_use' && toolUseId) {
             yield {
               type: 'tool_use_end',
@@ -125,17 +169,21 @@ export class AnthropicConnector implements LLMConnector {
               output: toolUseInput,
             }
           }
+        } else if (event.type === 'message_start') {
+          // Capture usage from message_start
+          inputTokens = event.message.usage.input_tokens ?? inputTokens
         } else if (event.type === 'message_stop') {
           yield {
             type: 'done',
             usage: {
-              inputTokens: 0,
-              outputTokens: 0,
+              inputTokens,
+              outputTokens,
             },
           }
         }
       }
     } catch (err) {
+      // If the error was already an abort, don't yield error event
       const error = err instanceof Error ? err : new Error(String(err))
       yield { type: 'error', error }
     }

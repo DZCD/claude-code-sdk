@@ -15,6 +15,7 @@ import type {
   ToolDefinition,
   SendOptions,
 } from './types.js'
+import { withRetry } from './retry.js'
 
 /**
  * Raw content block start event from the Anthropic SDK stream.
@@ -86,7 +87,7 @@ export class FoundryConnector implements LLMConnector {
     this._client = new AnthropicFoundry({
       resource: _config.resourceName,
       apiKey: _config.apiKey,
-      maxRetries: 3,
+      maxRetries: 0, // We handle retries ourselves via withRetry
     })
     this._model = _config.model
     this._maxTokens = _config.maxTokens ?? 8192
@@ -103,17 +104,50 @@ export class FoundryConnector implements LLMConnector {
       content: msg.content,
     }))
 
+    // Handle empty messages gracefully
+    if (messages.length === 0) {
+      yield { type: 'done', usage: { inputTokens: 0, outputTokens: 0 } }
+      return
+    }
+
+    // Buffer for retry events
+    const retryEvents: StreamEvent[] = []
+    let inputTokens = 0
+    let outputTokens = 0
+
     try {
-      const stream = (await this._client.messages.create({
-        model: this._model,
-        max_tokens: options?.maxTokens ?? this._maxTokens,
-        system: systemPrompt
-          ? [{ type: 'text' as const, text: systemPrompt }]
-          : undefined,
-        messages: foundryMessages,
-        tools: tools.length > 0 ? (tools as unknown as SdkTool[]) : undefined,
-        stream: true,
-      })) as unknown as Stream<FoundryStreamEvent>
+      const stream = await withRetry(
+        async (attempt) => {
+          return (await this._client.messages.create({
+            model: this._model,
+            max_tokens: options?.maxTokens ?? this._maxTokens,
+            system: systemPrompt
+              ? [{ type: 'text' as const, text: systemPrompt }]
+              : undefined,
+            messages: foundryMessages,
+            tools: tools.length > 0 ? (tools as unknown as SdkTool[]) : undefined,
+            stream: true,
+          })) as unknown as Stream<FoundryStreamEvent>
+        },
+        {
+          maxRetries: options?.maxRetries ?? 3,
+          signal: options?.signal,
+          onRetry: (event) => {
+            retryEvents.push({
+              type: 'retry',
+              attempt: event.attempt,
+              delayMs: event.delayMs,
+              error: event.error,
+              status: event.status,
+            })
+          },
+        },
+      )
+
+      // Yield any buffered retry events first
+      for (const evt of retryEvents) {
+        yield evt
+      }
 
       let toolUseId = ''
       let toolUseName = ''
@@ -145,6 +179,10 @@ export class FoundryConnector implements LLMConnector {
             yield { type: 'thinking', thinking: delta.thinking }
           }
         } else if (event.type === 'message_delta') {
+          if (event.usage) {
+            inputTokens = event.usage.input_tokens ?? inputTokens
+            outputTokens = event.usage.output_tokens ?? outputTokens
+          }
           if (event.delta.stop_reason === 'tool_use' && toolUseId) {
             yield {
               type: 'tool_use_end',
@@ -156,8 +194,8 @@ export class FoundryConnector implements LLMConnector {
           yield {
             type: 'done',
             usage: {
-              inputTokens: 0,
-              outputTokens: 0,
+              inputTokens,
+              outputTokens,
             },
           }
         }

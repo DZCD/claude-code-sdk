@@ -11,8 +11,23 @@
 export const VERSION = '0.1.0'
 
 // Session Engine (main entry point)
-export { ClaudeCodeSDK } from './session/index.js'
-export type { SessionResponse } from './session/index.js'
+export { ClaudeCodeSDK, AttributionManager, SessionPersistence } from './session/index.js'
+export type {
+  SessionResponse,
+  SessionConfig,
+  SessionListEntry,
+  MessageSource,
+  AttributionMode,
+  AttributionMetadata,
+  AttributionStats,
+  AttributionTexts,
+  AttributionSnapshot,
+  SessionSnapshot,
+  SessionMetadata,
+  SessionStatus,
+  InterruptionResult,
+  SerializedMessage,
+} from './session/index.js'
 
 // Tool System
 export { BaseTool, createTool, ToolRegistry } from './tools/index.js'
@@ -34,12 +49,12 @@ export type {
 } from './llm/index.js'
 
 // Conversation
-export { ConversationManager, conversationLoop } from './conversation/index.js'
-export type { LoopOptions } from './conversation/index.js'
+export { ConversationManager, conversationLoop, CircularBuffer, TokenTracker, TokenBudget, MicroCompactor, AutoCompactor, getTokenUsageFromMessage, getTotalTokensFromUsage, estimateContextTokens, parseTokenBudget, getBudgetContinuationMessage } from './conversation/index.js'
+export type { LoopOptions, CompactOptions, CompactResult, MicroCompactOptions, SummaryLLM } from './conversation/index.js'
 
 // Context Building
-export { ContextBuilder } from './context/index.js'
-export type { ContextOptions } from './context/index.js'
+export { ContextBuilder, findGitRoot, getGitState, getFileStatus, getBranch, getHead, getRemoteUrl, fetchGitDiff, MemoryFileLoader } from './context/index.js'
+export type { ContextOptions, GitRepoState, FileStatusResult, GitDiffResult, GitDiffStats, PerFileStats, MemoryFileInfo, MemoryType } from './context/index.js'
 
 // Permission System
 export { PermissionManager } from './permission/index.js'

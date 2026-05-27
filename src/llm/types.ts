@@ -59,6 +59,7 @@ export type StreamEvent =
   | { type: 'tool_use_end'; id: Snowflake; output: string; isError?: boolean }
   | { type: 'thinking'; thinking: string }
   | { type: 'error'; error: Error }
+  | { type: 'retry'; attempt: number; delayMs: number; error: string; status?: number }
   | { type: 'done'; usage: TokenUsage }
   | { type: 'ping' }
 
@@ -96,4 +97,6 @@ export interface SendOptions {
   signal?: AbortSignal
   maxTokens?: number
   thinking?: { budgetTokens: number }
+  /** Maximum number of retry attempts on transient errors (default: 3) */
+  maxRetries?: number
 }

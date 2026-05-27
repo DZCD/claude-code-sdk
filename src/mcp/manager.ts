@@ -9,9 +9,9 @@
  */
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { CallToolResultSchema } from '@modelcontextprotocol/sdk/types.js'
+import { CallToolResultSchema, ListResourcesResultSchema, ReadResourceResultSchema, ListPromptsResultSchema } from '@modelcontextprotocol/sdk/types.js'
 import type { Tool } from '../types/tool.js'
-import type { MCPServerConfig, MCPConnection } from './types.js'
+import type { MCPServerConfig, MCPConnection, MCPResourceDefinition, MCPResourceContent, MCPPromptDefinition, MCPGetPromptResult } from './types.js'
 import { MCPServerError } from './types.js'
 import { adaptMCPTool } from './tool-adapter.js'
 import { ToolRegistry } from '../tools/registry.js'
@@ -219,6 +219,195 @@ export class MCPServerManager {
    */
   getConnectionInfo(): MCPConnection[] {
     return Array.from(this._servers.values()).map((s) => s.connection)
+  }
+
+  // ========== Phase 2: Resource Support ==========
+
+  /**
+   * List resources from connected MCP servers.
+   *
+   * @param serverName - Optional server name to filter by
+   * @returns Array of resource definitions
+   */
+  async listResources(serverName?: string): Promise<MCPResourceDefinition[]> {
+    if (this._servers.size === 0) return []
+
+    const servers = serverName
+      ? [this._servers.get(serverName)].filter(Boolean) as ConnectedServer[]
+      : Array.from(this._servers.values())
+
+    if (serverName && servers.length === 0) return []
+
+    const results = await Promise.all(
+      servers.map(async (server) => {
+        const capabilities = server.client.getServerCapabilities()
+        if (!capabilities?.resources) return [] as MCPResourceDefinition[]
+
+        try {
+          const result = await server.client.request(
+            { method: 'resources/list' },
+            ListResourcesResultSchema,
+          )
+          if (!result.resources) return []
+
+          return result.resources.map((resource) => ({
+            uri: resource.uri,
+            name: resource.name,
+            description: (resource as any).description,
+            mimeType: (resource as any).mimeType,
+            server: server.config.name,
+          })) as MCPResourceDefinition[]
+        } catch (err) {
+          console.warn(`[MCP] Failed to list resources from "${server.config.name}":`, (err as Error).message)
+          return [] as MCPResourceDefinition[]
+        }
+      }),
+    )
+
+    return results.flat()
+  }
+
+  /**
+   * Read a specific resource from an MCP server.
+   *
+   * @param serverName - The server to read from
+   * @param uri - The resource URI to read
+   * @returns Array of resource content items
+   * @throws MCPServerError if server not found or doesn't support resources
+   */
+  async readResource(serverName: string, uri: string): Promise<MCPResourceContent[]> {
+    const server = this._servers.get(serverName)
+    if (!server) {
+      throw new MCPServerError(
+        `Server "${serverName}" not found. Available servers: ${this.connectedServers.join(', ')}`,
+        serverName,
+      )
+    }
+
+    const capabilities = server.client.getServerCapabilities()
+    if (!capabilities?.resources) {
+      throw new MCPServerError(
+        `Server "${serverName}" does not support resources`,
+        serverName,
+      )
+    }
+
+    try {
+      const result = await server.client.request(
+        { method: 'resources/read', params: { uri } },
+        ReadResourceResultSchema,
+      )
+
+      return result.contents.map((content) => ({
+        uri: content.uri,
+        mimeType: (content as any).mimeType,
+        text: 'text' in content ? content.text : undefined,
+        blob: 'blob' in content ? (content as any).blob : undefined,
+      })) as MCPResourceContent[]
+    } catch (err) {
+      throw new MCPServerError(
+        `Failed to read resource "${uri}": ${(err as Error).message}`,
+        serverName,
+        err,
+      )
+    }
+  }
+
+  // ========== Phase 2: Prompt Support ==========
+
+  /**
+   * List prompt templates from connected MCP servers.
+   *
+   * @param serverName - Optional server name to filter by
+   * @returns Array of prompt definitions
+   */
+  async listPrompts(serverName?: string): Promise<MCPPromptDefinition[]> {
+    if (this._servers.size === 0) return []
+
+    const servers = serverName
+      ? [this._servers.get(serverName)].filter(Boolean) as ConnectedServer[]
+      : Array.from(this._servers.values())
+
+    if (serverName && servers.length === 0) return []
+
+    const results = await Promise.all(
+      servers.map(async (server) => {
+        const capabilities = server.client.getServerCapabilities()
+        if (!capabilities?.prompts) return [] as MCPPromptDefinition[]
+
+        try {
+          const result = await server.client.request(
+            { method: 'prompts/list' },
+            ListPromptsResultSchema,
+          )
+          if (!result.prompts) return []
+
+          return result.prompts.map((prompt) => ({
+            name: prompt.name,
+            description: (prompt as any).description,
+            arguments: (prompt as any).arguments?.map((arg: any) => ({
+              name: arg.name,
+              description: arg.description,
+              required: arg.required,
+            })),
+            server: server.config.name,
+          })) as MCPPromptDefinition[]
+        } catch (err) {
+          console.warn(`[MCP] Failed to list prompts from "${server.config.name}":`, (err as Error).message)
+          return [] as MCPPromptDefinition[]
+        }
+      }),
+    )
+
+    return results.flat()
+  }
+
+  /**
+   * Get a specific prompt template from an MCP server.
+   *
+   * @param serverName - The server to get the prompt from
+   * @param name - The prompt name
+   * @param args - Optional arguments for the prompt
+   * @returns The rendered prompt result with messages
+   * @throws MCPServerError if server not found or doesn't support prompts
+   */
+  async getPrompt(
+    serverName: string,
+    name: string,
+    args?: Record<string, string>,
+  ): Promise<MCPGetPromptResult> {
+    const server = this._servers.get(serverName)
+    if (!server) {
+      throw new MCPServerError(
+        `Server "${serverName}" not found. Available servers: ${this.connectedServers.join(', ')}`,
+        serverName,
+      )
+    }
+
+    const capabilities = server.client.getServerCapabilities()
+    if (!capabilities?.prompts) {
+      throw new MCPServerError(
+        `Server "${serverName}" does not support prompts`,
+        serverName,
+      )
+    }
+
+    try {
+      const result = await server.client.getPrompt({
+        name,
+        arguments: args,
+      })
+      return {
+        description: result.description,
+        messages: result.messages as Array<{ role: string; content: unknown }>,
+      }
+    } catch (err) {
+      throw new MCPServerError(
+        `Failed to get prompt "${name}": ${(err as Error).message}`,
+        serverName,
+        err,
+      )
+    }
   }
 
   /**

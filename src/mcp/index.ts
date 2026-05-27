@@ -11,9 +11,17 @@
 export { MCPServerManager } from './manager.js'
 export { adaptMCPTool } from './tool-adapter.js'
 export type {
+  // Connection & Tool types
   MCPServerConfig,
   MCPServerToolConfiguration,
   MCPConnection,
   MCPToolDefinition,
+  // Resource types
+  MCPResourceDefinition,
+  MCPResourceContent,
+  // Prompt types
+  MCPPromptDefinition,
+  MCPPromptArgument,
+  MCPGetPromptResult,
 } from './types.js'
 export { MCPServerError } from './types.js'

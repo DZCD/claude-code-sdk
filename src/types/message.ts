@@ -38,6 +38,14 @@ export interface ThinkingBlock {
 
 export type ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock | ThinkingBlock
 
+/** Token usage tracking */
+export interface TokenUsage {
+  inputTokens: number
+  outputTokens: number
+  cacheCreationInputTokens?: number
+  cacheReadInputTokens?: number
+}
+
 // ─── Messages ────────────────────────────────────────────
 
 export interface BaseMessage {
@@ -53,6 +61,8 @@ export interface UserMessage extends BaseMessage {
 export interface AssistantMessage extends BaseMessage {
   role: 'assistant'
   content: string | ContentBlock[]
+  /** Token usage from API response, attached after receiving streaming events */
+  usage?: { inputTokens: number; outputTokens: number; cacheCreationInputTokens?: number; cacheReadInputTokens?: number }
 }
 
 export interface ToolResultMessage extends BaseMessage {

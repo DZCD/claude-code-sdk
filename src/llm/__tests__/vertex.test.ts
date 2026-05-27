@@ -214,6 +214,41 @@ describe('VertexConnector', () => {
     expect(count).toBe(2)
   })
 
+  // ─── send() — Empty messages ───────────────────────────
+
+  it('should handle empty messages gracefully', async () => {
+    const connector = new VertexConnector(makeConfig())
+    const events: string[] = []
+    for await (const event of connector.send(undefined, [], [])) {
+      events.push(event.type)
+    }
+    expect(events).toEqual(['done'])
+    expect(mockCreateStream).not.toHaveBeenCalled()
+  })
+
+  // ─── send() — Usage tracking ──────────────────────────
+
+  it('should capture usage from message_delta', async () => {
+    const connector = new VertexConnector(makeConfig())
+    const events = [
+      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'Hello' } },
+      { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { input_tokens: 30, output_tokens: 5 } },
+      { type: 'message_stop' },
+    ]
+
+    mockCreateStream.mockResolvedValue(makeStream(events))
+
+    let capturedUsage: unknown
+    for await (const event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [])) {
+      if (event.type === 'done') {
+        capturedUsage = event.usage
+        break
+      }
+    }
+
+    expect(capturedUsage).toEqual({ inputTokens: 30, outputTokens: 5 })
+  })
+
   // ─── isVertexConfig ────────────────────────────────────
 
   it('should identify vertex config', async () => {

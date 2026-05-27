@@ -199,6 +199,62 @@ describe('BedrockConnector', () => {
     expect(count).toBe(3)
   })
 
+  // ─── send() — Empty messages ───────────────────────────
+
+  it('should handle empty messages gracefully', async () => {
+    const connector = new BedrockConnector(makeConfig())
+    const events: string[] = []
+    for await (const event of connector.send(undefined, [], [])) {
+      events.push(event.type)
+    }
+    expect(events).toEqual(['done'])
+    // Should not call the API when there are no messages
+    expect(mockCreateStream).not.toHaveBeenCalled()
+  })
+
+  // ─── send() — Usage tracking ──────────────────────────
+
+  it('should capture usage from message_delta', async () => {
+    const connector = new BedrockConnector(makeConfig())
+    const events = [
+      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'Hello' } },
+      { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { input_tokens: 50, output_tokens: 10 } },
+      { type: 'message_stop' },
+    ]
+
+    mockCreateStream.mockResolvedValue(makeStream(events))
+
+    let capturedUsage: unknown
+    for await (const event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [])) {
+      if (event.type === 'done') {
+        capturedUsage = event.usage
+        break
+      }
+    }
+
+    expect(capturedUsage).toEqual({ inputTokens: 50, outputTokens: 10 })
+  })
+
+  // ─── send() — Retry with maxRetries option ────────────
+
+  it('should yield retry event when API fails with retryable error and maxRetries=0', async () => {
+    const connector = new BedrockConnector(makeConfig())
+    // The error does NOT have a status property, so shouldRetry returns false
+    // and we get an error event immediately
+    mockCreateStream.mockRejectedValue(new Error('Bedrock transient error'))
+
+    const events: string[] = []
+    const errors: Error[] = []
+    for await (const event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [], { maxRetries: 0 })) {
+      events.push(event.type)
+      if (event.type === 'error') errors.push(event.error)
+    }
+
+    expect(events).toContain('error')
+    expect(errors).toHaveLength(1)
+    expect(errors[0]?.message).toBe('Bedrock transient error')
+  })
+
   // ─── isBedrockConfig ────────────────────────────────────
 
   it('should identify bedrock config', async () => {

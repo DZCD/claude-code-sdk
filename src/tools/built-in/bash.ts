@@ -2,14 +2,27 @@
  * ClaudeCode SDK — BashTool
  *
  * Executes shell commands via child_process.exec with timeout support.
- * Distinguishes read-only commands (ls, cat, git status, etc.) from
- * write/modify commands.
+ * Integrated with the BashTool security layer for command safety checking,
+ * path validation, permission mode handling, and read-only detection.
+ *
+ * The security subsystem provides:
+ * - bashSecurity: Dangerous pattern detection (substitution, injection, etc.)
+ * - bashPermissions: Rule-based allow/deny permission checking
+ * - pathValidation: Path extraction and dangerous path detection
+ * - readOnlyValidation: Enhanced read-only command validation
+ * - sedValidation: Sed command safety validation
+ * - modeValidation: Mode-specific permission behavior
  */
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import { z } from 'zod'
 import { BaseTool } from '../base.js'
 import type { ToolContext, ToolResult } from '../../types/tool.js'
+import { bashCommandIsSafe } from './bash-security-utils/bashSecurity.js'
+import { checkBashPermission } from './bash-security-utils/bashPermissions.js'
+import { checkPermissionMode } from './bash-security-utils/modeValidation.js'
+import { checkReadOnlyConstraints } from './bash-security-utils/readOnlyValidation.js'
+import type { PermissionContext } from './bash-security-utils/types.js'
 
 const execAsync = promisify(exec)
 
@@ -66,11 +79,58 @@ export class BashTool extends BaseTool<typeof bashSchema, { stdout: string; stde
   description = 'Execute a bash command on the local system. Use this tool to run shell commands, scripts, and CLI tools.'
   inputSchema = bashSchema
 
+  /**
+   * Run pre-execution security checks on the command.
+   * Returns an error result if the command is unsafe, or null if safe.
+   */
+  private runSecurityChecks(
+    command: string,
+    context: ToolContext,
+  ): ToolResult<{ stdout: string; stderr: string; exitCode: number }> | null {
+    // 1. Command safety check
+    const safetyResult = bashCommandIsSafe(command)
+    if (!safetyResult.safe) {
+      return {
+        data: { stdout: '', stderr: safetyResult.message || 'Command rejected by security check', exitCode: 1 },
+        content: `Security Error: ${safetyResult.message}\n\nCommand was blocked by security validation.`,
+        isError: true,
+      }
+    }
+
+    // 2. Read-only constraint check (UNC paths, etc.)
+    const readOnlyResult = checkReadOnlyConstraints(command)
+    if (!readOnlyResult.safe) {
+      return {
+        data: { stdout: '', stderr: readOnlyResult.message || 'Command rejected by read-only validation', exitCode: 1 },
+        content: `Security Error: ${readOnlyResult.message}`,
+        isError: true,
+      }
+    }
+
+    // 3. Permission mode check (bypass/acceptEdits)
+    if (context.permissionContext) {
+      const modeResult = checkPermissionMode(command, context.permissionContext as PermissionContext)
+      if (modeResult.behavior === 'deny') {
+        return {
+          data: { stdout: '', stderr: modeResult.message, exitCode: 1 },
+          content: `Permission Denied: ${modeResult.message}`,
+          isError: true,
+        }
+      }
+    }
+
+    return null
+  }
+
   async execute(
     input: z.infer<typeof bashSchema>,
-    _context: ToolContext,
+    context: ToolContext,
   ): Promise<ToolResult<{ stdout: string; stderr: string; exitCode: number }>> {
     const { command, timeout = 30000 } = input
+
+    // Run security pre-checks
+    const securityError = this.runSecurityChecks(command, context)
+    if (securityError) return securityError
 
     try {
       const { stdout, stderr } = await execAsync(command, {
