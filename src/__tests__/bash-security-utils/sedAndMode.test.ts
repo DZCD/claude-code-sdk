@@ -1,21 +1,18 @@
 /**
  * TDD Tests — sedEditParser, sedValidation, modeValidation
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import { checkPermissionMode, getAutoAllowedCommands } from '../../tools/built-in/bash-security-utils/modeValidation.js'
 import {
+  applySedSubstitution,
   isSedInPlaceEdit,
   parseSedEditCommand,
-  applySedSubstitution,
 } from '../../tools/built-in/bash-security-utils/sedEditParser.js'
 import {
   isLinePrintingCommand,
   sedCommandIsAllowedByAllowlist,
   validateSedCommand,
 } from '../../tools/built-in/bash-security-utils/sedValidation.js'
-import {
-  checkPermissionMode,
-  getAutoAllowedCommands,
-} from '../../tools/built-in/bash-security-utils/modeValidation.js'
 import type { PermissionContext } from '../../tools/built-in/bash-security-utils/types.js'
 
 // ─── sedEditParser Tests ──────────────────────────────────
@@ -89,7 +86,7 @@ describe('sedEditParser', () => {
     it('should handle BRE metacharacters', () => {
       const result = applySedSubstitution('hello foooo bar', {
         filePath: 'test.txt',
-        pattern: 'foo\\+',  // BRE: one or more 'o'
+        pattern: 'foo\\+', // BRE: one or more 'o'
         replacement: 'baz',
         flags: '',
         extendedRegex: false,

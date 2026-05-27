@@ -3,15 +3,10 @@
  *
  * Tests for streamToText, streamToBlocks, createStreamConsumer, and StreamConsumer.
  */
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { StreamEvent } from '../../llm/types.js'
-import {
-  streamToText,
-  streamToBlocks,
-  createStreamConsumer,
-  StreamConsumer,
-} from '../consumer.js'
-import type { StreamBlock, TextBlock, ToolUseBlock, ThinkingBlock } from '../types.js'
+import { StreamConsumer, createStreamConsumer, streamToBlocks, streamToText } from '../consumer.js'
+import type { StreamBlock, TextBlock, ThinkingBlock, ToolUseBlock } from '../types.js'
 
 // ─── Helpers ───────────────────────────────────────────────
 
@@ -87,7 +82,12 @@ describe('streamToText', () => {
   it('should not yield tool_use_start or tool_use_end events', async () => {
     const stream = mockStream([
       { type: 'text', text: 'Result' },
-      { type: 'tool_use_start', id: 'tool-1', name: 'bash', input: { command: 'ls' } },
+      {
+        type: 'tool_use_start',
+        id: 'tool-1',
+        name: 'bash',
+        input: { command: 'ls' },
+      },
       { type: 'tool_use_end', id: 'tool-1', output: 'files', isError: false },
       { type: 'done', usage: { inputTokens: 10, outputTokens: 5 } },
     ])
@@ -156,8 +156,18 @@ describe('streamToBlocks', () => {
 
   it('should handle multiple tool uses in parallel', async () => {
     const stream = mockStream([
-      { type: 'tool_use_start', id: 'tu-1', name: 'bash', input: { command: 'ls' } },
-      { type: 'tool_use_start', id: 'tu-2', name: 'grep', input: { pattern: 'test' } },
+      {
+        type: 'tool_use_start',
+        id: 'tu-1',
+        name: 'bash',
+        input: { command: 'ls' },
+      },
+      {
+        type: 'tool_use_start',
+        id: 'tu-2',
+        name: 'grep',
+        input: { pattern: 'test' },
+      },
       { type: 'tool_use_end', id: 'tu-1', output: 'files', isError: false },
       { type: 'tool_use_end', id: 'tu-2', output: 'matches', isError: true },
       { type: 'done', usage: { inputTokens: 10, outputTokens: 5 } },
@@ -165,13 +175,30 @@ describe('streamToBlocks', () => {
 
     const result = await collect(streamToBlocks(stream))
     expect(result).toHaveLength(2)
-    expect(result[0]).toMatchObject({ type: 'tool_use', id: 'tu-1', name: 'bash', result: 'files', isError: false })
-    expect(result[1]).toMatchObject({ type: 'tool_use', id: 'tu-2', name: 'grep', result: 'matches', isError: true })
+    expect(result[0]).toMatchObject({
+      type: 'tool_use',
+      id: 'tu-1',
+      name: 'bash',
+      result: 'files',
+      isError: false,
+    })
+    expect(result[1]).toMatchObject({
+      type: 'tool_use',
+      id: 'tu-2',
+      name: 'grep',
+      result: 'matches',
+      isError: true,
+    })
   })
 
   it('should skip tool_use_start without matching end (orphaned)', async () => {
     const stream = mockStream([
-      { type: 'tool_use_start', id: 'tu-1', name: 'bash', input: { command: 'ls' } },
+      {
+        type: 'tool_use_start',
+        id: 'tu-1',
+        name: 'bash',
+        input: { command: 'ls' },
+      },
       { type: 'done', usage: { inputTokens: 10, outputTokens: 5 } },
     ])
 
@@ -208,12 +235,14 @@ describe('streamToBlocks', () => {
 describe('StreamConsumer', () => {
   describe('toTextStream()', () => {
     it('should produce text fragments', async () => {
-      const consumer = new StreamConsumer(mockStream([
-        { type: 'text', text: 'Hello' },
-        { type: 'thinking', thinking: '...' },
-        { type: 'text', text: ' World' },
-        { type: 'done', usage: { inputTokens: 10, outputTokens: 5 } },
-      ]))
+      const consumer = new StreamConsumer(
+        mockStream([
+          { type: 'text', text: 'Hello' },
+          { type: 'thinking', thinking: '...' },
+          { type: 'text', text: ' World' },
+          { type: 'done', usage: { inputTokens: 10, outputTokens: 5 } },
+        ]),
+      )
 
       const result = await collect(consumer.toTextStream())
       expect(result).toEqual(['Hello', ' World'])
@@ -222,10 +251,12 @@ describe('StreamConsumer', () => {
 
   describe('toBlockStream()', () => {
     it('should produce blocks', async () => {
-      const consumer = new StreamConsumer(mockStream([
-        { type: 'text', text: 'Hi' },
-        { type: 'done', usage: { inputTokens: 10, outputTokens: 5 } },
-      ]))
+      const consumer = new StreamConsumer(
+        mockStream([
+          { type: 'text', text: 'Hi' },
+          { type: 'done', usage: { inputTokens: 10, outputTokens: 5 } },
+        ]),
+      )
 
       const result = await collect(consumer.toBlockStream())
       expect(result).toEqual([{ type: 'text', text: 'Hi' }])
@@ -235,28 +266,38 @@ describe('StreamConsumer', () => {
   describe('on()', () => {
     it('should register type-specific handlers', async () => {
       const textHandler = vi.fn()
-      const consumer = new StreamConsumer(mockStream([
-        { type: 'text', text: 'A' },
-        { type: 'text', text: 'B' },
-        { type: 'thinking', thinking: '...' },
-        { type: 'done', usage: { inputTokens: 0, outputTokens: 0 } },
-      ]))
+      const consumer = new StreamConsumer(
+        mockStream([
+          { type: 'text', text: 'A' },
+          { type: 'text', text: 'B' },
+          { type: 'thinking', thinking: '...' },
+          { type: 'done', usage: { inputTokens: 0, outputTokens: 0 } },
+        ]),
+      )
 
       consumer.on('text', textHandler)
       await consumer.consume()
 
       expect(textHandler).toHaveBeenCalledTimes(2)
-      expect(textHandler).toHaveBeenNthCalledWith(1, { type: 'text', text: 'A' })
-      expect(textHandler).toHaveBeenNthCalledWith(2, { type: 'text', text: 'B' })
+      expect(textHandler).toHaveBeenNthCalledWith(1, {
+        type: 'text',
+        text: 'A',
+      })
+      expect(textHandler).toHaveBeenNthCalledWith(2, {
+        type: 'text',
+        text: 'B',
+      })
     })
 
     it('should return an unsubscribe function', async () => {
       const handler = vi.fn()
-      const consumer = new StreamConsumer(mockStream([
-        { type: 'text', text: 'A' },
-        { type: 'text', text: 'B' },
-        { type: 'done', usage: { inputTokens: 0, outputTokens: 0 } },
-      ]))
+      const consumer = new StreamConsumer(
+        mockStream([
+          { type: 'text', text: 'A' },
+          { type: 'text', text: 'B' },
+          { type: 'done', usage: { inputTokens: 0, outputTokens: 0 } },
+        ]),
+      )
 
       const unsub = consumer.on('text', handler)
       unsub()
@@ -269,11 +310,13 @@ describe('StreamConsumer', () => {
   describe('onEvent()', () => {
     it('should trigger on every event', async () => {
       const handler = vi.fn()
-      const consumer = new StreamConsumer(mockStream([
-        { type: 'text', text: 'A' },
-        { type: 'ping' },
-        { type: 'done', usage: { inputTokens: 0, outputTokens: 0 } },
-      ]))
+      const consumer = new StreamConsumer(
+        mockStream([
+          { type: 'text', text: 'A' },
+          { type: 'ping' },
+          { type: 'done', usage: { inputTokens: 0, outputTokens: 0 } },
+        ]),
+      )
 
       consumer.onEvent(handler)
       await consumer.consume()
@@ -283,9 +326,7 @@ describe('StreamConsumer', () => {
 
     it('should return an unsubscribe function', async () => {
       const handler = vi.fn()
-      const consumer = new StreamConsumer(mockStream([
-        { type: 'done', usage: { inputTokens: 0, outputTokens: 0 } },
-      ]))
+      const consumer = new StreamConsumer(mockStream([{ type: 'done', usage: { inputTokens: 0, outputTokens: 0 } }]))
 
       const unsub = consumer.onEvent(handler)
       unsub()
@@ -300,7 +341,12 @@ describe('StreamConsumer', () => {
       const stream = mockStream([
         { type: 'text', text: 'Hello' },
         { type: 'text', text: ' World' },
-        { type: 'tool_use_start', id: 'tu-1', name: 'bash', input: { command: 'ls' } },
+        {
+          type: 'tool_use_start',
+          id: 'tu-1',
+          name: 'bash',
+          input: { command: 'ls' },
+        },
         { type: 'tool_use_end', id: 'tu-1', output: 'files', isError: false },
         { type: 'done', usage: { inputTokens: 10, outputTokens: 5 } },
       ])
@@ -310,14 +356,15 @@ describe('StreamConsumer', () => {
 
       expect(result.text).toBe('Hello World')
       expect(result.toolUses).toHaveLength(1)
-      expect(result.toolUses[0]).toMatchObject({ name: 'bash', result: 'files' })
+      expect(result.toolUses[0]).toMatchObject({
+        name: 'bash',
+        result: 'files',
+      })
       expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 5 })
     })
 
     it('should return empty text and toolUses when no events', async () => {
-      const stream = mockStream([
-        { type: 'done', usage: { inputTokens: 0, outputTokens: 0 } },
-      ])
+      const stream = mockStream([{ type: 'done', usage: { inputTokens: 0, outputTokens: 0 } }])
 
       const consumer = new StreamConsumer(stream)
       const result = await consumer.toPromise()

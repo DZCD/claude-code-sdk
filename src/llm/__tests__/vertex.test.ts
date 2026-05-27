@@ -4,9 +4,9 @@
  * Uses vitest mock to replace @anthropic-ai/vertex-sdk with a mock implementation
  * that simulates the streaming API.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { VertexConnector } from '../vertex.js'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { VertexConfig } from '../types.js'
+import { VertexConnector } from '../vertex.js'
 
 // ─── Mock @anthropic-ai/vertex-sdk ──────────────────────
 
@@ -55,9 +55,7 @@ describe('VertexConnector', () => {
   })
 
   it('should create connector with minimal config', () => {
-    const connector = new VertexConnector(
-      makeConfig({ region: undefined }),
-    )
+    const connector = new VertexConnector(makeConfig({ region: undefined }))
     expect(connector.provider).toBe('vertex')
   })
 
@@ -66,8 +64,16 @@ describe('VertexConnector', () => {
   it('should stream text response', async () => {
     const connector = new VertexConnector(makeConfig())
     const events = [
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'Hello' } },
-      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: ' world' } },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'Hello' },
+      },
+      {
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'text_delta', text: ' world' },
+      },
       { type: 'message_stop' },
     ]
 
@@ -95,9 +101,18 @@ describe('VertexConnector', () => {
       {
         type: 'content_block_start',
         index: 0,
-        content_block: { type: 'tool_use', id: 'tu_456', name: 'bash', input: toolInput },
+        content_block: {
+          type: 'tool_use',
+          id: 'tu_456',
+          name: 'bash',
+          input: toolInput,
+        },
       },
-      { type: 'message_delta', delta: { stop_reason: 'tool_use', stop_sequence: null }, usage: { input_tokens: 20, output_tokens: 8 } },
+      {
+        type: 'message_delta',
+        delta: { stop_reason: 'tool_use', stop_sequence: null },
+        usage: { input_tokens: 20, output_tokens: 8 },
+      },
       { type: 'message_stop' },
     ]
 
@@ -125,7 +140,11 @@ describe('VertexConnector', () => {
   it('should pass system prompt to the API', async () => {
     const connector = new VertexConnector(makeConfig())
     const events = [
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'Understood' } },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'Understood' },
+      },
       { type: 'message_stop' },
     ]
 
@@ -163,7 +182,11 @@ describe('VertexConnector', () => {
   it('should pass tool definitions to the API', async () => {
     const connector = new VertexConnector(makeConfig())
     const events = [
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'OK' } },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'OK' },
+      },
       { type: 'message_stop' },
     ]
 
@@ -173,7 +196,11 @@ describe('VertexConnector', () => {
       {
         name: 'read_file',
         description: 'Read a file',
-        input_schema: { type: 'object' as const, properties: { path: { type: 'string' } }, required: ['path'] },
+        input_schema: {
+          type: 'object' as const,
+          properties: { path: { type: 'string' } },
+          required: ['path'],
+        },
       },
     ]
 
@@ -192,9 +219,7 @@ describe('VertexConnector', () => {
     const connector = new VertexConnector(makeConfig())
     mockCountTokens.mockResolvedValue({ input_tokens: 42 })
 
-    const count = await connector.countTokens([
-      { role: 'user', content: 'Some text here' },
-    ])
+    const count = await connector.countTokens([{ role: 'user', content: 'Some text here' }])
 
     expect(count).toBe(42)
     expect(mockCountTokens).toHaveBeenCalledTimes(1)
@@ -208,7 +233,7 @@ describe('VertexConnector', () => {
     mockCountTokens.mockRejectedValue(new Error('API not available'))
 
     const count = await connector.countTokens([
-      { role: 'user', content: 'Hello' },  // 5 chars / 4 = 1.25 → ceil = 2
+      { role: 'user', content: 'Hello' }, // 5 chars / 4 = 1.25 → ceil = 2
     ])
 
     expect(count).toBe(2)
@@ -231,8 +256,16 @@ describe('VertexConnector', () => {
   it('should capture usage from message_delta', async () => {
     const connector = new VertexConnector(makeConfig())
     const events = [
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'Hello' } },
-      { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { input_tokens: 30, output_tokens: 5 } },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'Hello' },
+      },
+      {
+        type: 'message_delta',
+        delta: { stop_reason: 'end_turn', stop_sequence: null },
+        usage: { input_tokens: 30, output_tokens: 5 },
+      },
       { type: 'message_stop' },
     ]
 

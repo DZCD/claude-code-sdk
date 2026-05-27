@@ -4,29 +4,29 @@
  * Tests for command security checking, dangerous pattern detection,
  * and safety validation.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
+  bashCommandIsSafe,
+  containsUnescapedChar,
   extractQuotedContent,
   stripSafeRedirections,
-  containsUnescapedChar,
-  validateDangerousPatterns,
-  validateIncompleteCommands,
-  validateJqSystemFunction,
-  validateJqFileArguments,
-  validateObfuscatedFlags,
-  validateShellMetacharacters,
-  validateDangerousVariables,
-  validateNewlines,
-  validateControlCharacters,
-  validateUnicodeWhitespace,
-  validateMidWordHash,
-  validateCommentQuoteDesync,
-  validateQuotedNewline,
-  validateZshDangerousCommands,
+  validateBackslashEscapedOperators,
   validateBackslashEscapedWhitespace,
   validateBraceExpansion,
-  validateBackslashEscapedOperators,
-  bashCommandIsSafe,
+  validateCommentQuoteDesync,
+  validateControlCharacters,
+  validateDangerousPatterns,
+  validateDangerousVariables,
+  validateIncompleteCommands,
+  validateJqFileArguments,
+  validateJqSystemFunction,
+  validateMidWordHash,
+  validateNewlines,
+  validateObfuscatedFlags,
+  validateQuotedNewline,
+  validateShellMetacharacters,
+  validateUnicodeWhitespace,
+  validateZshDangerousCommands,
 } from '../../tools/built-in/bash-security-utils/bashSecurity.js'
 
 describe('bashSecurity', () => {
@@ -178,7 +178,7 @@ describe('bashSecurity', () => {
   // ─── validateJqSystemFunction ───────────────────────────
   describe('validateJqSystemFunction', () => {
     it('should detect jq @csv function', () => {
-      const result = validateJqSystemFunction('jq -r \'.[] | @csv\' data.json')
+      const result = validateJqSystemFunction("jq -r '.[] | @csv' data.json")
       expect(result).not.toBeNull()
       expect(result?.safe).toBe(false)
     })

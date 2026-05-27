@@ -1,7 +1,7 @@
 /**
  * Tests for LLM Client factory
  */
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 // Mock provider SDKs so constructors don't validate
 vi.mock('@anthropic-ai/bedrock-sdk', () => ({

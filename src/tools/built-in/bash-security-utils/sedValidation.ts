@@ -9,18 +9,15 @@
  * - File reading: sed 'r file'
  * - Combined read/write flags
  */
-import type { SafetyResult, PermissionResult } from './types.js'
+import type { PermissionResult, SafetyResult } from './types.js'
 
 // ─── Flag Validation Helper ───────────────────────────────
 
-function validateFlagsAgainstAllowlist(
-  flags: string[],
-  allowedFlags: string[],
-): boolean {
+function validateFlagsAgainstAllowlist(flags: string[], allowedFlags: string[]): boolean {
   for (const flag of flags) {
     if (flag.startsWith('-') && !flag.startsWith('--') && flag.length > 2) {
       for (let i = 1; i < flag.length; i++) {
-        const singleFlag = '-' + flag[i]
+        const singleFlag = `-${flag[i]}`
         if (!allowedFlags.includes(singleFlag)) return false
       }
     } else {
@@ -38,10 +35,7 @@ function validateFlagsAgainstAllowlist(
  * Allows semicolon-separated print commands.
  * File arguments are ALLOWED for this pattern.
  */
-export function isLinePrintingCommand(
-  command: string,
-  _expressions: string[],
-): boolean {
+export function isLinePrintingCommand(command: string, _expressions: string[]): boolean {
   const sedMatch = command.match(/^\s*sed\s+/)
   if (!sedMatch) return false
 
@@ -49,13 +43,19 @@ export function isLinePrintingCommand(
   const allParts = withoutSed.split(/\s+/).filter(Boolean)
 
   // Extract all flags
-  const flags: string[] = allParts.filter(a => a.startsWith('-') && a !== '--')
+  const flags: string[] = allParts.filter((a) => a.startsWith('-') && a !== '--')
 
   // Validate flags - only allow -n, -E, -r, -z and their long forms
   const allowedFlags = [
-    '-n', '--quiet', '--silent',
-    '-E', '--regexp-extended', '-r',
-    '-z', '--zero-terminated', '--posix',
+    '-n',
+    '--quiet',
+    '--silent',
+    '-E',
+    '--regexp-extended',
+    '-r',
+    '-z',
+    '--zero-terminated',
+    '--posix',
   ]
 
   if (!validateFlagsAgainstAllowlist(flags, allowedFlags)) return false
@@ -76,8 +76,8 @@ export function isLinePrintingCommand(
   if (!hasNFlag) return false
 
   // Must have at least one expression containing 'p' (print)
-  const nonFlags = allParts.filter(a => !a.startsWith('-'))
-  return nonFlags.some(expr => expr.includes('p'))
+  const nonFlags = allParts.filter((a) => !a.startsWith('-'))
+  return nonFlags.some((expr) => expr.includes('p'))
 }
 
 // ─── Sed Validation Entry ─────────────────────────────────
@@ -110,8 +110,7 @@ export function validateSedCommand(command: string): SafetyResult | null {
 
   // Check for dangerous sed operations
   // w flag writes to files, r flag reads files
-  const unquotedContent = command.replace(/'[^']*'/g, '')
-    .replace(/"[^"]*"/g, '')
+  const unquotedContent = command.replace(/'[^']*'/g, '').replace(/"[^"]*"/g, '')
 
   if (/\bw\s+/.test(unquotedContent) && !/\bn\s/.test(unquotedContent)) {
     // sed 'w file' writes output to file (without -n, this writes all lines)

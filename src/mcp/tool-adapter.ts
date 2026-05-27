@@ -1,3 +1,4 @@
+import { z } from 'zod'
 /**
  * ClaudeCode SDK — MCP Tool Adapter
  *
@@ -5,9 +6,8 @@
  * enabling MCP tools to be used alongside built-in tools in the
  * conversation loop.
  */
-import type { Tool, AnyZodObject, ToolResult, ToolContext } from '../types/tool.js'
+import type { AnyZodObject, Tool, ToolContext, ToolResult } from '../types/tool.js'
 import type { MCPToolDefinition } from './types.js'
-import { z } from 'zod'
 
 /**
  * Convert an MCP tool definition's JSON Schema input schema into a Zod schema.

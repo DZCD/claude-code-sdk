@@ -1,7 +1,7 @@
 /**
  * Tests for preconnect (connection management)
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Store original env
 const originalEnv = { ...process.env }
@@ -12,13 +12,13 @@ describe('preconnect', () => {
     // Reset env
     process.env = { ...originalEnv }
     // Clear proxy env vars
-    delete process.env.HTTPS_PROXY
-    delete process.env.https_proxy
-    delete process.env.HTTP_PROXY
-    delete process.env.http_proxy
-    delete process.env.ANTHROPIC_UNIX_SOCKET
-    delete process.env.CLAUDE_CODE_CLIENT_CERT
-    delete process.env.CLAUDE_CODE_CLIENT_KEY
+    process.env.HTTPS_PROXY = undefined
+    process.env.https_proxy = undefined
+    process.env.HTTP_PROXY = undefined
+    process.env.http_proxy = undefined
+    process.env.ANTHROPIC_UNIX_SOCKET = undefined
+    process.env.CLAUDE_CODE_CLIENT_CERT = undefined
+    process.env.CLAUDE_CODE_CLIENT_KEY = undefined
   })
 
   it('should do nothing when baseUrl is undefined', async () => {

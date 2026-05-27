@@ -1,3 +1,4 @@
+import type { TokenUsage } from '../llm/types.js'
 /**
  * Token Tracker — Token usage extraction, estimation, and tracking.
  *
@@ -5,7 +6,6 @@
  * Handles token counting from API responses and context window estimation.
  */
 import type { Message } from '../types/message.js'
-import type { TokenUsage } from '../llm/types.js'
 
 /**
  * Extract TokenUsage from an assistant message if it has usage data attached.
@@ -96,12 +96,14 @@ function estimateMessageTokens(msg: Message): number {
   if (typeof msg.content === 'string') {
     text = msg.content
   } else if (Array.isArray(msg.content)) {
-    text = msg.content.map(b => {
-      if ('text' in b && b.type === 'text') return b.text
-      if ('thinking' in b && b.type === 'thinking') return b.thinking
-      if ('content' in b && b.type === 'tool_result') return b.content
-      return ''
-    }).join(' ')
+    text = msg.content
+      .map((b) => {
+        if ('text' in b && b.type === 'text') return b.text
+        if ('thinking' in b && b.type === 'thinking') return b.thinking
+        if ('content' in b && b.type === 'tool_result') return b.content
+        return ''
+      })
+      .join(' ')
   }
   return roughTokenCount(text) + 10 // overhead for message metadata
 }

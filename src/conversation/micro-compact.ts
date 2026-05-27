@@ -53,7 +53,7 @@ export class MicroCompactor {
 
     // Content blocks — may contain tool results or other blocks
     const blocks = msg.content as ContentBlock[]
-    const compactedBlocks = blocks.map(block => {
+    const compactedBlocks = blocks.map((block) => {
       if (block.type === 'tool_result') {
         const tr = block as ToolResultBlock
         return {
@@ -70,7 +70,10 @@ export class MicroCompactor {
       return block
     })
 
-    return { ...msg, content: compactedBlocks as unknown as ContentBlock[] } as Message
+    return {
+      ...msg,
+      content: compactedBlocks as unknown as ContentBlock[],
+    } as Message
   }
 
   /**
@@ -117,6 +120,6 @@ export class MicroCompactor {
       result = this.mergeAdjacentUserMessages(result)
     }
 
-    return result.map(msg => this.compactMessage(msg))
+    return result.map((msg) => this.compactMessage(msg))
   }
 }

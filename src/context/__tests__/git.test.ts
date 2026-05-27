@@ -1,33 +1,42 @@
+import { execSync } from 'node:child_process'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 /**
  * Tests — Git Utils
  *
  * Git repository information utilities.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises'
-import { join } from 'node:path'
-import { tmpdir } from 'node:os'
-import { execSync } from 'node:child_process'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 // Import git utilities
-import {
-  findGitRoot,
-  getGitState,
-  getFileStatus,
-  getBranch,
-  getHead,
-  getRemoteUrl,
-} from '../git.js'
+import { findGitRoot, getBranch, getFileStatus, getGitState, getHead, getRemoteUrl } from '../git.js'
 
 function initGitRepo(dir: string, remoteUrl?: string) {
   execSync('git init', { cwd: dir, encoding: 'utf-8', timeout: 5000 })
-  execSync('git config user.email test@test.com', { cwd: dir, encoding: 'utf-8', timeout: 5000 })
-  execSync('git config user.name Test', { cwd: dir, encoding: 'utf-8', timeout: 5000 })
+  execSync('git config user.email test@test.com', {
+    cwd: dir,
+    encoding: 'utf-8',
+    timeout: 5000,
+  })
+  execSync('git config user.name Test', {
+    cwd: dir,
+    encoding: 'utf-8',
+    timeout: 5000,
+  })
   if (remoteUrl) {
-    execSync(`git remote add origin ${remoteUrl}`, { cwd: dir, encoding: 'utf-8', timeout: 5000 })
+    execSync(`git remote add origin ${remoteUrl}`, {
+      cwd: dir,
+      encoding: 'utf-8',
+      timeout: 5000,
+    })
   }
   // Make an initial commit so there's a HEAD
-  execSync('git commit --allow-empty -m "Initial"', { cwd: dir, encoding: 'utf-8', timeout: 5000 })
+  execSync('git commit --allow-empty -m "Initial"', {
+    cwd: dir,
+    encoding: 'utf-8',
+    timeout: 5000,
+  })
 }
 
 describe('findGitRoot', () => {

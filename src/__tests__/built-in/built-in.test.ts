@@ -1,25 +1,25 @@
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 /**
  * Built-in Tools — TDD Tests
  *
  * Tests for all 8 built-in tools: BashTool, FileReadTool, FileWriteTool,
  * FileEditTool, GlobTool, GrepTool, WebFetchTool, WebSearchTool.
  */
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
-import { fileURLToPath } from 'url'
-import { mkdtemp, writeFile, mkdir, rm } from 'fs/promises'
-import { join } from 'path'
-import { tmpdir } from 'os'
 
-import { ToolRegistry } from '../../tools/registry.js'
 import { BashTool } from '../../tools/built-in/bash.js'
+import { FileEditTool } from '../../tools/built-in/file_edit.js'
 import { FileReadTool } from '../../tools/built-in/file_read.js'
 import { FileWriteTool } from '../../tools/built-in/file_write.js'
-import { FileEditTool } from '../../tools/built-in/file_edit.js'
 import { GlobTool } from '../../tools/built-in/glob.js'
 import { GrepTool } from '../../tools/built-in/grep.js'
 import { WebFetchTool } from '../../tools/built-in/web_fetch.js'
 import { WebSearchTool } from '../../tools/built-in/web_search.js'
+import { ToolRegistry } from '../../tools/registry.js'
 
 // ─── Test Fixtures ───────────────────────────────────────
 
@@ -211,7 +211,10 @@ describe('FileWriteTool', () => {
   })
 
   it('should validate file_path is a string', () => {
-    const result = tool.inputSchema.safeParse({ file_path: 123, content: 'test' })
+    const result = tool.inputSchema.safeParse({
+      file_path: 123,
+      content: 'test',
+    })
     expect(result.success).toBe(false)
   })
 
@@ -242,11 +245,14 @@ describe('FileEditTool', () => {
   })
 
   it('should replace old_string with new_string', async () => {
-    const result = await tool.execute({
-      file_path: testFilePath,
-      old_string: 'line 2',
-      new_string: 'line two',
-    }, makeContext())
+    const result = await tool.execute(
+      {
+        file_path: testFilePath,
+        old_string: 'line 2',
+        new_string: 'line two',
+      },
+      makeContext(),
+    )
     expect(result.isError).toBeFalsy()
     expect(result.data.type).toBe('update')
   })
@@ -254,32 +260,41 @@ describe('FileEditTool', () => {
   it('should insert content at the end with empty old_string', async () => {
     const filePath = join(tmpDir, 'append-test.txt')
     await writeFile(filePath, 'existing\ncontent\n', 'utf-8')
-    const result = await tool.execute({
-      file_path: filePath,
-      old_string: '',
-      new_string: 'appended line\n',
-    }, makeContext())
+    const result = await tool.execute(
+      {
+        file_path: filePath,
+        old_string: '',
+        new_string: 'appended line\n',
+      },
+      makeContext(),
+    )
     expect(result.isError).toBeFalsy()
     const readResult = await new FileReadTool().execute({ file_path: filePath }, makeContext())
     expect(readResult.data.content).toContain('appended line')
   })
 
   it('should return error for non-existent file', async () => {
-    const result = await tool.execute({
-      file_path: '/tmp/nonexistent-edit-test-123.txt',
-      old_string: 'hello',
-      new_string: 'world',
-    }, makeContext())
+    const result = await tool.execute(
+      {
+        file_path: '/tmp/nonexistent-edit-test-123.txt',
+        old_string: 'hello',
+        new_string: 'world',
+      },
+      makeContext(),
+    )
     expect(result.isError).toBe(true)
     expect(result.content).toContain('does not exist')
   })
 
   it('should return error when old_string not found', async () => {
-    const result = await tool.execute({
-      file_path: testFilePath,
-      old_string: 'this string does not exist in the file at all',
-      new_string: 'replacement',
-    }, makeContext())
+    const result = await tool.execute(
+      {
+        file_path: testFilePath,
+        old_string: 'this string does not exist in the file at all',
+        new_string: 'replacement',
+      },
+      makeContext(),
+    )
     expect(result.isError).toBe(true)
     expect(result.content).toContain('not found')
   })
@@ -290,7 +305,13 @@ describe('FileEditTool', () => {
   })
 
   it('should not be read-only', () => {
-    expect(tool.isReadOnly({ file_path: '/tmp/t.txt', old_string: 'a', new_string: 'b' })).toBe(false)
+    expect(
+      tool.isReadOnly({
+        file_path: '/tmp/t.txt',
+        old_string: 'a',
+        new_string: 'b',
+      }),
+    ).toBe(false)
   })
 })
 
@@ -379,14 +400,14 @@ describe('GrepTool', () => {
     const result = await tool.execute({ pattern: 'banana', path: tmpDir }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.results.length).toBeGreaterThanOrEqual(1)
-    expect(result.data.results.some(r => r.lineContent?.includes('banana'))).toBe(true)
+    expect(result.data.results.some((r) => r.lineContent?.includes('banana'))).toBe(true)
   })
 
   it('should support case-insensitive search', async () => {
     const result = await tool.execute({ pattern: 'apple', path: tmpDir, '-i': true }, makeContext())
     expect(result.isError).toBeFalsy()
     // Should match both 'apple' and 'Apple'
-    const appleMatches = result.data.results.filter(r => r.file.includes('search.txt'))
+    const appleMatches = result.data.results.filter((r) => r.file.includes('search.txt'))
     expect(appleMatches.length).toBeGreaterThan(0)
   })
 
@@ -394,7 +415,7 @@ describe('GrepTool', () => {
     const result = await tool.execute({ pattern: 'banana', path: tmpDir, glob: '*.ts' }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.results.length).toBeGreaterThan(0)
-    expect(result.data.results.every(r => r.file.endsWith('.ts'))).toBe(true)
+    expect(result.data.results.every((r) => r.file.endsWith('.ts'))).toBe(true)
   })
 
   it('should return empty results for non-matching pattern', async () => {

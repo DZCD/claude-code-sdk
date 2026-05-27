@@ -12,23 +12,23 @@
  * - Plan mode refinement
  */
 import type {
-  PermissionMode,
-  PermissionRequest,
-  PermissionDecision,
-  PermissionRule,
-  PermissionResult,
-  ClassifierResult,
   BashCommandDangerLevel,
-  PlanModeConfig,
-  PathValidationResult,
+  ClassifierResult,
   FileOperationType,
   PathValidationOptions,
+  PathValidationResult,
+  PermissionDecision,
+  PermissionMode,
+  PermissionRequest,
+  PermissionResult,
+  PermissionRule,
+  PlanModeConfig,
 } from '../types/permission.js'
-import type { Tool } from '../types/tool.js'
-import { classifyBashCommand, isReadOnlyCommand, isAutoAllowCommand } from './bashClassifier.js'
-import { isDangerousBashCommand, isDangerousRemovalPath } from './dangerousPatterns.js'
-import { validatePath as validatePathEnhanced_, isPathAllowed } from './pathValidation.js'
 import { DEFAULT_PLAN_MODE_CONFIG } from '../types/permission.js'
+import type { Tool } from '../types/tool.js'
+import { classifyBashCommand, isAutoAllowCommand, isReadOnlyCommand } from './bashClassifier.js'
+import { isDangerousBashCommand, isDangerousRemovalPath } from './dangerousPatterns.js'
+import { isPathAllowed, validatePath as validatePathEnhanced_ } from './pathValidation.js'
 
 export class PermissionManager {
   private _mode: PermissionMode
@@ -36,7 +36,7 @@ export class PermissionManager {
   private _planModeConfig: PlanModeConfig = { ...DEFAULT_PLAN_MODE_CONFIG }
   private _allowedDirectories: string[] = []
   private _denyWithinAllow: string[] = []
-  private _sensitivePathProtection: boolean = true
+  private _sensitivePathProtection = true
 
   constructor(mode: PermissionMode = 'auto', rules?: PermissionRule[]) {
     this._mode = mode
@@ -99,7 +99,10 @@ export class PermissionManager {
   checkToolInPlanMode(
     toolName: string,
     input: Record<string, unknown>,
-    tool: { name: string; isReadOnly?: (input: Record<string, unknown>) => boolean },
+    tool: {
+      name: string
+      isReadOnly?: (input: Record<string, unknown>) => boolean
+    },
   ): PermissionDecision {
     // If plan mode allows read-only tools, check if this tool is read-only
     if (this._planModeConfig.allowReadOnlyTools) {
@@ -110,7 +113,10 @@ export class PermissionManager {
     }
 
     // If we got here, deny in plan mode
-    return { type: 'deny', reason: `Plan mode: tool "${toolName}" execution not allowed` }
+    return {
+      type: 'deny',
+      reason: `Plan mode: tool "${toolName}" execution not allowed`,
+    }
   }
 
   // ==========================================================================
@@ -171,7 +177,10 @@ export class PermissionManager {
         }
 
       default:
-        return { type: 'ask', prompt: `Allow command: ${trimmed.substring(0, 100)}?` }
+        return {
+          type: 'ask',
+          prompt: `Allow command: ${trimmed.substring(0, 100)}?`,
+        }
     }
   }
 
@@ -258,11 +267,7 @@ export class PermissionManager {
    * @param operationType - Type of operation (read/write/create)
    * @returns PathValidationResult
    */
-  validatePathEnhanced(
-    path: string,
-    cwd: string,
-    operationType: FileOperationType,
-  ): PathValidationResult {
+  validatePathEnhanced(path: string, cwd: string, operationType: FileOperationType): PathValidationResult {
     const options = this._getPathValidationOptions()
     return validatePathEnhanced_(path, cwd, options, operationType)
   }
@@ -312,7 +317,10 @@ export class PermissionManager {
       case 'auto':
         return { type: 'allow' }
       case 'plan':
-        return { type: 'deny', reason: 'Plan mode: tool execution not allowed' }
+        return {
+          type: 'deny',
+          reason: 'Plan mode: tool execution not allowed',
+        }
       case 'manual':
         return { type: 'ask', prompt: `Allow tool "${request.toolName}"?` }
     }
@@ -338,10 +346,10 @@ export class PermissionManager {
 
     if (argPattern && argPattern !== '*') {
       // Check if any input values match the arg pattern (supports wildcards)
-      const regexStr = '^' + argPattern
+      const regexStr = `^${argPattern
         .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
         .replace(/\*/g, '.*')
-        .replace(/\?/g, '.') + '$'
+        .replace(/\?/g, '.')}$`
       const regex = new RegExp(regexStr, 'i')
 
       const inputValues = Object.values(request.input).map(String)

@@ -2,19 +2,19 @@
  * TDD Tests — bash-security-utils/bashPermissions.ts
  *            bash-security-utils/readOnlyValidation.ts
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-  parsePermissionRule,
-  matchWildcardPattern,
-  stripSafeWrappers,
-  isBareShellOrWrapperCommand,
-  getSimpleCommandPrefix,
   checkBashPermission,
+  getSimpleCommandPrefix,
+  isBareShellOrWrapperCommand,
+  matchWildcardPattern,
+  parsePermissionRule,
+  stripSafeWrappers,
 } from '../../tools/built-in/bash-security-utils/bashPermissions.js'
 import {
-  validateFlags,
-  containsVulnerableUncPath,
   checkReadOnlyConstraints,
+  containsVulnerableUncPath,
+  validateFlags,
 } from '../../tools/built-in/bash-security-utils/readOnlyValidation.js'
 import type { PermissionContext } from '../../tools/built-in/bash-security-utils/types.js'
 
@@ -130,9 +130,12 @@ describe('bashPermissions', () => {
     })
 
     it('should deny commands matching deny rules', () => {
-      const result = checkBashPermission('rm -rf /', makeContext({
-        denyRules: ['Bash(rm:*)'],
-      }))
+      const result = checkBashPermission(
+        'rm -rf /',
+        makeContext({
+          denyRules: ['Bash(rm:*)'],
+        }),
+      )
       expect(result.behavior).toBe('deny')
     })
 
@@ -142,17 +145,23 @@ describe('bashPermissions', () => {
     })
 
     it('should deny take precedence over allow', () => {
-      const result = checkBashPermission('rm -rf /', makeContext({
-        allowRules: ['Bash(*)'],
-        denyRules: ['Bash(rm:*)'],
-      }))
+      const result = checkBashPermission(
+        'rm -rf /',
+        makeContext({
+          allowRules: ['Bash(*)'],
+          denyRules: ['Bash(rm:*)'],
+        }),
+      )
       expect(result.behavior).toBe('deny')
     })
 
     it('should match prefix deny rules', () => {
-      const result = checkBashPermission('rm file.txt', makeContext({
-        denyRules: ['Bash(rm:*)'],
-      }))
+      const result = checkBashPermission(
+        'rm file.txt',
+        makeContext({
+          denyRules: ['Bash(rm:*)'],
+        }),
+      )
       expect(result.behavior).toBe('deny')
     })
   })
@@ -164,8 +173,12 @@ describe('readOnlyValidation', () => {
   // ─── validateFlags ────────────────────────────────
   describe('validateFlags', () => {
     const safeFlags = {
-      '-n': 'none', '--help': 'none', '--version': 'none',
-      '-t': 'string', '-o': 'string', '--output': 'string',
+      '-n': 'none',
+      '--help': 'none',
+      '--version': 'none',
+      '-t': 'string',
+      '-o': 'string',
+      '--output': 'string',
     }
 
     it('should validate safe flags', () => {
@@ -177,7 +190,13 @@ describe('readOnlyValidation', () => {
     })
 
     it('should handle combined short flags', () => {
-      expect(validateFlags(['-nh', '-t'], { '-n': 'none', '-t': 'string', '-h': 'none' })).toBe(true)
+      expect(
+        validateFlags(['-nh', '-t'], {
+          '-n': 'none',
+          '-t': 'string',
+          '-h': 'none',
+        }),
+      ).toBe(true)
     })
 
     it('should handle -- end-of-options', () => {

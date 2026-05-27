@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 /**
  * Memory File Loader — Loads CLAUDE.md, .claude/rules/*.md, and memory files.
  *
@@ -6,10 +7,9 @@
  *
  * Based on Claude Code's src/utils/claudemd.ts.
  */
-import { readFile, access, readdir, stat } from 'node:fs/promises'
-import { join, dirname, relative, isAbsolute, resolve } from 'node:path'
-import { existsSync } from 'node:fs'
+import { access, readFile, readdir, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { findGitRoot } from './git.js'
 
 // ─── Types ────────────────────────────────────────────────
@@ -98,13 +98,7 @@ export class MemoryFileLoader {
       const isExternal = !includePath.startsWith(this._options.cwd)
       if (isExternal && !includeExternal) continue
 
-      const included = await this.processFile(
-        includePath,
-        type,
-        processedPaths,
-        includeExternal,
-        depth + 1,
-      )
+      const included = await this.processFile(includePath, type, processedPaths, includeExternal, depth + 1)
       result.push(...included)
     }
 
@@ -115,11 +109,7 @@ export class MemoryFileLoader {
    * Resolve @include directives in content.
    * Only processes @path directives outside code blocks.
    */
-  resolveIncludes(
-    content: string,
-    baseDir: string,
-    processedPaths: Set<string>,
-  ): string[] {
+  resolveIncludes(content: string, baseDir: string, processedPaths: Set<string>): string[] {
     const paths: string[] = []
     const lines = content.split('\n')
     let inCodeBlock = false

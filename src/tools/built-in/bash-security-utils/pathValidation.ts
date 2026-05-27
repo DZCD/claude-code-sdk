@@ -8,9 +8,9 @@
  * Adapted from the Claude Code reference implementation
  * with SDK-specific simplifications.
  */
-import { homedir } from 'os'
-import { isAbsolute, resolve } from 'path'
-import type { PermissionResult, SafetyResult, PathCommand } from './types.js'
+import { homedir } from 'node:os'
+import { isAbsolute, resolve } from 'node:path'
+import type { PathCommand, PermissionResult, SafetyResult } from './types.js'
 
 // ─── Helper: Filter Flags ─────────────────────────────────
 
@@ -41,11 +41,7 @@ export function filterOutFlags(args: string[]): string[] {
  * ~username expansion is not supported for security reasons.
  */
 export function expandTilde(path: string): string {
-  if (
-    path === '~' ||
-    path.startsWith('~/') ||
-    (process.platform === 'win32' && path.startsWith('~\\'))
-  ) {
+  if (path === '~' || path.startsWith('~/') || (process.platform === 'win32' && path.startsWith('~\\'))) {
     return homedir() + path.slice(1)
   }
   return path
@@ -75,13 +71,36 @@ export function getGlobBaseDirectory(path: string): string {
 // ─── Dangerous Paths ──────────────────────────────────────
 
 const DANGEROUS_REMOVAL_PATHS = new Set([
-  '/', '/etc', '/bin', '/sbin', '/usr', '/usr/bin', '/usr/sbin',
-  '/usr/local', '/usr/local/bin', '/usr/local/sbin',
-  '/lib', '/lib64', '/System', '/System/Library',
-  '/Applications', '/Library',
-  '/boot', '/dev', '/proc', '/sys', '/mnt', '/media',
-  '/opt', '/root', '/run', '/snap',
-  '/var', '/var/log', '/var/lib', '/var/www',
+  '/',
+  '/etc',
+  '/bin',
+  '/sbin',
+  '/usr',
+  '/usr/bin',
+  '/usr/sbin',
+  '/usr/local',
+  '/usr/local/bin',
+  '/usr/local/sbin',
+  '/lib',
+  '/lib64',
+  '/System',
+  '/System/Library',
+  '/Applications',
+  '/Library',
+  '/boot',
+  '/dev',
+  '/proc',
+  '/sys',
+  '/mnt',
+  '/media',
+  '/opt',
+  '/root',
+  '/run',
+  '/snap',
+  '/var',
+  '/var/log',
+  '/var/lib',
+  '/var/www',
 ])
 
 /**
@@ -99,7 +118,7 @@ export function isDangerousRemovalPath(absolutePath: string): boolean {
 
   // Check parent paths
   for (const dangerous of DANGEROUS_REMOVAL_PATHS) {
-    if (normalized.startsWith(dangerous + '/') || normalized === dangerous) {
+    if (normalized.startsWith(`${dangerous}/`) || normalized === dangerous) {
       return true
     }
   }
@@ -113,11 +132,7 @@ export function isDangerousRemovalPath(absolutePath: string): boolean {
  * Parse a pattern command (grep/rg style) to extract file paths.
  * Pattern first, then file paths.
  */
-function parsePatternCommand(
-  args: string[],
-  flagsWithArgs: Set<string>,
-  defaults: string[] = [],
-): string[] {
+function parsePatternCommand(args: string[], flagsWithArgs: Set<string>, defaults: string[] = []): string[] {
   const paths: string[] = []
   let patternFound = false
   let afterDoubleDash = false
@@ -155,110 +170,119 @@ function parsePatternCommand(
 // ─── Path Extractors ──────────────────────────────────────
 
 export const PATH_EXTRACTORS: Record<string, (args: string[]) => string[]> = {
-  cd: args => (args.length === 0 ? [homedir()] : [args.join(' ')]),
+  cd: (args) => (args.length === 0 ? [homedir()] : [args.join(' ')]),
 
-  ls: args => {
+  ls: (args) => {
     const paths = filterOutFlags(args)
     return paths.length > 0 ? paths : ['.']
   },
 
-  find: args => {
+  find: (args) => {
     const paths = filterOutFlags(args)
     return paths.length > 0 ? paths : ['.']
   },
 
-  mkdir: args => filterOutFlags(args),
+  mkdir: (args) => filterOutFlags(args),
 
-  touch: args => filterOutFlags(args),
+  touch: (args) => filterOutFlags(args),
 
-  rm: args => filterOutFlags(args),
+  rm: (args) => filterOutFlags(args),
 
-  rmdir: args => filterOutFlags(args),
+  rmdir: (args) => filterOutFlags(args),
 
-  mv: args => filterOutFlags(args),
+  mv: (args) => filterOutFlags(args),
 
-  cp: args => filterOutFlags(args),
+  cp: (args) => filterOutFlags(args),
 
-  cat: args => filterOutFlags(args),
+  cat: (args) => filterOutFlags(args),
 
-  head: args => filterOutFlags(args),
+  head: (args) => filterOutFlags(args),
 
-  tail: args => filterOutFlags(args),
+  tail: (args) => filterOutFlags(args),
 
-  sort: args => {
+  sort: (args) => {
     const flagsWithArgs = new Set(['-o', '--output', '-T', '--temporary-directory'])
     return parsePatternCommand(args, flagsWithArgs, [])
   },
 
-  uniq: args => {
+  uniq: (args) => {
     const flagsWithArgs = new Set(['-o', '--output'])
     return parsePatternCommand(args, flagsWithArgs, [])
   },
 
-  wc: args => filterOutFlags(args),
+  wc: (args) => filterOutFlags(args),
 
-  cut: args => filterOutFlags(args),
+  cut: (args) => filterOutFlags(args),
 
-  paste: args => filterOutFlags(args),
+  paste: (args) => filterOutFlags(args),
 
-  column: args => {
+  column: (args) => {
     const flagsWithArgs = new Set(['-o', '--output-separator', '-s', '--separator'])
     return parsePatternCommand(args, flagsWithArgs, [])
   },
 
   tr: () => [],
 
-  file: args => filterOutFlags(args),
+  file: (args) => filterOutFlags(args),
 
-  stat: args => filterOutFlags(args),
+  stat: (args) => filterOutFlags(args),
 
-  diff: args => filterOutFlags(args),
+  diff: (args) => filterOutFlags(args),
 
   awk: () => [],
 
-  strings: args => filterOutFlags(args),
+  strings: (args) => filterOutFlags(args),
 
-  hexdump: args => filterOutFlags(args),
+  hexdump: (args) => filterOutFlags(args),
 
-  od: args => filterOutFlags(args),
+  od: (args) => filterOutFlags(args),
 
-  base64: args => filterOutFlags(args),
+  base64: (args) => filterOutFlags(args),
 
-  nl: args => filterOutFlags(args),
+  nl: (args) => filterOutFlags(args),
 
-  grep: args => {
+  grep: (args) => {
     const flagsWithArgs = new Set([
-      '-d', '--directories',
-      '-D', '--devices',
-      '-f', '--file',
-      '--include', '--exclude', '--exclude-dir',
+      '-d',
+      '--directories',
+      '-D',
+      '--devices',
+      '-f',
+      '--file',
+      '--include',
+      '--exclude',
+      '--exclude-dir',
       '--exclude-from',
     ])
     return parsePatternCommand(args, flagsWithArgs)
   },
 
-  rg: args => {
-    const flagsWithArgs = new Set([
-      '-g', '--glob', '--type', '-t',
-      '--file', '-f',
-      '--path-separator',
-    ])
+  rg: (args) => {
+    const flagsWithArgs = new Set(['-g', '--glob', '--type', '-t', '--file', '-f', '--path-separator'])
     return parsePatternCommand(args, flagsWithArgs)
   },
 
-  sed: args => {
+  sed: (args) => {
     const flagsWithArgs = new Set<string>([])
     return parsePatternCommand(args, flagsWithArgs)
   },
 
-  git: args => {
+  git: (args) => {
     if (args.length === 0) return ['.']
     const subcmd = args[0]!
 
     // Git read-only subcommands
     const readOnlySubcommands = new Set([
-      'status', 'log', 'diff', 'show', 'branch', 'tag',
-      'stash', 'blame', 'describe', 'help',
+      'status',
+      'log',
+      'diff',
+      'show',
+      'branch',
+      'tag',
+      'stash',
+      'blame',
+      'describe',
+      'help',
     ])
 
     if (readOnlySubcommands.has(subcmd)) {
@@ -266,10 +290,7 @@ export const PATH_EXTRACTORS: Record<string, (args: string[]) => string[]> = {
     }
 
     // Git subcommands with file args
-    const fileSubcommands = new Set([
-      'add', 'checkout', 'restore', 'reset', 'commit',
-      'rm', 'mv',
-    ])
+    const fileSubcommands = new Set(['add', 'checkout', 'restore', 'reset', 'commit', 'rm', 'mv'])
 
     if (fileSubcommands.has(subcmd)) {
       // Skip subcommand name
@@ -283,9 +304,9 @@ export const PATH_EXTRACTORS: Record<string, (args: string[]) => string[]> = {
 
   jq: () => [],
 
-  sha256sum: args => filterOutFlags(args),
-  sha1sum: args => filterOutFlags(args),
-  md5sum: args => filterOutFlags(args),
+  sha256sum: (args) => filterOutFlags(args),
+  sha1sum: (args) => filterOutFlags(args),
+  md5sum: (args) => filterOutFlags(args),
 }
 
 // ─── Check Dangerous Removals ─────────────────────────────
@@ -306,9 +327,7 @@ export function checkDangerousRemovalPaths(
 
   for (const path of paths) {
     const cleanPath = expandTilde(path.replace(/^['"]|['"]$/g, ''))
-    const absolutePath = isAbsolute(cleanPath)
-      ? cleanPath
-      : resolve(cwd, cleanPath)
+    const absolutePath = isAbsolute(cleanPath) ? cleanPath : resolve(cwd, cleanPath)
 
     if (isDangerousRemovalPath(absolutePath)) {
       return {

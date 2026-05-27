@@ -4,10 +4,10 @@
  * Reads file content from the local filesystem with support for
  * offset/limit (line range) reading.
  */
-import { readFile, stat } from 'fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { z } from 'zod'
-import { BaseTool } from '../base.js'
 import type { ToolContext, ToolResult } from '../../types/tool.js'
+import { BaseTool } from '../base.js'
 
 // ─── Schema ──────────────────────────────────────────────
 
@@ -28,13 +28,11 @@ export interface FileReadOutput {
 
 export class FileReadTool extends BaseTool<typeof fileReadSchema, FileReadOutput> {
   name = 'read'
-  description = 'Read the contents of a file from the local filesystem. Supports line-offset based partial reads for large files.'
+  description =
+    'Read the contents of a file from the local filesystem. Supports line-offset based partial reads for large files.'
   inputSchema = fileReadSchema
 
-  async execute(
-    input: z.infer<typeof fileReadSchema>,
-    _context: ToolContext,
-  ): Promise<ToolResult<FileReadOutput>> {
+  async execute(input: z.infer<typeof fileReadSchema>, _context: ToolContext): Promise<ToolResult<FileReadOutput>> {
     const { file_path, offset, limit } = input
 
     let fileStats
@@ -79,7 +77,7 @@ export class FileReadTool extends BaseTool<typeof fileReadSchema, FileReadOutput
     const allLines = fullContent.split('\n')
     // If the file ends with a newline, the last element will be empty;
     // we don't count that as a line.
-    const totalLines = fullContent === '' ? 0 : (fullContent.endsWith('\n') ? allLines.length - 1 : allLines.length)
+    const totalLines = fullContent === '' ? 0 : fullContent.endsWith('\n') ? allLines.length - 1 : allLines.length
 
     const startLine = offset ?? 1
     const lineLimit = limit ?? totalLines

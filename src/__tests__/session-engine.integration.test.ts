@@ -5,12 +5,12 @@
  * Covers: send, stream, session lifecycle, permission checks,
  * tool registration, conversation reset/new.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { z } from 'zod'
 import type { LLMConnector, StreamEvent, TokenUsage } from '../llm/types.js'
 import { ClaudeCodeSDK, type SessionResponse } from '../session/engine.js'
-import type { SDKConfig } from '../types/config.js'
 import { createTool } from '../tools/base.js'
-import { z } from 'zod'
+import type { SDKConfig } from '../types/config.js'
 
 // ─── Mock LLM Factory ────────────────────────────────────
 
@@ -18,20 +18,18 @@ function createMockLLM(sequence: StreamEvent[][]): LLMConnector {
   let callCount = 0
   return {
     provider: 'anthropic' as const,
-    send: vi.fn().mockImplementation(
-      async function* (
-        _systemPrompt: string | undefined,
-        _messages: Array<{ role: string; content: string }>,
-      ): AsyncIterable<StreamEvent> {
-        const events = sequence[callCount] ?? []
-        if (callCount < sequence.length - 1) {
-          callCount++
-        }
-        for (const event of events) {
-          yield event
-        }
-      },
-    ),
+    send: vi.fn().mockImplementation(async function* (
+      _systemPrompt: string | undefined,
+      _messages: Array<{ role: string; content: string }>,
+    ): AsyncIterable<StreamEvent> {
+      const events = sequence[callCount] ?? []
+      if (callCount < sequence.length - 1) {
+        callCount++
+      }
+      for (const event of events) {
+        yield event
+      }
+    }),
     countTokens: vi.fn().mockResolvedValue(100),
   }
 }
@@ -82,9 +80,13 @@ function createSDK(
           yield evt
         }
       }
-      getHistory() { return [] }
+      getHistory() {
+        return []
+      }
       reset() {}
-      getTokenUsage() { return { inputTokens: 0, outputTokens: 0 } }
+      getTokenUsage() {
+        return { inputTokens: 0, outputTokens: 0 }
+      }
     })(),
   })
 
@@ -147,7 +149,10 @@ describe('ClaudeCodeSDK Integration', () => {
       })
 
       // Patch llm
-      const sdkAny = sdk as unknown as { _llm: LLMConnector; _conversation: ConversationManager }
+      const sdkAny = sdk as unknown as {
+        _llm: LLMConnector
+        _conversation: ConversationManager
+      }
       sdkAny._llm = mockLLM
 
       // Recreate conversation to use new LLM
@@ -174,7 +179,10 @@ describe('ClaudeCodeSDK Integration', () => {
         llm: { provider: 'anthropic', apiKey: 'sk-test', model: 'test-model' },
       })
 
-      const sdkAny = sdk as unknown as { _llm: LLMConnector; _conversation: { _llm: LLMConnector } }
+      const sdkAny = sdk as unknown as {
+        _llm: LLMConnector
+        _conversation: { _llm: LLMConnector }
+      }
       sdkAny._llm = mockLLM
       sdk.newConversation()
       sdkAny._conversation._llm = mockLLM
@@ -194,7 +202,12 @@ describe('ClaudeCodeSDK Integration', () => {
       const mockLLM = createMockLLM([
         [
           { type: 'text', text: 'Let me calculate' },
-          { type: 'tool_use_start', id: 't1', name: 'add', input: { a: 3, b: 4 } },
+          {
+            type: 'tool_use_start',
+            id: 't1',
+            name: 'add',
+            input: { a: 3, b: 4 },
+          },
           { type: 'tool_use_end', id: 't1', output: '{"a":3,"b":4}' },
           { type: 'done', usage: { inputTokens: 20, outputTokens: 15 } },
         ],
@@ -209,7 +222,10 @@ describe('ClaudeCodeSDK Integration', () => {
       })
       sdk.use(addTool)
 
-      const sdkAny = sdk as unknown as { _llm: LLMConnector; _conversation: { _llm: LLMConnector } }
+      const sdkAny = sdk as unknown as {
+        _llm: LLMConnector
+        _conversation: { _llm: LLMConnector }
+      }
       sdkAny._llm = mockLLM
       sdk.newConversation()
       sdkAny._conversation._llm = mockLLM
@@ -235,8 +251,17 @@ describe('ClaudeCodeSDK Integration', () => {
       sdk.getPermissions() // access just to verify
 
       // Add a message to history via internal access
-      const conv = (sdk as unknown as { _conversation: { addMessage: (m: unknown) => void } })._conversation
-      conv.addMessage({ id: 'test', role: 'user', content: 'Hello', createdAt: new Date().toISOString() })
+      const conv = (
+        sdk as unknown as {
+          _conversation: { addMessage: (m: unknown) => void }
+        }
+      )._conversation
+      conv.addMessage({
+        id: 'test',
+        role: 'user',
+        content: 'Hello',
+        createdAt: new Date().toISOString(),
+      })
 
       expect(sdk.getHistory()).toHaveLength(1)
 
@@ -275,7 +300,11 @@ describe('ClaudeCodeSDK Integration', () => {
         llm: { provider: 'anthropic', apiKey: 'sk-test', model: 'test-model' },
       })
       sdk.withPermissionRules([
-        { pattern: 'dangerous_tool', behavior: 'deny', source: 'user' as const },
+        {
+          pattern: 'dangerous_tool',
+          behavior: 'deny',
+          source: 'user' as const,
+        },
       ])
       expect(sdk.getPermissions().getRules()).toHaveLength(1)
     })

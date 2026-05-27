@@ -55,11 +55,22 @@ export interface TokenUsage {
 
 export type StreamEvent =
   | { type: 'text'; text: string }
-  | { type: 'tool_use_start'; id: Snowflake; name: string; input: Record<string, unknown> }
+  | {
+      type: 'tool_use_start'
+      id: Snowflake
+      name: string
+      input: Record<string, unknown>
+    }
   | { type: 'tool_use_end'; id: Snowflake; output: string; isError?: boolean }
   | { type: 'thinking'; thinking: string }
   | { type: 'error'; error: Error }
-  | { type: 'retry'; attempt: number; delayMs: number; error: string; status?: number }
+  | {
+      type: 'retry'
+      attempt: number
+      delayMs: number
+      error: string
+      status?: number
+    }
   | { type: 'done'; usage: TokenUsage }
   | { type: 'ping' }
 

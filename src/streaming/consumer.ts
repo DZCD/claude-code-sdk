@@ -15,9 +15,7 @@ import type { StreamBlock, ToolUseBlock } from './types.js'
  * @param stream - The raw event stream from LLMConnector.send()
  * @returns An async iterable of text strings
  */
-export async function* streamToText(
-  stream: AsyncIterable<StreamEvent>,
-): AsyncIterable<string> {
+export async function* streamToText(stream: AsyncIterable<StreamEvent>): AsyncIterable<string> {
   for await (const event of stream) {
     if (event.type === 'text') {
       yield event.text
@@ -38,9 +36,7 @@ export async function* streamToText(
  * @param stream - The raw event stream from LLMConnector.send()
  * @returns An async iterable of StreamBlock items
  */
-export async function* streamToBlocks(
-  stream: AsyncIterable<StreamEvent>,
-): AsyncIterable<StreamBlock> {
+export async function* streamToBlocks(stream: AsyncIterable<StreamEvent>): AsyncIterable<StreamBlock> {
   const pendingToolUses = new Map<string, StreamBlock & { type: 'tool_use' }>()
 
   for await (const event of stream) {
@@ -129,10 +125,7 @@ export class StreamConsumer {
    * @param callback - Handler function called for each matching event
    * @returns An unsubscribe function
    */
-  on<K extends StreamEvent['type']>(
-    type: K,
-    callback: (event: Extract<StreamEvent, { type: K }>) => void,
-  ): () => void {
+  on<K extends StreamEvent['type']>(type: K, callback: (event: Extract<StreamEvent, { type: K }>) => void): () => void {
     if (!this.handlers.has(type)) {
       this.handlers.set(type, new Set())
     }
@@ -218,13 +211,13 @@ export class StreamConsumer {
       // Dispatch type-specific handlers
       const typeHandlers = this.handlers.get(event.type)
       if (typeHandlers) {
-        typeHandlers.forEach(cb => cb(event))
+        typeHandlers.forEach((cb) => cb(event))
       }
 
       // Dispatch wildcard handlers
       const allHandlers = this.handlers.get('*')
       if (allHandlers) {
-        allHandlers.forEach(cb => cb(event))
+        allHandlers.forEach((cb) => cb(event))
       }
 
       // Stop on error or done
@@ -256,9 +249,6 @@ export class StreamConsumer {
  * @param signal - Optional AbortSignal for cancellation
  * @returns A StreamConsumer instance
  */
-export function createStreamConsumer(
-  stream: AsyncIterable<StreamEvent>,
-  signal?: AbortSignal,
-): StreamConsumer {
+export function createStreamConsumer(stream: AsyncIterable<StreamEvent>, signal?: AbortSignal): StreamConsumer {
   return new StreamConsumer(stream, signal)
 }

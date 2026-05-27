@@ -4,11 +4,11 @@
  * Tests that the ConversationManager properly integrates
  * micro-compact, auto-compact, and token tracking.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LLMConnector, StreamEvent } from '../../llm/types.js'
-import { ConversationManager } from '../manager.js'
 import { ToolRegistry } from '../../tools/registry.js'
 import type { CompactOptions } from '../auto-compact.js'
+import { ConversationManager } from '../manager.js'
 
 // ─── Mock LLM ─────────────────────────────────────────────
 

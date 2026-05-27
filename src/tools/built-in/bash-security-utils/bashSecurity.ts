@@ -8,7 +8,7 @@
  * with SDK-specific simplifications (no React/Bun dependencies).
  */
 import { BASH_SECURITY_CHECK_IDS } from './types.js'
-import type { SafetyResult, ValidationContext, QuoteExtraction } from './types.js'
+import type { QuoteExtraction, SafetyResult, ValidationContext } from './types.js'
 
 // ─── Dangerous Patterns ──────────────────────────────────
 
@@ -57,17 +57,32 @@ const ZSH_DANGEROUS_COMMANDS = new Set([
 ])
 
 const DANGEROUS_VARIABLES = new Set([
-  'IFS', 'PS1', 'PS2', 'PS3', 'PS4',
-  'PROMPT_COMMAND', 'BASH_ENV', 'ENV',
-  'SHELLOPTS', 'BASHOPTS',
-  'LD_PRELOAD', 'LD_LIBRARY_PATH',
-  'PYTHONSTARTUP', 'PYTHONPATH',
+  'IFS',
+  'PS1',
+  'PS2',
+  'PS3',
+  'PS4',
+  'PROMPT_COMMAND',
+  'BASH_ENV',
+  'ENV',
+  'SHELLOPTS',
+  'BASHOPTS',
+  'LD_PRELOAD',
+  'LD_LIBRARY_PATH',
+  'PYTHONSTARTUP',
+  'PYTHONPATH',
 ])
 
 const DANGEROUS_GIT_FLAGS = [
-  '--author', '--committer', '--date',
-  '--format', '--pretty', '--template',
-  '--cleanup', '--message', '-m',
+  '--author',
+  '--committer',
+  '--date',
+  '--format',
+  '--pretty',
+  '--template',
+  '--cleanup',
+  '--message',
+  '-m',
 ]
 
 // ─── Quote Extraction ────────────────────────────────────
@@ -199,13 +214,7 @@ export function validateIncompleteCommands(command: string): SafetyResult | null
   const trimmed = command.trim()
   if (!trimmed) return null
 
-  const incompletePatterns = [
-    /\|\s*$/,
-    /&&\s*$/,
-    /\|\|\s*$/,
-    /;\s*$/,
-    /&\s*$/,
-  ]
+  const incompletePatterns = [/\|\s*$/, /&&\s*$/, /\|\|\s*$/, /;\s*$/, /&\s*$/]
 
   for (const pattern of incompletePatterns) {
     if (pattern.test(trimmed)) {
@@ -506,17 +515,7 @@ export function validateBraceExpansion(command: string): SafetyResult | null {
  * Detect backslash-escaped operators.
  */
 export function validateBackslashEscapedOperators(command: string): SafetyResult | null {
-  const escapedOpPatterns = [
-    /\\\|/,
-    /\\&/,
-    /\\;/,
-    /\\</,
-    /\\>/,
-    /\\\(/,
-    /\\\)/,
-    /\\`/,
-    /\\\$/,
-  ]
+  const escapedOpPatterns = [/\\\|/, /\\&/, /\\;/, /\\</, /\\>/, /\\\(/, /\\\)/, /\\`/, /\\\$/]
 
   for (const pattern of escapedOpPatterns) {
     if (pattern.test(command)) {

@@ -5,16 +5,13 @@
  * Tools accept typed input via Zod schema and return structured results.
  */
 import type { z } from 'zod'
-import type { Tool, AnyZodObject, ToolResult, ToolContext } from '../types/tool.js'
+import type { AnyZodObject, Tool, ToolContext, ToolResult } from '../types/tool.js'
 
 /**
  * Abstract base class for all tools.
  * Provides default implementations for optional methods.
  */
-export abstract class BaseTool<
-  Input extends AnyZodObject = AnyZodObject,
-  Output = unknown,
-> {
+export abstract class BaseTool<Input extends AnyZodObject = AnyZodObject, Output = unknown> {
   /** Unique tool name (used by the model to call this tool) */
   abstract readonly name: string
 
@@ -25,10 +22,7 @@ export abstract class BaseTool<
   abstract readonly inputSchema: Input
 
   /** Execute the tool with validated input */
-  abstract execute(
-    input: z.infer<Input>,
-    context: ToolContext,
-  ): Promise<ToolResult<Output>>
+  abstract execute(input: z.infer<Input>, context: ToolContext): Promise<ToolResult<Output>>
 
   /** Whether this is a read-only operation */
   isReadOnly(_input: z.infer<Input>): boolean {
@@ -47,15 +41,14 @@ export abstract class BaseTool<
 
   /** Convert to the Tool interface type for the API */
   toTool(): Tool<Input, Output> {
-    const self = this
     return {
-      name: self.name,
-      description: self.description,
-      inputSchema: self.inputSchema,
-      execute: (input, context) => self.execute(input, context),
-      isReadOnly: (input) => self.isReadOnly(input),
-      isConcurrencySafe: () => self.isConcurrencySafe(),
-      userFacingName: (input) => self.userFacingName(input),
+      name: this.name,
+      description: this.description,
+      inputSchema: this.inputSchema,
+      execute: (input, context) => this.execute(input, context),
+      isReadOnly: (input) => this.isReadOnly(input),
+      isConcurrencySafe: () => this.isConcurrencySafe(),
+      userFacingName: (input) => this.userFacingName(input),
     }
   }
 }
@@ -64,16 +57,14 @@ export abstract class BaseTool<
  * Create a simple tool from a plain object definition.
  * Useful for quick tool definitions or wrapping existing functions.
  */
-export function createTool<Input extends AnyZodObject, Output>(
-  def: {
-    name: string
-    description: string
-    inputSchema: Input
-    execute: (input: z.infer<Input>, context: ToolContext) => Promise<ToolResult<Output>>
-    isReadOnly?: (input: z.infer<Input>) => boolean
-    isConcurrencySafe?: () => boolean
-  },
-): Tool<Input, Output> {
+export function createTool<Input extends AnyZodObject, Output>(def: {
+  name: string
+  description: string
+  inputSchema: Input
+  execute: (input: z.infer<Input>, context: ToolContext) => Promise<ToolResult<Output>>
+  isReadOnly?: (input: z.infer<Input>) => boolean
+  isConcurrencySafe?: () => boolean
+}): Tool<Input, Output> {
   return {
     name: def.name,
     description: def.description,

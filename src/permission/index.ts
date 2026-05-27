@@ -6,7 +6,11 @@
  */
 
 export { PermissionManager } from './manager.js'
-export { classifyBashCommand, isReadOnlyCommand, isAutoAllowCommand } from './bashClassifier.js'
+export {
+  classifyBashCommand,
+  isReadOnlyCommand,
+  isAutoAllowCommand,
+} from './bashClassifier.js'
 export {
   isDangerousBashCommand,
   isDangerousRemovalPath,

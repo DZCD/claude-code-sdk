@@ -3,10 +3,10 @@
  *
  * Individual message-level compression strategies.
  */
-import { describe, it, expect } from 'vitest'
-import { MicroCompactor } from '../micro-compact.js'
+import { describe, expect, it } from 'vitest'
 import type { Message } from '../../types/message.js'
-import { createUserMessage, createAssistantMessage, createToolResultMessage } from '../../types/message.js'
+import { createAssistantMessage, createToolResultMessage, createUserMessage } from '../../types/message.js'
+import { MicroCompactor } from '../micro-compact.js'
 
 describe('MicroCompactor', () => {
   describe('truncateContent', () => {
@@ -50,11 +50,13 @@ describe('MicroCompactor', () => {
 
     it('should truncate long tool results', () => {
       const compactor = new MicroCompactor({ maxToolResultLength: 10 })
-      const msg = createToolResultMessage([{
-        type: 'tool_result',
-        toolUseId: 't1',
-        content: 'A'.repeat(100),
-      }])
+      const msg = createToolResultMessage([
+        {
+          type: 'tool_result',
+          toolUseId: 't1',
+          content: 'A'.repeat(100),
+        },
+      ])
       const result = compactor.compactMessage(msg)
       if (typeof result.content !== 'string') {
         const block = result.content[0]

@@ -16,42 +16,109 @@ import { isDangerousBashCommand } from './dangerousPatterns.js'
 
 const SAFE_COMMANDS = [
   // File listing
-  /^ls\b/, /^ll\b/, /^la\b/, /^tree\b/, /^find\b/,
+  /^ls\b/,
+  /^ll\b/,
+  /^la\b/,
+  /^tree\b/,
+  /^find\b/,
   // File reading
-  /^cat\b/, /^head\b/, /^tail\b/, /^less\b/, /^more\b/, /^nl\b/,
-  /^wc\b/, /^od\b/, /^xxd\b/, /^hexdump\b/,
+  /^cat\b/,
+  /^head\b/,
+  /^tail\b/,
+  /^less\b/,
+  /^more\b/,
+  /^nl\b/,
+  /^wc\b/,
+  /^od\b/,
+  /^xxd\b/,
+  /^hexdump\b/,
   // Content search
-  /^grep\b/, /^egrep\b/, /^fgrep\b/, /^rg\b/, /^ripgrep\b/, /^ag\b/, /^ack\b/,
+  /^grep\b/,
+  /^egrep\b/,
+  /^fgrep\b/,
+  /^rg\b/,
+  /^ripgrep\b/,
+  /^ag\b/,
+  /^ack\b/,
   /^sed\s+(-n\s+)?'/, // sed in non-modifying mode (with -n)
   /^awk\b/,
   // Output (no side effects)
-  /^echo\b/, /^printf\b/, /^true\b/, /^false\b/,
+  /^echo\b/,
+  /^printf\b/,
+  /^true\b/,
+  /^false\b/,
   // Environment inspection
-  /^env\b/, /^printenv\b/, /^which\b/, /^whereis\b/, /^type\b/, /^hash\b/,
-  /^pwd\b/, /^realpath\b/, /^readlink\b/,
-  /^date\b/, /^cal\b/, /^ncal\b/,
-  /^uname\b/, /^hostname\b/, /^whoami\b/, /^id\b/, /^groups\b/,
-  /^uptime\b/, /^w\b/, /^who\b/, /^last\b/,
+  /^env\b/,
+  /^printenv\b/,
+  /^which\b/,
+  /^whereis\b/,
+  /^type\b/,
+  /^hash\b/,
+  /^pwd\b/,
+  /^realpath\b/,
+  /^readlink\b/,
+  /^date\b/,
+  /^cal\b/,
+  /^ncal\b/,
+  /^uname\b/,
+  /^hostname\b/,
+  /^whoami\b/,
+  /^id\b/,
+  /^groups\b/,
+  /^uptime\b/,
+  /^w\b/,
+  /^who\b/,
+  /^last\b/,
   // Process inspection
-  /^ps\b/, /^top\b/, /^htop\b/, /^btop\b/,
-  /^jobs\b/, /^fg\b/, /^bg\b/,
-  /^lsof\b/, /^fuser\b/,
+  /^ps\b/,
+  /^top\b/,
+  /^htop\b/,
+  /^btop\b/,
+  /^jobs\b/,
+  /^fg\b/,
+  /^bg\b/,
+  /^lsof\b/,
+  /^fuser\b/,
   // Network inspection (read-only)
-  /^ping\b/, /^traceroute\b/, /^tracepath\b/,
-  /^dig\b/, /^nslookup\b/, /^host\b/,
-  /^ip\s+a\b/, /^ip\s+addr\b/, /^ip\s+route\b/, /^ip\s+link\b/,
-  /^ifconfig\b/, /^netstat\b/, /^ss\b/,
+  /^ping\b/,
+  /^traceroute\b/,
+  /^tracepath\b/,
+  /^dig\b/,
+  /^nslookup\b/,
+  /^host\b/,
+  /^ip\s+a\b/,
+  /^ip\s+addr\b/,
+  /^ip\s+route\b/,
+  /^ip\s+link\b/,
+  /^ifconfig\b/,
+  /^netstat\b/,
+  /^ss\b/,
   /^curl\s+-[^|]*$/, // curl without pipe (simple fetch, no pipe-to-shell)
   // File info
-  /^file\b/, /^stat\b/, /^du\b/, /^df\b/,
+  /^file\b/,
+  /^stat\b/,
+  /^du\b/,
+  /^df\b/,
   // Diff
-  /^diff\b/, /^colordiff\b/, /^cmp\b/, /^comm\b/,
+  /^diff\b/,
+  /^colordiff\b/,
+  /^cmp\b/,
+  /^comm\b/,
   // Compression inspection
-  /^tar\s+-t\b/, /^unzip\s+-l\b/, /^zcat\b/, /^zless\b/, /^zmore\b/,
+  /^tar\s+-t\b/,
+  /^unzip\s+-l\b/,
+  /^zcat\b/,
+  /^zless\b/,
+  /^zmore\b/,
   /^gunzip\s+-c\b/,
   // Help/docs
-  /^man\b/, /^help\b/, /^info\b/, /^whatis\b/, /^apropos\b/,
-  /^tldr\b/, /^cheat\b/,
+  /^man\b/,
+  /^help\b/,
+  /^info\b/,
+  /^whatis\b/,
+  /^apropos\b/,
+  /^tldr\b/,
+  /^cheat\b/,
 ]
 
 // ============================================================================
@@ -63,23 +130,37 @@ const AUTO_ALLOW_COMMANDS = [
   /^git\s+(status|diff|log|show|branch|tag|stash\s+list|describe|rev-parse|rev-list|config\s+(--global\s+)?--get|config\s+(--global\s+)?--list|shortlog|cherry|count-objects|name-rev)\b/,
   // Git local operations (safe)
   /^git\s+(checkout|switch)\s+[^-]/, // git checkout branch (not --orphan etc.)
-  /^git\s+add\b/, /^git\s+restore\b/,
-  /^git\s+stash\s+(save|push)\b/, /^git\s+clean\s+-[fd]/,
+  /^git\s+add\b/,
+  /^git\s+restore\b/,
+  /^git\s+stash\s+(save|push)\b/,
+  /^git\s+clean\s+-[fd]/,
   // Package installs (read registry, write node_modules)
   /^npm\s+(install|i|ci|add|update|audit|fund|ls|outdated)\b/,
   /^yarn\s+(install|add|upgrade|outdated|why)\b/,
   /^pnpm\s+(install|add|update|outdated|ls)\b/,
   /^bun\s+(install|add|update|outdated|pm)\b/,
   // Build
-  /^npm\s+run\b/, /^yarn\s+run\b/, /^pnpm\s+run\b/, /^bun\s+run\b/,
-  /^make\b/, /^cmake\b/, /^ninja\b/,
+  /^npm\s+run\b/,
+  /^yarn\s+run\b/,
+  /^pnpm\s+run\b/,
+  /^bun\s+run\b/,
+  /^make\b/,
+  /^cmake\b/,
+  /^ninja\b/,
   // File creation/mod (within project)
-  /^touch\b/, /^mkdir\b/, /^cp\b/, /^mv\b/, /^ln\b/,
-  /^chmod\b(?!\s+-R\s+777)/, /^chown\b(?!\s+-R\s+)/,
+  /^touch\b/,
+  /^mkdir\b/,
+  /^cp\b/,
+  /^mv\b/,
+  /^ln\b/,
+  /^chmod\b(?!\s+-R\s+777)/,
+  /^chown\b(?!\s+-R\s+)/,
   // Text manipulation
-  /^sed\s+-i\b/, /^tee\b/,
+  /^sed\s+-i\b/,
+  /^tee\b/,
   // Output redirection
-  /^>>/, /^>/,
+  /^>>/,
+  /^>/,
 ]
 
 // ============================================================================
@@ -90,33 +171,63 @@ const ASK_COMMANDS = [
   // Git destructive operations
   /^git\s+(push|pull|fetch|merge|rebase|reset|revert|cherry-pick|commit|tag\s+-[adf]|stash\s+(drop|pop|clear|apply)|branch\s+-[dDmM]|remote\s+(add|remove|rename|set-url)|submodule)\b/,
   // Service management
-  /^systemctl\b/, /^service\b/, /^initctl\b/,
+  /^systemctl\b/,
+  /^service\b/,
+  /^initctl\b/,
   // Package management (system-wide)
-  /^apt\b/, /^apt-get\b/, /^dpkg\b/, /^snap\b/,
-  /^yum\b/, /^dnf\b/, /^rpm\b/,
-  /^brew\b/, /^port\b/,
+  /^apt\b/,
+  /^apt-get\b/,
+  /^dpkg\b/,
+  /^snap\b/,
+  /^yum\b/,
+  /^dnf\b/,
+  /^rpm\b/,
+  /^brew\b/,
+  /^port\b/,
   // Process management
-  /^kill\b/, /^killall\b/, /^pkill\b/, /^nohup\b/,
+  /^kill\b/,
+  /^killall\b/,
+  /^pkill\b/,
+  /^nohup\b/,
   /^disown\b/,
   // Network changes
   /^ip\s+(link\s+(set|add|del)|addr\s+(add|del)|route\s+(add|del|replace)|neigh\s+(add|del|replace))\b/,
   // Docker
-  /^docker\b/, /^podman\b/, /^nerdctl\b/,
+  /^docker\b/,
+  /^podman\b/,
+  /^nerdctl\b/,
   // Sudo (general)
   /^sudo\s+\w+/,
   // Configuration
-  /^crontab\b/, /^at\b/,
-  /^export\b/, /^alias\b/, /^unalias\b/, /^set\b/, /^unset\b/,
+  /^crontab\b/,
+  /^at\b/,
+  /^export\b/,
+  /^alias\b/,
+  /^unalias\b/,
+  /^set\b/,
+  /^unset\b/,
   // SSH connections
-  /^ssh\b/, /^scp\b/, /^rsync\b/,
+  /^ssh\b/,
+  /^scp\b/,
+  /^rsync\b/,
   // Source
-  /^source\b/, /^\.\s+/,
+  /^source\b/,
+  /^\.\s+/,
   // Environment
-  /^nvm\b/, /^sdk\b/, /^pyenv\b/, /^rbenv\b/, /^nodenv\b/,
+  /^nvm\b/,
+  /^sdk\b/,
+  /^pyenv\b/,
+  /^rbenv\b/,
+  /^nodenv\b/,
   // Database
-  /^psql\b/, /^mysql\b/, /^sqlite3\b/, /^mongosh\b/, /^redis-cli\b/,
+  /^psql\b/,
+  /^mysql\b/,
+  /^sqlite3\b/,
+  /^mongosh\b/,
+  /^redis-cli\b/,
   // Python venv
-  /^python\s+-m\s+venv\b/, /^virtualenv\b/,
+  /^python\s+-m\s+venv\b/,
+  /^virtualenv\b/,
 ]
 
 // ============================================================================
@@ -130,10 +241,7 @@ const ASK_COMMANDS = [
  * @param _cwd - Current working directory (reserved for future use)
  * @returns ClassifierResult with danger level and reason
  */
-export function classifyBashCommand(
-  command: string,
-  _cwd?: string,
-): ClassifierResult {
+export function classifyBashCommand(command: string, _cwd?: string): ClassifierResult {
   const trimmed = command.trim()
   if (!trimmed) {
     return { dangerLevel: 'safe', reason: 'Empty command' }
@@ -143,7 +251,7 @@ export function classifyBashCommand(
   if (isDangerousBashCommand(trimmed)) {
     return {
       dangerLevel: 'deny',
-      reason: `Command matches dangerous pattern`,
+      reason: 'Command matches dangerous pattern',
     }
   }
 
@@ -164,7 +272,10 @@ export function classifyBashCommand(
   // 4. Check ask (medium-risk) patterns
   for (const pattern of ASK_COMMANDS) {
     if (pattern.test(trimmed)) {
-      return { dangerLevel: 'ask', reason: 'Medium-risk operation requires confirmation' }
+      return {
+        dangerLevel: 'ask',
+        reason: 'Medium-risk operation requires confirmation',
+      }
     }
   }
 

@@ -5,8 +5,8 @@
  * Uses the native fetch API with timeout support.
  */
 import { z } from 'zod'
-import { BaseTool } from '../base.js'
 import type { ToolContext, ToolResult } from '../../types/tool.js'
+import { BaseTool } from '../base.js'
 
 // ─── Schema ──────────────────────────────────────────────
 
@@ -35,7 +35,10 @@ function htmlToText(html: string): string {
   // Remove comments
   text = text.replace(/<!--[\s\S]*?-->/g, '')
   // Replace block-level tags with newlines
-  text = text.replace(/<\/?(?:div|p|h[1-6]|li|tr|th|td|blockquote|pre|br|hr|section|article|nav|header|footer)[^>]*>/gi, '\n')
+  text = text.replace(
+    /<\/?(?:div|p|h[1-6]|li|tr|th|td|blockquote|pre|br|hr|section|article|nav|header|footer)[^>]*>/gi,
+    '\n',
+  )
   // Remove remaining tags
   text = text.replace(/<[^>]+>/g, '')
   // Decode common HTML entities
@@ -60,10 +63,7 @@ export class WebFetchTool extends BaseTool<typeof webFetchSchema, WebFetchOutput
   description = 'Fetch and extract readable text content from a URL. Returns the page content as plain text.'
   inputSchema = webFetchSchema
 
-  async execute(
-    input: z.infer<typeof webFetchSchema>,
-    _context: ToolContext,
-  ): Promise<ToolResult<WebFetchOutput>> {
+  async execute(input: z.infer<typeof webFetchSchema>, _context: ToolContext): Promise<ToolResult<WebFetchOutput>> {
     const { url, maxChars = 50000 } = input
 
     const controller = new AbortController()
@@ -74,7 +74,7 @@ export class WebFetchTool extends BaseTool<typeof webFetchSchema, WebFetchOutput
         signal: controller.signal,
         headers: {
           'User-Agent': 'ClaudeCodeSDK/1.0',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         },
         redirect: 'follow',
       })
@@ -82,7 +82,11 @@ export class WebFetchTool extends BaseTool<typeof webFetchSchema, WebFetchOutput
       clearTimeout(timeoutId)
 
       const contentType = response.headers.get('content-type') || ''
-      const isHtml = contentType.includes('text/html') || contentType.includes('application/xhtml') || contentType.includes('text/plain') || contentType.includes('application/json')
+      const isHtml =
+        contentType.includes('text/html') ||
+        contentType.includes('application/xhtml') ||
+        contentType.includes('text/plain') ||
+        contentType.includes('application/json')
       const isText = contentType.startsWith('text/') || contentType.includes('json') || contentType.includes('xml')
 
       let text: string

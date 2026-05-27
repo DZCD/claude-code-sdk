@@ -7,8 +7,8 @@
  * Reference: claude-code-source-code/src/utils/permissions/pathValidation.ts
  * SDK adaptation: simplified for library use, no sandbox manager dependency.
  */
-import { homedir } from 'os'
-import { dirname, isAbsolute, resolve } from 'path'
+import { homedir } from 'node:os'
+import { dirname, isAbsolute, resolve } from 'node:path'
 import type { FileOperationType, PathValidationOptions, PathValidationResult } from '../types/permission.js'
 
 // ============================================================================
@@ -34,13 +34,29 @@ export interface SensitivePathDef {
  */
 export const SENSITIVE_PATHS: SensitivePathDef[] = [
   // Shell configuration files
-  { pattern: '.ssh', description: 'SSH configuration and keys', isPrefix: true },
+  {
+    pattern: '.ssh',
+    description: 'SSH configuration and keys',
+    isPrefix: true,
+  },
   { pattern: '.gnupg', description: 'GPG keys', isPrefix: true },
   { pattern: '.aws', description: 'AWS credentials', isPrefix: true },
   { pattern: '.azure', description: 'Azure credentials', isPrefix: true },
-  { pattern: '.gcloud', description: 'Google Cloud credentials', isPrefix: true },
-  { pattern: '.config/gcloud', description: 'Google Cloud config', isPrefix: true },
-  { pattern: '.docker/config.json', description: 'Docker credentials', isPrefix: false },
+  {
+    pattern: '.gcloud',
+    description: 'Google Cloud credentials',
+    isPrefix: true,
+  },
+  {
+    pattern: '.config/gcloud',
+    description: 'Google Cloud config',
+    isPrefix: true,
+  },
+  {
+    pattern: '.docker/config.json',
+    description: 'Docker credentials',
+    isPrefix: false,
+  },
   { pattern: '.npmrc', description: 'NPM credentials/tokens', isPrefix: false },
   { pattern: '.npm/_cacache', description: 'NPM cache', isPrefix: true },
   { pattern: '.yarnrc', description: 'Yarn credentials', isPrefix: false },
@@ -48,11 +64,27 @@ export const SENSITIVE_PATHS: SensitivePathDef[] = [
 
   // Environment / secrets
   { pattern: '.env', description: 'Environment variables', isPrefix: false },
-  { pattern: '.env.local', description: 'Local environment variables', isPrefix: false },
-  { pattern: '.env.production', description: 'Production env variables', isPrefix: false },
-  { pattern: '.env.development', description: 'Development env variables', isPrefix: false },
+  {
+    pattern: '.env.local',
+    description: 'Local environment variables',
+    isPrefix: false,
+  },
+  {
+    pattern: '.env.production',
+    description: 'Production env variables',
+    isPrefix: false,
+  },
+  {
+    pattern: '.env.development',
+    description: 'Development env variables',
+    isPrefix: false,
+  },
   { pattern: '.env.test', description: 'Test env variables', isPrefix: false },
-  { pattern: '.env.staging', description: 'Staging env variables', isPrefix: false },
+  {
+    pattern: '.env.staging',
+    description: 'Staging env variables',
+    isPrefix: false,
+  },
 
   // Git
   { pattern: '.git', description: 'Git directory', isPrefix: true },
@@ -61,21 +93,41 @@ export const SENSITIVE_PATHS: SensitivePathDef[] = [
   { pattern: '.claude', description: 'Claude config', isPrefix: true },
 
   // IDE/Editor config (sensitive)
-  { pattern: '.vscode/settings.json', description: 'VS Code settings', isPrefix: false },
+  {
+    pattern: '.vscode/settings.json',
+    description: 'VS Code settings',
+    isPrefix: false,
+  },
 
   // Package config with credentials
   { pattern: '.pypirc', description: 'PyPI credentials', isPrefix: false },
-  { pattern: '.gem/credentials', description: 'RubyGem credentials', isPrefix: false },
+  {
+    pattern: '.gem/credentials',
+    description: 'RubyGem credentials',
+    isPrefix: false,
+  },
   { pattern: '.netrc', description: 'Netrc credentials', isPrefix: false },
 
   // Kubernetes
-  { pattern: '.kube/config', description: 'Kubernetes config', isPrefix: false },
+  {
+    pattern: '.kube/config',
+    description: 'Kubernetes config',
+    isPrefix: false,
+  },
 
   // History files
   { pattern: '.bash_history', description: 'Bash history', isPrefix: false },
   { pattern: '.zsh_history', description: 'Zsh history', isPrefix: false },
-  { pattern: '.python_history', description: 'Python history', isPrefix: false },
-  { pattern: '.node_repl_history', description: 'Node REPL history', isPrefix: false },
+  {
+    pattern: '.python_history',
+    description: 'Python history',
+    isPrefix: false,
+  },
+  {
+    pattern: '.node_repl_history',
+    description: 'Node REPL history',
+    isPrefix: false,
+  },
 ]
 
 // ============================================================================
@@ -86,11 +138,7 @@ export const SENSITIVE_PATHS: SensitivePathDef[] = [
  * Expand tilde (~) at the start of a path to the user's home directory.
  */
 export function expandTilde(path: string): string {
-  if (
-    path === '~' ||
-    path.startsWith('~/') ||
-    (process.platform === 'win32' && path.startsWith('~\\'))
-  ) {
+  if (path === '~' || path.startsWith('~/') || (process.platform === 'win32' && path.startsWith('~\\'))) {
     return homedir() + path.slice(1)
   }
   return path
@@ -142,10 +190,7 @@ export function matchesSensitivePath(resolvedPath: string): boolean {
  * Check if a path is in one of the allowed directories.
  * Considers denyWithinAllow as exceptions.
  */
-export function isPathInAllowedDirectory(
-  resolvedPath: string,
-  options: PathValidationOptions,
-): boolean {
+export function isPathInAllowedDirectory(resolvedPath: string, options: PathValidationOptions): boolean {
   const normalized = resolvedPath.replace(/\\/g, '/')
 
   // Check denyWithinAllow first (higher priority)
@@ -159,7 +204,11 @@ export function isPathInAllowedDirectory(
   // Check allowed directories
   for (const dir of options.allowedDirectories) {
     const normalizedDir = dir.replace(/\\/g, '/')
-    if (normalized === normalizedDir || normalized.startsWith(normalizedDir + '/') || normalized.startsWith(normalizedDir + '\\')) {
+    if (
+      normalized === normalizedDir ||
+      normalized.startsWith(`${normalizedDir}/`) ||
+      normalized.startsWith(`${normalizedDir}\\`)
+    ) {
       return true
     }
   }
@@ -238,11 +287,7 @@ export function validatePath(
   }
 
   // SECURITY: Block shell expansion syntax
-  if (
-    cleanPath.includes('$') ||
-    cleanPath.includes('%') ||
-    cleanPath.startsWith('=')
-  ) {
+  if (cleanPath.includes('$') || cleanPath.includes('%') || cleanPath.startsWith('=')) {
     return {
       allowed: false,
       resolvedPath: cleanPath,
@@ -262,9 +307,7 @@ export function validatePath(
 
     // For read operations, validate the base directory
     const basePath = getGlobBaseDirectory(cleanPath)
-    const absoluteBasePath = isAbsolute(basePath)
-      ? basePath
-      : resolve(cwd, basePath)
+    const absoluteBasePath = isAbsolute(basePath) ? basePath : resolve(cwd, basePath)
     const resolvedBasePath = absoluteBasePath
 
     const result = isPathAllowed(resolvedBasePath, options, operationType)
@@ -276,9 +319,7 @@ export function validatePath(
   }
 
   // Resolve path
-  const absolutePath = isAbsolute(cleanPath)
-    ? cleanPath
-    : resolve(cwd, cleanPath)
+  const absolutePath = isAbsolute(cleanPath) ? cleanPath : resolve(cwd, cleanPath)
 
   const result = isPathAllowed(absolutePath, options, operationType)
   return {

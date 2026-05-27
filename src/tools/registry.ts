@@ -4,7 +4,7 @@
  * Central registry for tool management. Handles registration,
  * lookup, execution, and conversion to API schema format.
  */
-import type { Tool, Tools, ToolDefinition, ToolResult, ToolContext } from '../types/tool.js'
+import type { Tool, ToolContext, ToolDefinition, ToolResult, Tools } from '../types/tool.js'
 
 export class ToolRegistry {
   private readonly _tools = new Map<string, Tool>()
@@ -70,11 +70,7 @@ export class ToolRegistry {
   }
 
   /** Execute a tool by name with validated input */
-  async execute(
-    name: string,
-    input: Record<string, unknown>,
-    context: ToolContext,
-  ): Promise<ToolResult> {
+  async execute(name: string, input: Record<string, unknown>, context: ToolContext): Promise<ToolResult> {
     const tool = this._tools.get(name)
     if (!tool) {
       return {

@@ -18,10 +18,7 @@ export interface PermissionRequest {
   mode: PermissionMode
 }
 
-export type PermissionDecision =
-  | { type: 'allow' }
-  | { type: 'deny'; reason?: string }
-  | { type: 'ask'; prompt: string }
+export type PermissionDecision = { type: 'allow' } | { type: 'deny'; reason?: string } | { type: 'ask'; prompt: string }
 
 export interface PermissionResult {
   decision: PermissionDecision

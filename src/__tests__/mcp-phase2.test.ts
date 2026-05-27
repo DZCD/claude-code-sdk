@@ -4,9 +4,14 @@
  * Wave 3: MCP Resource support (listResources, readResource)
  * Wave 4: MCP Prompt template support (listPrompts, getPrompt)
  */
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { MCPServerManager } from '../mcp/manager.js'
-import type { MCPResourceDefinition, MCPResourceContent, MCPPromptDefinition, MCPGetPromptResult } from '../mcp/types.js'
+import type {
+  MCPGetPromptResult,
+  MCPPromptDefinition,
+  MCPResourceContent,
+  MCPResourceDefinition,
+} from '../mcp/types.js'
 import { MCPServerError } from '../mcp/types.js'
 
 /**
@@ -29,7 +34,11 @@ async function connectMockServer(
   manager: MCPServerManager,
   name: string,
   capabilities: Record<string, boolean> = { tools: true },
-  mockTools: Array<{ name: string; description?: string; inputSchema: Record<string, unknown> }> = [],
+  mockTools: Array<{
+    name: string
+    description?: string
+    inputSchema: Record<string, unknown>
+  }> = [],
 ): Promise<ReturnType<typeof createMockClient>> {
   const mockClient = createMockClient(capabilities)
   mockClient.request.mockImplementation(async (req: any) => {
@@ -45,7 +54,11 @@ async function connectMockServer(
     config: { name, type: 'stdio' as const, commandOrUrl: 'echo' },
     client: mockClient,
     tools: [],
-    connection: { serverName: name, tools: mockTools, capabilities: Object.keys(capabilities) },
+    connection: {
+      serverName: name,
+      tools: mockTools,
+      capabilities: Object.keys(capabilities),
+    },
   }
 
   // Access private _servers through any
@@ -74,8 +87,16 @@ describe('MCPServerManager Phase 2 — Resources', () => {
         if (req.method === 'resources/list') {
           return {
             resources: [
-              { uri: 'file:///data/doc1.md', name: 'Document 1', mimeType: 'text/markdown' },
-              { uri: 'file:///data/doc2.txt', name: 'Document 2', mimeType: 'text/plain' },
+              {
+                uri: 'file:///data/doc1.md',
+                name: 'Document 1',
+                mimeType: 'text/markdown',
+              },
+              {
+                uri: 'file:///data/doc2.txt',
+                name: 'Document 2',
+                mimeType: 'text/plain',
+              },
             ],
           }
         }
@@ -99,27 +120,40 @@ describe('MCPServerManager Phase 2 — Resources', () => {
     it('should filter resources by server name', async () => {
       const manager = new MCPServerManager()
 
-      const mockClient1 = await connectMockServer(
-        manager, 'server-a', { tools: true, resources: true },
-      )
+      const mockClient1 = await connectMockServer(manager, 'server-a', {
+        tools: true,
+        resources: true,
+      })
       const mockClient2 = createMockClient({ tools: true, resources: true })
       const serverB: any = {
-        config: { name: 'server-b', type: 'stdio' as const, commandOrUrl: 'echo' },
+        config: {
+          name: 'server-b',
+          type: 'stdio' as const,
+          commandOrUrl: 'echo',
+        },
         client: mockClient2,
         tools: [],
-        connection: { serverName: 'server-b', tools: [], capabilities: ['tools', 'resources'] },
+        connection: {
+          serverName: 'server-b',
+          tools: [],
+          capabilities: ['tools', 'resources'],
+        },
       }
       ;(manager as any)._servers.set('server-b', serverB)
 
       mockClient1.request.mockImplementation(async (req: any) => {
         if (req.method === 'resources/list') {
-          return { resources: [{ uri: 'file:///a.md', name: 'A', server: 'server-a' }] }
+          return {
+            resources: [{ uri: 'file:///a.md', name: 'A', server: 'server-a' }],
+          }
         }
         return {}
       })
       mockClient2.request.mockImplementation(async (req: any) => {
         if (req.method === 'resources/list') {
-          return { resources: [{ uri: 'file:///b.md', name: 'B', server: 'server-b' }] }
+          return {
+            resources: [{ uri: 'file:///b.md', name: 'B', server: 'server-b' }],
+          }
         }
         return {}
       })
@@ -131,7 +165,10 @@ describe('MCPServerManager Phase 2 — Resources', () => {
 
     it('should return empty array for non-existent server', async () => {
       const manager = new MCPServerManager()
-      await connectMockServer(manager, 'real-server', { tools: true, resources: true })
+      await connectMockServer(manager, 'real-server', {
+        tools: true,
+        resources: true,
+      })
 
       const resources = await manager.listResources('nonexistent-server')
       expect(resources).toEqual([])
@@ -147,22 +184,39 @@ describe('MCPServerManager Phase 2 — Resources', () => {
 
     it('should handle one server failure without blocking others', async () => {
       const manager = new MCPServerManager()
-      const mockClient1 = await connectMockServer(
-        manager, 'failing-server', { tools: true, resources: true },
-      )
+      const mockClient1 = await connectMockServer(manager, 'failing-server', {
+        tools: true,
+        resources: true,
+      })
       const mockClient2 = createMockClient({ tools: true, resources: true })
       const serverB: any = {
-        config: { name: 'working-server', type: 'stdio' as const, commandOrUrl: 'echo' },
+        config: {
+          name: 'working-server',
+          type: 'stdio' as const,
+          commandOrUrl: 'echo',
+        },
         client: mockClient2,
         tools: [],
-        connection: { serverName: 'working-server', tools: [], capabilities: ['tools', 'resources'] },
+        connection: {
+          serverName: 'working-server',
+          tools: [],
+          capabilities: ['tools', 'resources'],
+        },
       }
       ;(manager as any)._servers.set('working-server', serverB)
 
       mockClient1.request.mockRejectedValue(new Error('Connection lost'))
       mockClient2.request.mockImplementation(async (req: any) => {
         if (req.method === 'resources/list') {
-          return { resources: [{ uri: 'file:///working.md', name: 'Working Doc', server: 'working-server' }] }
+          return {
+            resources: [
+              {
+                uri: 'file:///working.md',
+                name: 'Working Doc',
+                server: 'working-server',
+              },
+            ],
+          }
         }
         return {}
       })
@@ -184,7 +238,11 @@ describe('MCPServerManager Phase 2 — Resources', () => {
         if (req.method === 'resources/list') {
           return {
             resources: [
-              { uri: 'file:///data.md', name: 'Data', mimeType: 'text/markdown' },
+              {
+                uri: 'file:///data.md',
+                name: 'Data',
+                mimeType: 'text/markdown',
+              },
             ],
           }
         }
@@ -199,24 +257,23 @@ describe('MCPServerManager Phase 2 — Resources', () => {
   describe('readResource()', () => {
     it('should throw if no servers connected', async () => {
       const manager = new MCPServerManager()
-      await expect(manager.readResource('any-server', 'file:///test.md'))
-        .rejects.toThrow(/not found/i)
+      await expect(manager.readResource('any-server', 'file:///test.md')).rejects.toThrow(/not found/i)
     })
 
     it('should throw if server does not exist', async () => {
       const manager = new MCPServerManager()
       await connectMockServer(manager, 'real-server', { tools: true })
 
-      await expect(manager.readResource('nonexistent', 'file:///test.md'))
-        .rejects.toThrow(/not found/i)
+      await expect(manager.readResource('nonexistent', 'file:///test.md')).rejects.toThrow(/not found/i)
     })
 
     it('should throw if server does not support resources', async () => {
       const manager = new MCPServerManager()
       await connectMockServer(manager, 'no-resources', { tools: true })
 
-      await expect(manager.readResource('no-resources', 'file:///test.md'))
-        .rejects.toThrow(/does not support resources/i)
+      await expect(manager.readResource('no-resources', 'file:///test.md')).rejects.toThrow(
+        /does not support resources/i,
+      )
     })
 
     it('should read a text resource successfully', async () => {
@@ -230,7 +287,11 @@ describe('MCPServerManager Phase 2 — Resources', () => {
         if (req.method === 'resources/read') {
           return {
             contents: [
-              { uri: 'file:///readme.md', mimeType: 'text/markdown', text: '# Hello World\nThis is content.' },
+              {
+                uri: 'file:///readme.md',
+                mimeType: 'text/markdown',
+                text: '# Hello World\nThis is content.',
+              },
             ],
           }
         }
@@ -254,7 +315,11 @@ describe('MCPServerManager Phase 2 — Resources', () => {
         if (req.method === 'resources/read') {
           return {
             contents: [
-              { uri: 'file:///image.png', mimeType: 'image/png', blob: Buffer.from('fake-png-data').toString('base64') },
+              {
+                uri: 'file:///image.png',
+                mimeType: 'image/png',
+                blob: Buffer.from('fake-png-data').toString('base64'),
+              },
             ],
           }
         }
@@ -276,8 +341,7 @@ describe('MCPServerManager Phase 2 — Resources', () => {
 
       mockClient.request.mockRejectedValue(new Error('Resource not found: file:///missing.md'))
 
-      await expect(manager.readResource('err-server', 'file:///missing.md'))
-        .rejects.toThrow(/Resource not found/i)
+      await expect(manager.readResource('err-server', 'file:///missing.md')).rejects.toThrow(/Resource not found/i)
     })
   })
 })
@@ -302,7 +366,17 @@ describe('MCPServerManager Phase 2 — Prompts', () => {
           return {
             prompts: [
               { name: 'greet', description: 'Generate a greeting' },
-              { name: 'summarize', description: 'Summarize text', arguments: [{ name: 'text', description: 'Text to summarize', required: true }] },
+              {
+                name: 'summarize',
+                description: 'Summarize text',
+                arguments: [
+                  {
+                    name: 'text',
+                    description: 'Text to summarize',
+                    required: true,
+                  },
+                ],
+              },
             ],
           }
         }
@@ -329,7 +403,9 @@ describe('MCPServerManager Phase 2 — Prompts', () => {
 
       mockClient.request.mockImplementation(async (req: any) => {
         if (req.method === 'prompts/list') {
-          return { prompts: [{ name: 'greet', description: 'Greeting prompt' }] }
+          return {
+            prompts: [{ name: 'greet', description: 'Greeting prompt' }],
+          }
         }
         return {}
       })
@@ -358,17 +434,27 @@ describe('MCPServerManager Phase 2 — Prompts', () => {
       })
       const mockClient2 = createMockClient({ tools: true, prompts: true })
       const serverB: any = {
-        config: { name: 'working-server', type: 'stdio' as const, commandOrUrl: 'echo' },
+        config: {
+          name: 'working-server',
+          type: 'stdio' as const,
+          commandOrUrl: 'echo',
+        },
         client: mockClient2,
         tools: [],
-        connection: { serverName: 'working-server', tools: [], capabilities: ['tools', 'prompts'] },
+        connection: {
+          serverName: 'working-server',
+          tools: [],
+          capabilities: ['tools', 'prompts'],
+        },
       }
       ;(manager as any)._servers.set('working-server', serverB)
 
       mockClient1.request.mockRejectedValue(new Error('Failure'))
       mockClient2.request.mockImplementation(async (req: any) => {
         if (req.method === 'prompts/list') {
-          return { prompts: [{ name: 'working-prompt', description: 'This works!' }] }
+          return {
+            prompts: [{ name: 'working-prompt', description: 'This works!' }],
+          }
         }
         return {}
       })
@@ -383,24 +469,21 @@ describe('MCPServerManager Phase 2 — Prompts', () => {
   describe('getPrompt()', () => {
     it('should throw if no servers connected', async () => {
       const manager = new MCPServerManager()
-      await expect(manager.getPrompt('any-server', 'test-prompt'))
-        .rejects.toThrow(/not found/i)
+      await expect(manager.getPrompt('any-server', 'test-prompt')).rejects.toThrow(/not found/i)
     })
 
     it('should throw if server does not exist', async () => {
       const manager = new MCPServerManager()
       await connectMockServer(manager, 'real-server', { tools: true })
 
-      await expect(manager.getPrompt('nonexistent', 'test-prompt'))
-        .rejects.toThrow(/not found/i)
+      await expect(manager.getPrompt('nonexistent', 'test-prompt')).rejects.toThrow(/not found/i)
     })
 
     it('should throw if server does not support prompts', async () => {
       const manager = new MCPServerManager()
       await connectMockServer(manager, 'no-prompts', { tools: true })
 
-      await expect(manager.getPrompt('no-prompts', 'test-prompt'))
-        .rejects.toThrow(/does not support prompts/i)
+      await expect(manager.getPrompt('no-prompts', 'test-prompt')).rejects.toThrow(/does not support prompts/i)
     })
 
     it('should get a prompt template with arguments', async () => {
@@ -412,16 +495,12 @@ describe('MCPServerManager Phase 2 — Prompts', () => {
 
       mockClient.getPrompt.mockResolvedValue({
         description: 'A greeting',
-        messages: [
-          { role: 'user', content: { type: 'text', text: 'Hello!' } },
-        ],
+        messages: [{ role: 'user', content: { type: 'text', text: 'Hello!' } }],
       })
 
-      const result = await manager.getPrompt(
-        'prompt-server',
-        'greet',
-        { name: 'World' },
-      )
+      const result = await manager.getPrompt('prompt-server', 'greet', {
+        name: 'World',
+      })
       expect(result.description).toBe('A greeting')
       expect(result.messages).toHaveLength(1)
       expect(result.messages[0].role).toBe('user')
@@ -442,9 +521,7 @@ describe('MCPServerManager Phase 2 — Prompts', () => {
 
       mockClient.getPrompt.mockResolvedValue({
         description: 'Simple prompt',
-        messages: [
-          { role: 'assistant', content: { type: 'text', text: 'Response' } },
-        ],
+        messages: [{ role: 'assistant', content: { type: 'text', text: 'Response' } }],
       })
 
       const result = await manager.getPrompt('simple-server', 'simple-prompt')
@@ -464,9 +541,7 @@ describe('MCPServerManager Phase 2 — Prompts', () => {
 
       mockClient.getPrompt.mockRejectedValue(new Error('Prompt not found: unknown-prompt'))
 
-      await expect(
-        manager.getPrompt('err-server', 'unknown-prompt'),
-      ).rejects.toThrow(/Prompt not found/i)
+      await expect(manager.getPrompt('err-server', 'unknown-prompt')).rejects.toThrow(/Prompt not found/i)
     })
   })
 })

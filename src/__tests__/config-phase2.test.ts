@@ -1,14 +1,14 @@
+import { existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 /**
  * Tests for ConfigManager Phase 2 features
  *
  * Wave 1: settings.json read/write + multi-source merge
  * Wave 2: validation + change notification
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ConfigManager } from '../config/manager.js'
-import { writeFileSync, unlinkSync, mkdirSync, existsSync, rmSync } from 'fs'
-import { join } from 'path'
-import { tmpdir } from 'os'
 
 // Helper: create a temp directory for config file tests
 function createTempDir(): string {
@@ -27,15 +27,27 @@ describe('ConfigManager Phase 2 — settings.json Read/Write', () => {
   })
 
   afterEach(() => {
-    try { rmSync(tmpDir, { recursive: true, force: true }) } catch { /* ignore */ }
+    try {
+      rmSync(tmpDir, { recursive: true, force: true })
+    } catch {
+      /* ignore */
+    }
   })
 
   describe('loadFromFile()', () => {
     it('should load config from a valid JSON file', () => {
-      writeFileSync(configPath, JSON.stringify({
-        llm: { provider: 'anthropic', apiKey: 'sk-file-key', model: 'claude-haiku-3-5' },
-        permissionMode: 'manual',
-      }), 'utf-8')
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          llm: {
+            provider: 'anthropic',
+            apiKey: 'sk-file-key',
+            model: 'claude-haiku-3-5',
+          },
+          permissionMode: 'manual',
+        }),
+        'utf-8',
+      )
 
       const cm = new ConfigManager()
       cm.loadFromFile(configPath)
@@ -47,9 +59,13 @@ describe('ConfigManager Phase 2 — settings.json Read/Write', () => {
     })
 
     it('should merge file config over defaults but keep non-overridden defaults', () => {
-      writeFileSync(configPath, JSON.stringify({
-        permissionMode: 'plan',
-      }), 'utf-8')
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          permissionMode: 'plan',
+        }),
+        'utf-8',
+      )
 
       const cm = new ConfigManager()
       cm.loadFromFile(configPath)
@@ -87,10 +103,14 @@ describe('ConfigManager Phase 2 — settings.json Read/Write', () => {
     })
 
     it('should merge nested subsections correctly', () => {
-      writeFileSync(configPath, JSON.stringify({
-        conversation: { maxTokens: 5000 },
-        context: { includeGitStatus: false },
-      }), 'utf-8')
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          conversation: { maxTokens: 5000 },
+          context: { includeGitStatus: false },
+        }),
+        'utf-8',
+      )
 
       const cm = new ConfigManager()
       cm.loadFromFile(configPath)
@@ -106,24 +126,32 @@ describe('ConfigManager Phase 2 — settings.json Read/Write', () => {
   describe('saveToFile()', () => {
     it('should save config to a JSON file', () => {
       const cm = new ConfigManager({
-        llm: { provider: 'anthropic', apiKey: 'sk-save-key', model: 'test-model' },
+        llm: {
+          provider: 'anthropic',
+          apiKey: 'sk-save-key',
+          model: 'test-model',
+        },
         permissionMode: 'manual',
       })
       cm.saveToFile(configPath)
 
       // Read file and verify
-      const saved = JSON.parse(require('fs').readFileSync(configPath, 'utf-8'))
+      const saved = JSON.parse(require('node:fs').readFileSync(configPath, 'utf-8'))
       expect(saved.llm.apiKey).toBe('sk-save-key')
       expect(saved.permissionMode).toBe('manual')
     })
 
     it('should filter out default values from saved file (compact save)', () => {
       const cm = new ConfigManager({
-        llm: { provider: 'anthropic', apiKey: 'sk-only-key', model: 'claude-sonnet-4-20250514' },
+        llm: {
+          provider: 'anthropic',
+          apiKey: 'sk-only-key',
+          model: 'claude-sonnet-4-20250514',
+        },
       })
       cm.saveToFile(configPath)
 
-      const saved = JSON.parse(require('fs').readFileSync(configPath, 'utf-8'))
+      const saved = JSON.parse(require('node:fs').readFileSync(configPath, 'utf-8'))
       // apiKey differs from default (''), so it's saved
       expect(saved.llm.apiKey).toBe('sk-only-key')
       // Default model matches the default, so it's filtered out (compact save)
@@ -134,22 +162,30 @@ describe('ConfigManager Phase 2 — settings.json Read/Write', () => {
       const deepPath = join(tmpDir, 'nested', 'deep', 'settings.json')
 
       const cm = new ConfigManager({
-        llm: { provider: 'anthropic', apiKey: 'sk-deep-key', model: 'claude-sonnet-4-20250514' },
+        llm: {
+          provider: 'anthropic',
+          apiKey: 'sk-deep-key',
+          model: 'claude-sonnet-4-20250514',
+        },
       })
       cm.saveToFile(deepPath)
 
       expect(existsSync(deepPath)).toBe(true)
-      const saved = JSON.parse(require('fs').readFileSync(deepPath, 'utf-8'))
+      const saved = JSON.parse(require('node:fs').readFileSync(deepPath, 'utf-8'))
       expect(saved.llm.apiKey).toBe('sk-deep-key')
     })
 
     it('should set file permissions to 0o600', () => {
       const cm = new ConfigManager({
-        llm: { provider: 'anthropic', apiKey: 'sk-perm-key', model: 'claude-sonnet-4-20250514' },
+        llm: {
+          provider: 'anthropic',
+          apiKey: 'sk-perm-key',
+          model: 'claude-sonnet-4-20250514',
+        },
       })
       cm.saveToFile(configPath)
 
-      const stats = require('fs').statSync(configPath)
+      const stats = require('node:fs').statSync(configPath)
       // On Unix, check mode is 0o600 (user read+write only)
       if (process.platform !== 'win32') {
         expect(stats.mode & 0o777).toBe(0o600)
@@ -159,10 +195,18 @@ describe('ConfigManager Phase 2 — settings.json Read/Write', () => {
 
   describe('loadFromFile() + update() priority', () => {
     it('should have update() override file config', () => {
-      writeFileSync(configPath, JSON.stringify({
-        llm: { provider: 'anthropic', apiKey: 'sk-file-key', model: 'claude-sonnet-4-20250514' },
-        permissionMode: 'manual',
-      }), 'utf-8')
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          llm: {
+            provider: 'anthropic',
+            apiKey: 'sk-file-key',
+            model: 'claude-sonnet-4-20250514',
+          },
+          permissionMode: 'manual',
+        }),
+        'utf-8',
+      )
 
       const cm = new ConfigManager()
       cm.loadFromFile(configPath)
@@ -177,9 +221,13 @@ describe('ConfigManager Phase 2 — settings.json Read/Write', () => {
       process.env.ANTHROPIC_API_KEY = 'sk-env-key'
       process.env.CLAUDE_CODE_PERMISSION_MODE = 'manual'
 
-      writeFileSync(configPath, JSON.stringify({
-        permissionMode: 'plan',
-      }), 'utf-8')
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          permissionMode: 'plan',
+        }),
+        'utf-8',
+      )
 
       const cm = new ConfigManager()
       cm.mergeFromEnv() // loads env
@@ -191,8 +239,8 @@ describe('ConfigManager Phase 2 — settings.json Read/Write', () => {
       expect(config.permissionMode).toBe('plan') // file overrides env
       expect(config.llm.apiKey).toBe('sk-env-key') // env still present
 
-      delete process.env.ANTHROPIC_API_KEY
-      delete process.env.CLAUDE_CODE_PERMISSION_MODE
+      process.env.ANTHROPIC_API_KEY = undefined
+      process.env.CLAUDE_CODE_PERMISSION_MODE = undefined
     })
   })
 })
@@ -207,16 +255,28 @@ describe('ConfigManager Phase 2 — Multi-source Merge', () => {
   })
 
   afterEach(() => {
-    try { rmSync(tmpDir, { recursive: true, force: true }) } catch { /* ignore */ }
+    try {
+      rmSync(tmpDir, { recursive: true, force: true })
+    } catch {
+      /* ignore */
+    }
   })
 
   describe('loadFromSources()', () => {
     it('should merge all sources with correct priority: defaults < file < env < cli', () => {
-      writeFileSync(configPath, JSON.stringify({
-        llm: { provider: 'anthropic', apiKey: 'sk-file', model: 'file-model' },
-        permissionMode: 'plan',
-        defaultTools: false,
-      }), 'utf-8')
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          llm: {
+            provider: 'anthropic',
+            apiKey: 'sk-file',
+            model: 'file-model',
+          },
+          permissionMode: 'plan',
+          defaultTools: false,
+        }),
+        'utf-8',
+      )
 
       const cm = new ConfigManager()
       cm.loadFromSources({
@@ -235,9 +295,13 @@ describe('ConfigManager Phase 2 — Multi-source Merge', () => {
     })
 
     it('should accept only file path with no env or CLI', () => {
-      writeFileSync(configPath, JSON.stringify({
-        permissionMode: 'manual',
-      }), 'utf-8')
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          permissionMode: 'manual',
+        }),
+        'utf-8',
+      )
 
       const cm = new ConfigManager()
       cm.loadFromSources({ filePath: configPath })
@@ -298,7 +362,11 @@ describe('ConfigManager Phase 2 — Validation (Wave 2)', () => {
   describe('validate()', () => {
     it('should return valid result for a valid config', () => {
       const cm = new ConfigManager({
-        llm: { provider: 'anthropic', apiKey: 'sk-valid', model: 'claude-sonnet-4-20250514' },
+        llm: {
+          provider: 'anthropic',
+          apiKey: 'sk-valid',
+          model: 'claude-sonnet-4-20250514',
+        },
       })
       const result = cm.validate()
       expect(result.valid).toBe(true)
@@ -311,7 +379,7 @@ describe('ConfigManager Phase 2 — Validation (Wave 2)', () => {
       })
       const result = cm.validate()
       expect(result.valid).toBe(false)
-      expect(result.errors.some(e => e.includes('apiKey'))).toBe(true)
+      expect(result.errors.some((e) => e.includes('apiKey'))).toBe(true)
     })
 
     it('should report missing projectId for vertex provider', () => {
@@ -320,12 +388,16 @@ describe('ConfigManager Phase 2 — Validation (Wave 2)', () => {
       })
       const result = cm.validate()
       expect(result.valid).toBe(false)
-      expect(result.errors.some(e => e.includes('projectId'))).toBe(true)
+      expect(result.errors.some((e) => e.includes('projectId'))).toBe(true)
     })
 
     it('should report invalid provider', () => {
       const cm = new ConfigManager({
-        llm: { provider: 'invalid-provider', apiKey: 'sk-test', model: 'test' } as any,
+        llm: {
+          provider: 'invalid-provider',
+          apiKey: 'sk-test',
+          model: 'test',
+        } as any,
       })
       const result = cm.validate()
       expect(result.valid).toBe(false)
@@ -356,17 +428,17 @@ describe('ConfigManager Phase 2 — Validation (Wave 2)', () => {
         llm: { provider: 'anthropic', apiKey: '', model: 'test' },
       })
       const missing = cm.validateRequired()
-      expect(missing.some(m => m.includes('apiKey'))).toBe(true)
+      expect(missing.some((m) => m.includes('apiKey'))).toBe(true)
     })
 
     it('should return missing projectId for vertex', () => {
       // Delete env vars that might auto-provide projectId
-      delete process.env.ANTHROPIC_VERTEX_PROJECT_ID
+      process.env.ANTHROPIC_VERTEX_PROJECT_ID = undefined
       const cm = new ConfigManager({
         llm: { provider: 'vertex', model: 'test' } as any,
       })
       const missing = cm.validateRequired()
-      expect(missing.some(m => m.includes('projectId'))).toBe(true)
+      expect(missing.some((m) => m.includes('projectId'))).toBe(true)
     })
   })
 })
@@ -381,7 +453,11 @@ describe('ConfigManager Phase 2 — Change Notification (Wave 2)', () => {
   })
 
   afterEach(() => {
-    try { rmSync(tmpDir, { recursive: true, force: true }) } catch { /* ignore */ }
+    try {
+      rmSync(tmpDir, { recursive: true, force: true })
+    } catch {
+      /* ignore */
+    }
   })
 
   describe('onDidChange()', () => {
@@ -397,7 +473,7 @@ describe('ConfigManager Phase 2 — Change Notification (Wave 2)', () => {
         expect.objectContaining({
           key: 'permissionMode',
           newValue: 'manual',
-        })
+        }),
       )
       unsubscribe()
     })
@@ -447,7 +523,7 @@ describe('ConfigManager Phase 2 — Change Notification (Wave 2)', () => {
           key: 'permissionMode',
           oldValue: 'auto',
           newValue: 'bypass',
-        })
+        }),
       )
     })
   })
@@ -456,10 +532,14 @@ describe('ConfigManager Phase 2 — Change Notification (Wave 2)', () => {
     it('should detect external file changes', async () => {
       const cm = new ConfigManager()
       // First, load config from file
-      writeFileSync(configPath, JSON.stringify({
-        permissionMode: 'manual',
-        llm: { provider: 'anthropic', apiKey: 'sk-file', model: 'test' },
-      }), 'utf-8')
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          permissionMode: 'manual',
+          llm: { provider: 'anthropic', apiKey: 'sk-file', model: 'test' },
+        }),
+        'utf-8',
+      )
       cm.loadFromFile(configPath)
 
       const changePromise = new Promise<void>((resolve) => {
@@ -475,10 +555,14 @@ describe('ConfigManager Phase 2 — Change Notification (Wave 2)', () => {
 
       // Simulate external change after a short delay
       setTimeout(() => {
-        writeFileSync(configPath, JSON.stringify({
-          permissionMode: 'bypass',
-          llm: { provider: 'anthropic', apiKey: 'sk-file', model: 'test' },
-        }), 'utf-8')
+        writeFileSync(
+          configPath,
+          JSON.stringify({
+            permissionMode: 'bypass',
+            llm: { provider: 'anthropic', apiKey: 'sk-file', model: 'test' },
+          }),
+          'utf-8',
+        )
       }, 100)
 
       await changePromise
@@ -489,24 +573,34 @@ describe('ConfigManager Phase 2 — Change Notification (Wave 2)', () => {
     }, 10000)
 
     it('should reload config on external change', async () => {
-      writeFileSync(configPath, JSON.stringify({
-        llm: { provider: 'anthropic', apiKey: 'sk-v1', model: 'v1' },
-      }), 'utf-8')
+      writeFileSync(
+        configPath,
+        JSON.stringify({
+          llm: { provider: 'anthropic', apiKey: 'sk-v1', model: 'v1' },
+        }),
+        'utf-8',
+      )
 
       const cm = new ConfigManager()
       cm.loadFromFile(configPath)
 
       const changePromise = new Promise<void>((resolve) => {
-        cm.onDidChange(() => { resolve() })
+        cm.onDidChange(() => {
+          resolve()
+        })
       })
 
       cm.watch(configPath)
 
       // External modification
       setTimeout(() => {
-        writeFileSync(configPath, JSON.stringify({
-          llm: { provider: 'anthropic', apiKey: 'sk-v2', model: 'v2' },
-        }), 'utf-8')
+        writeFileSync(
+          configPath,
+          JSON.stringify({
+            llm: { provider: 'anthropic', apiKey: 'sk-v2', model: 'v2' },
+          }),
+          'utf-8',
+        )
       }, 100)
 
       await changePromise

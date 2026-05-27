@@ -3,20 +3,25 @@
  *
  * Token usage extraction, estimation, and tracking.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { Message } from '../../types/message.js'
+import { createAssistantMessage, createToolResultMessage, createUserMessage } from '../../types/message.js'
 import {
+  TokenTracker,
+  estimateContextTokens,
+  getContextSizeFromLastResponse,
+  getCurrentUsage,
+  getOutputTokensFromLastResponse,
   getTokenUsageFromMessage,
   getTotalTokensFromUsage,
-  getContextSizeFromLastResponse,
-  getOutputTokensFromLastResponse,
-  getCurrentUsage,
-  estimateContextTokens,
-  TokenTracker,
 } from '../token-tracker.js'
-import { createUserMessage, createAssistantMessage, createToolResultMessage } from '../../types/message.js'
 
-type TestUsage = { inputTokens: number; outputTokens: number; cacheCreationInputTokens?: number; cacheReadInputTokens?: number }
+type TestUsage = {
+  inputTokens: number
+  outputTokens: number
+  cacheCreationInputTokens?: number
+  cacheReadInputTokens?: number
+}
 
 function createAssistantWithUsage(usage: TestUsage): Message {
   return {
@@ -31,9 +36,17 @@ function createAssistantWithoutUsage(): Message {
 
 describe('getTokenUsageFromMessage', () => {
   it('should extract usage from assistant message with usage', () => {
-    const msg = createAssistantWithUsage({ inputTokens: 100, outputTokens: 50 })
+    const msg = createAssistantWithUsage({
+      inputTokens: 100,
+      outputTokens: 50,
+    })
     const usage = getTokenUsageFromMessage(msg)
-    expect(usage).toEqual({ inputTokens: 100, outputTokens: 50, cacheCreationInputTokens: 0, cacheReadInputTokens: 0 })
+    expect(usage).toEqual({
+      inputTokens: 100,
+      outputTokens: 50,
+      cacheCreationInputTokens: 0,
+      cacheReadInputTokens: 0,
+    })
   })
 
   it('should return undefined for assistant message without usage', () => {
@@ -47,7 +60,12 @@ describe('getTokenUsageFromMessage', () => {
   })
 
   it('should include cache tokens when present', () => {
-    const msg = createAssistantWithUsage({ inputTokens: 100, outputTokens: 50, cacheCreationInputTokens: 200, cacheReadInputTokens: 30 })
+    const msg = createAssistantWithUsage({
+      inputTokens: 100,
+      outputTokens: 50,
+      cacheCreationInputTokens: 200,
+      cacheReadInputTokens: 30,
+    })
     const usage = getTokenUsageFromMessage(msg)
     expect(usage?.cacheCreationInputTokens).toBe(200)
     expect(usage?.cacheReadInputTokens).toBe(30)
@@ -56,12 +74,20 @@ describe('getTokenUsageFromMessage', () => {
 
 describe('getTotalTokensFromUsage', () => {
   it('should sum all token types', () => {
-    const total = getTotalTokensFromUsage({ inputTokens: 100, outputTokens: 50, cacheCreationInputTokens: 200, cacheReadInputTokens: 30 })
+    const total = getTotalTokensFromUsage({
+      inputTokens: 100,
+      outputTokens: 50,
+      cacheCreationInputTokens: 200,
+      cacheReadInputTokens: 30,
+    })
     expect(total).toBe(380)
   })
 
   it('should handle zero cache tokens', () => {
-    const total = getTotalTokensFromUsage({ inputTokens: 100, outputTokens: 50 })
+    const total = getTotalTokensFromUsage({
+      inputTokens: 100,
+      outputTokens: 50,
+    })
     expect(total).toBe(150)
   })
 })
@@ -70,17 +96,19 @@ describe('getContextSizeFromLastResponse', () => {
   it('should get context size from last assistant with usage', () => {
     const messages: Message[] = [
       createUserMessage('hi'),
-      createAssistantWithUsage({ inputTokens: 200, outputTokens: 50, cacheCreationInputTokens: 100, cacheReadInputTokens: 20 }),
+      createAssistantWithUsage({
+        inputTokens: 200,
+        outputTokens: 50,
+        cacheCreationInputTokens: 100,
+        cacheReadInputTokens: 20,
+      }),
     ]
     const size = getContextSizeFromLastResponse(messages)
     expect(size).toBe(370)
   })
 
   it('should return 0 when no usage-bearing messages', () => {
-    const messages: Message[] = [
-      createUserMessage('hi'),
-      createAssistantWithoutUsage(),
-    ]
+    const messages: Message[] = [createUserMessage('hi'), createAssistantWithoutUsage()]
     const size = getContextSizeFromLastResponse(messages)
     expect(size).toBe(0)
   })
@@ -144,10 +172,7 @@ describe('estimateContextTokens', () => {
 
   it('should handle messages with tool results', () => {
     const toolResult = createToolResultMessage([{ type: 'tool_result', toolUseId: 't1', content: 'result data' }])
-    const messages: Message[] = [
-      createAssistantWithUsage({ inputTokens: 200, outputTokens: 50 }),
-      toolResult,
-    ]
+    const messages: Message[] = [createAssistantWithUsage({ inputTokens: 200, outputTokens: 50 }), toolResult]
     const estimate = estimateContextTokens(messages)
     expect(estimate).toBeGreaterThan(250)
   })
@@ -174,9 +199,7 @@ describe('TokenTracker', () => {
 
   it('should estimate context size from messages using last usage', () => {
     const tracker = new TokenTracker()
-    const messages: Message[] = [
-      createAssistantWithUsage({ inputTokens: 150, outputTokens: 40 }),
-    ]
+    const messages: Message[] = [createAssistantWithUsage({ inputTokens: 150, outputTokens: 40 })]
     const estimate = tracker.estimateContextSize(messages)
     expect(estimate).toBeGreaterThanOrEqual(190)
   })

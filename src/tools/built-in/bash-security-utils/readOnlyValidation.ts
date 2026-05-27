@@ -22,36 +22,59 @@ export type FlagArgType = 'none' | 'string' | 'number' | 'char' | 'EOF' | '{}'
  */
 export const GIT_READ_ONLY_COMMANDS: Record<string, Record<string, FlagArgType>> = {
   'git log': {
-    '--oneline': 'none', '--format': 'string', '--pretty': 'string',
-    '-n': 'number', '--max-count': 'number',
-    '--since': 'string', '--until': 'string', '--author': 'string',
-    '--grep': 'string', '--all': 'none', '--graph': 'none',
+    '--oneline': 'none',
+    '--format': 'string',
+    '--pretty': 'string',
+    '-n': 'number',
+    '--max-count': 'number',
+    '--since': 'string',
+    '--until': 'string',
+    '--author': 'string',
+    '--grep': 'string',
+    '--all': 'none',
+    '--graph': 'none',
     '--decorate': 'string',
-    '-p': 'none', '--patch': 'none',
-    '--stat': 'none', '--name-only': 'none', '--name-status': 'none',
+    '-p': 'none',
+    '--patch': 'none',
+    '--stat': 'none',
+    '--name-only': 'none',
+    '--name-status': 'none',
     '--diff-filter': 'string',
-    '-S': 'string', '-G': 'string',
+    '-S': 'string',
+    '-G': 'string',
     '--': 'none',
   },
   'git diff': {
-    '--stat': 'none', '--name-only': 'none', '--name-status': 'none',
-    '--diff-filter': 'string', '--cached': 'none', '--staged': 'none',
+    '--stat': 'none',
+    '--name-only': 'none',
+    '--name-status': 'none',
+    '--diff-filter': 'string',
+    '--cached': 'none',
+    '--staged': 'none',
     '--no-index': 'none',
   },
   'git show': {
-    '--stat': 'none', '--name-only': 'none', '--format': 'string',
+    '--stat': 'none',
+    '--name-only': 'none',
+    '--format': 'string',
   },
   'git status': {},
   'git branch': {
-    '-a': 'none', '--all': 'none', '-r': 'none', '--remotes': 'none',
-    '--merged': 'string', '--no-merged': 'string',
+    '-a': 'none',
+    '--all': 'none',
+    '-r': 'none',
+    '--remotes': 'none',
+    '--merged': 'string',
+    '--no-merged': 'string',
   },
   'git tag': {
-    '-l': 'none', '--list': 'none',
+    '-l': 'none',
+    '--list': 'none',
   },
   'git stash list': {},
   'git stash show': {
-    '-p': 'none', '--patch': 'none',
+    '-p': 'none',
+    '--patch': 'none',
   },
   'git blame': {},
   'git describe': {},
@@ -78,11 +101,17 @@ export const DOCKER_READ_ONLY_COMMANDS: Record<string, Record<string, FlagArgTyp
  */
 export const EXTERNAL_READONLY_COMMANDS: Record<string, Record<string, FlagArgType>> = {
   file: {
-    '--brief': 'none', '-b': 'none',
-    '--mime': 'none', '-i': 'none',
-    '--mime-type': 'none', '--mime-encoding': 'none',
-    '--help': 'none', '--version': 'none',
-    '--no-dereference': 'none', '-h': 'none', '-L': 'none',
+    '--brief': 'none',
+    '-b': 'none',
+    '--mime': 'none',
+    '-i': 'none',
+    '--mime-type': 'none',
+    '--mime-encoding': 'none',
+    '--help': 'none',
+    '--version': 'none',
+    '--no-dereference': 'none',
+    '-h': 'none',
+    '-L': 'none',
   },
 }
 
@@ -101,7 +130,7 @@ export const GH_READ_ONLY_COMMANDS: Record<string, Record<string, FlagArgType>> 
  * Pyright read-only commands.
  */
 export const PYRIGHT_READ_ONLY_COMMANDS: Record<string, Record<string, FlagArgType>> = {
-  'pyright': {},
+  pyright: {},
 }
 
 /**
@@ -111,7 +140,7 @@ export const RIPGREP_READ_ONLY_COMMANDS: Record<string, Record<string, FlagArgTy
   rg: {} as Record<string, FlagArgType>,
   'rg --type-list': {},
 }
-RIPGREP_READ_ONLY_COMMANDS['rg']!.safeFlags = {} as FlagArgType
+RIPGREP_READ_ONLY_COMMANDS.rg!.safeFlags = {} as FlagArgType
 
 // ─── Flag Validation ──────────────────────────────────────
 
@@ -140,7 +169,7 @@ export function validateFlags(
     // Check combined short flags: -abc means -a -b -c
     if (flag.startsWith('-') && !flag.startsWith('--') && flag.length > 2) {
       for (let j = 1; j < flag.length; j++) {
-        const singleFlag = '-' + flag[j]
+        const singleFlag = `-${flag[j]}`
         if (!(singleFlag in safeFlags)) return false
       }
       continue

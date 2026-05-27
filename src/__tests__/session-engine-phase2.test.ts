@@ -1,3 +1,6 @@
+import { existsSync } from 'node:fs'
+import { mkdir, rm } from 'node:fs/promises'
+import { join } from 'node:path'
 /**
  * ClaudeCode SDK — SessionEngine Phase 2 Integration Tests
  *
@@ -6,30 +9,28 @@
  * - Persistence integration
  * - Extended session configuration (maxTurns, timeout, session metadata)
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mkdir, rm } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { z } from 'zod'
 import type { LLMConnector, StreamEvent, TokenUsage } from '../llm/types.js'
 import { ClaudeCodeSDK } from '../session/engine.js'
-import type { SDKConfig } from '../types/config.js'
 import { createTool } from '../tools/base.js'
-import { z } from 'zod'
+import type { SDKConfig } from '../types/config.js'
 
 // ─── Mock LLM ────────────────────────────────────────────
 
 const dummyUsage: TokenUsage = { inputTokens: 10, outputTokens: 5 }
 
-function createMockLLM(): { llm: LLMConnector; send: ReturnType<typeof vi.fn> } {
-  const send = vi.fn().mockImplementation(
-    async function* (
-      _systemPrompt: string | undefined,
-      _messages: Array<{ role: string; content: string }>,
-    ): AsyncIterable<StreamEvent> {
-      yield { type: 'text', text: 'Test response' }
-      yield { type: 'done', usage: dummyUsage }
-    },
-  )
+function createMockLLM(): {
+  llm: LLMConnector
+  send: ReturnType<typeof vi.fn>
+} {
+  const send = vi.fn().mockImplementation(async function* (
+    _systemPrompt: string | undefined,
+    _messages: Array<{ role: string; content: string }>,
+  ): AsyncIterable<StreamEvent> {
+    yield { type: 'text', text: 'Test response' }
+    yield { type: 'done', usage: dummyUsage }
+  })
   return {
     llm: {
       provider: 'anthropic' as const,
@@ -175,7 +176,7 @@ describe('ClaudeCodeSDK Phase 2 Integration', () => {
       expect(deleted).toBe(true)
 
       const list = await sdkPersistence.listSavedSessions()
-      expect(list.find(s => s.id === id)).toBeUndefined()
+      expect(list.find((s) => s.id === id)).toBeUndefined()
     })
   })
 

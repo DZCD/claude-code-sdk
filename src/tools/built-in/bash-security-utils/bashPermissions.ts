@@ -12,37 +12,91 @@ import type { PermissionContext, PermissionResult } from './types.js'
 // ─── Safe Environment Variables ───────────────────────────
 
 const SAFE_ENV_VARS = new Set([
-  'NODE_ENV', 'NODE_PATH', 'NODE_OPTIONS',
-  'PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL',
-  'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM',
-  'EDITOR', 'VISUAL', 'PAGER', 'TMPDIR', 'TMP', 'TEMPDIR',
-  'DISPLAY', 'COLORTERM',
-  'CLICOLOR', 'CLICOLOR_FORCE',
-  'PIPENV_*, POETRY_*',  // developer tooling
-  'RUST_LOG', 'RUST_BACKTRACE',
-  'DEBUG', 'VERBOSE', 'CI', 'GITHUB_*', 'GITLAB_*',
-  'BUNDLE_GEMFILE', 'GEM_PATH', 'GEM_HOME',
-  'RBENV_VERSION', 'RUBY_VERSION', 'NVM_*', 'PYENV_*',
+  'NODE_ENV',
+  'NODE_PATH',
+  'NODE_OPTIONS',
+  'PATH',
+  'HOME',
+  'USER',
+  'LOGNAME',
+  'SHELL',
+  'LANG',
+  'LC_ALL',
+  'LC_CTYPE',
+  'TERM',
+  'EDITOR',
+  'VISUAL',
+  'PAGER',
+  'TMPDIR',
+  'TMP',
+  'TEMPDIR',
+  'DISPLAY',
+  'COLORTERM',
+  'CLICOLOR',
+  'CLICOLOR_FORCE',
+  'PIPENV_*, POETRY_*', // developer tooling
+  'RUST_LOG',
+  'RUST_BACKTRACE',
+  'DEBUG',
+  'VERBOSE',
+  'CI',
+  'GITHUB_*',
+  'GITLAB_*',
+  'BUNDLE_GEMFILE',
+  'GEM_PATH',
+  'GEM_HOME',
+  'RBENV_VERSION',
+  'RUBY_VERSION',
+  'NVM_*',
+  'PYENV_*',
   // Tool-specific but safe
-  'MAKEFLAGS', 'CARGO_*', 'GOFLAGS', 'GOOS', 'GOARCH',
+  'MAKEFLAGS',
+  'CARGO_*',
+  'GOFLAGS',
+  'GOOS',
+  'GOARCH',
 ])
 
 // ─── Safe Wrapper Patterns ───────────────────────────────
 
 const SAFE_WRAPPER_PATTERNS = new Set([
-  'timeout', 'nice', 'nohup', 'stdbuf', 'time',
-  'env -i', 'env -',
-  'taskset', 'numactl', 'ionice', 'chrt',
+  'timeout',
+  'nice',
+  'nohup',
+  'stdbuf',
+  'time',
+  'env -i',
+  'env -',
+  'taskset',
+  'numactl',
+  'ionice',
+  'chrt',
 ])
 
 const SAFE_WRAPPER_PREFIXES = ['env '] as const
 
 const BARE_SHELL_EXEC_PREFIXES = new Set([
-  'sh', 'bash', 'zsh', 'fish', 'csh', 'tcsh', 'ksh', 'dash',
-  'cmd', 'powershell', 'pwsh',
-  'env', 'xargs',
-  'nice', 'stdbuf', 'nohup', 'timeout', 'time',
-  'sudo', 'doas', 'pkexec',
+  'sh',
+  'bash',
+  'zsh',
+  'fish',
+  'csh',
+  'tcsh',
+  'ksh',
+  'dash',
+  'cmd',
+  'powershell',
+  'pwsh',
+  'env',
+  'xargs',
+  'nice',
+  'stdbuf',
+  'nohup',
+  'timeout',
+  'time',
+  'sudo',
+  'doas',
+  'pkexec',
 ])
 
 // ─── Rule Type ────────────────────────────────────────────
@@ -90,9 +144,7 @@ export function parsePermissionRule(rule: string): ParsedRule {
 
 export function matchWildcardPattern(pattern: string, command: string): boolean {
   // Convert Bash wildcard to regex
-  const regexStr = pattern
-    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*/g, '.*')
+  const regexStr = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')
   try {
     return new RegExp(`^${regexStr}$`).test(command)
   } catch {
@@ -135,15 +187,15 @@ export function stripSafeWrappers(command: string): string {
   // Known wrappers and how many tokens they consume (wrapper + args)
   const WRAPPER_TOKENS: Array<{ pattern: string; tokens: number }> = [
     // Two-token entries (command + arg)
-    { pattern: 'timeout', tokens: 2 },    // timeout N cmd
-    { pattern: 'nice -n', tokens: 3 },    // nice -n N cmd
-    { pattern: 'stdbuf', tokens: 2 },     // stdbuf -oL cmd
-    { pattern: 'taskset', tokens: 2 },    // taskset -c N cmd
-    { pattern: 'numactl', tokens: 2 },    // numactl -N cmd
-    { pattern: 'ionice', tokens: 2 },     // ionice -cn cmd
-    { pattern: 'chrt', tokens: 2 },       // chrt -r N cmd
+    { pattern: 'timeout', tokens: 2 }, // timeout N cmd
+    { pattern: 'nice -n', tokens: 3 }, // nice -n N cmd
+    { pattern: 'stdbuf', tokens: 2 }, // stdbuf -oL cmd
+    { pattern: 'taskset', tokens: 2 }, // taskset -c N cmd
+    { pattern: 'numactl', tokens: 2 }, // numactl -N cmd
+    { pattern: 'ionice', tokens: 2 }, // ionice -cn cmd
+    { pattern: 'chrt', tokens: 2 }, // chrt -r N cmd
     // Single-token entries (command with no arg)
-    { pattern: 'nice', tokens: 1 },       // nice cmd (nice -n above takes priority)
+    { pattern: 'nice', tokens: 1 }, // nice cmd (nice -n above takes priority)
     { pattern: 'nohup', tokens: 1 },
     { pattern: 'time', tokens: 1 },
     // Multi-word entries
@@ -226,10 +278,7 @@ export function getSimpleCommandPrefix(command: string): string | null {
  * Check if a command has permission to execute based on the current permission context.
  * Returns the permission result.
  */
-export function checkBashPermission(
-  command: string,
-  context: PermissionContext,
-): PermissionResult {
+export function checkBashPermission(command: string, context: PermissionContext): PermissionResult {
   // Bypass mode: everything is allowed
   if (context.mode === 'bypassPermissions') {
     return {
@@ -254,7 +303,7 @@ export function checkBashPermission(
         }
         break
       case 'prefix':
-        if (parsed.prefix && (stripped === parsed.prefix || stripped.startsWith(parsed.prefix + ' '))) {
+        if (parsed.prefix && (stripped === parsed.prefix || stripped.startsWith(`${parsed.prefix} `))) {
           return {
             behavior: 'deny',
             message: `Command '${command}' is denied by rule: ${denyRule}`,
@@ -288,7 +337,7 @@ export function checkBashPermission(
         }
         break
       case 'prefix':
-        if (parsed.prefix && (stripped === parsed.prefix || stripped.startsWith(parsed.prefix + ' '))) {
+        if (parsed.prefix && (stripped === parsed.prefix || stripped.startsWith(`${parsed.prefix} `))) {
           return {
             behavior: 'allow',
             message: `Command '${command}' is allowed by rule: ${allowRule}`,

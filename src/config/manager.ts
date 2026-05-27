@@ -4,9 +4,9 @@
  * Manages SDK configuration from multiple sources:
  * environment variables, config files, and programmatic overrides.
  */
-import { readFileSync, writeFileSync, statSync, watchFile, unwatchFile, existsSync, mkdirSync } from 'fs'
-import { dirname } from 'path'
-import type { SDKConfig, LLMConfig } from '../types/config.js'
+import { existsSync, mkdirSync, readFileSync, statSync, unwatchFile, watchFile, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
+import type { LLMConfig, SDKConfig } from '../types/config.js'
 import type { PermissionMode, PermissionRule } from '../types/permission.js'
 
 // ========== Phase 2 Types ==========
@@ -81,7 +81,7 @@ export class ConfigManager {
   private _config: SDKConfig
   private _listeners: Set<ConfigChangeCallback> = new Set()
   private _watchedPath: string | null = null
-  private _prevFileMtime: number = 0
+  private _prevFileMtime = 0
 
   constructor(config?: Partial<SDKConfig>) {
     this._config = this._applyDefaults(config ?? {})
@@ -291,7 +291,7 @@ export class ConfigManager {
       const config = this._config
 
       // Check provider validity
-      if (!VALID_PROVIDERS.includes(config.llm.provider as typeof VALID_PROVIDERS[number])) {
+      if (!VALID_PROVIDERS.includes(config.llm.provider as (typeof VALID_PROVIDERS)[number])) {
         errors.push(`Invalid LLM provider: ${config.llm.provider}. Must be one of: ${VALID_PROVIDERS.join(', ')}`)
       }
 
@@ -320,8 +320,13 @@ export class ConfigManager {
       }
 
       // Check permission mode
-      if (config.permissionMode && !VALID_PERMISSION_MODES.includes(config.permissionMode as typeof VALID_PERMISSION_MODES[number])) {
-        errors.push(`Invalid permissionMode: ${config.permissionMode}. Must be one of: ${VALID_PERMISSION_MODES.join(', ')}`)
+      if (
+        config.permissionMode &&
+        !VALID_PERMISSION_MODES.includes(config.permissionMode as (typeof VALID_PERMISSION_MODES)[number])
+      ) {
+        errors.push(
+          `Invalid permissionMode: ${config.permissionMode}. Must be one of: ${VALID_PERMISSION_MODES.join(', ')}`,
+        )
       }
 
       // Check model is specified
@@ -342,7 +347,7 @@ export class ConfigManager {
    */
   validateRequired(): string[] {
     const result = this.validate()
-    return result.errors.map(e => {
+    return result.errors.map((e) => {
       // Extract field name from patterns like:
       // "Missing required field: llm.apiKey (required for ...)"
       // "Invalid LLM provider: ..."
@@ -404,7 +409,9 @@ export class ConfigManager {
     if (this._watchedPath) {
       try {
         unwatchFile(this._watchedPath)
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       this._watchedPath = null
     }
   }
@@ -436,10 +443,7 @@ export class ConfigManager {
    * Find all top-level keys that changed between two configs.
    */
   private _findChangedKeys(oldConfig: SDKConfig, newConfig: SDKConfig): string[] {
-    const keys = new Set([
-      ...Object.keys(oldConfig),
-      ...Object.keys(newConfig),
-    ])
+    const keys = new Set([...Object.keys(oldConfig), ...Object.keys(newConfig)])
     const changed: string[] = []
     for (const key of keys) {
       const oldVal = (oldConfig as unknown as Record<string, unknown>)[key]
@@ -505,7 +509,10 @@ export class ConfigManager {
       if (JSON.stringify(val) !== JSON.stringify(defaultVal)) {
         // For nested objects, filter their children too
         if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
-          const filtered = this._filterNested(val as Record<string, unknown>, defaultVal as Record<string, unknown> | undefined)
+          const filtered = this._filterNested(
+            val as Record<string, unknown>,
+            defaultVal as Record<string, unknown> | undefined,
+          )
           if (Object.keys(filtered).length > 0) {
             result[key] = filtered
           }
@@ -521,10 +528,7 @@ export class ConfigManager {
   /**
    * Filter nested object, keeping only values that differ from defaults.
    */
-  private _filterNested(
-    obj: Record<string, unknown>,
-    defaults?: Record<string, unknown>,
-  ): Record<string, unknown> {
+  private _filterNested(obj: Record<string, unknown>, defaults?: Record<string, unknown>): Record<string, unknown> {
     const result: Record<string, unknown> = {}
     for (const key of Object.keys(obj)) {
       const val = obj[key]

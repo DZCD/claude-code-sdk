@@ -5,7 +5,7 @@
  * environment variables, and programmatic overrides.
  * Covers: config priority, deep merge, env loading.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ConfigManager } from '../config/manager.js'
 import type { SDKConfig } from '../types/config.js'
 
@@ -210,11 +210,11 @@ describe('ConfigManager Integration', () => {
 
     it('should handle no env vars gracefully', () => {
       // Clean all relevant env vars
-      delete process.env.ANTHROPIC_API_KEY
-      delete process.env.ANTHROPIC_MODEL
-      delete process.env.AWS_ACCESS_KEY_ID
-      delete process.env.AWS_SECRET_ACCESS_KEY
-      delete process.env.ANTHROPIC_VERTEX_PROJECT_ID
+      process.env.ANTHROPIC_API_KEY = undefined
+      process.env.ANTHROPIC_MODEL = undefined
+      process.env.AWS_ACCESS_KEY_ID = undefined
+      process.env.AWS_SECRET_ACCESS_KEY = undefined
+      process.env.ANTHROPIC_VERTEX_PROJECT_ID = undefined
 
       const cm = new ConfigManager()
       cm.mergeFromEnv()

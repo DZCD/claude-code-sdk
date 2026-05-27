@@ -3,14 +3,14 @@
  *
  * Phase 3B — B2
  */
-import { describe, it, expect, vi } from 'vitest'
-import type { LLMConnector, StreamEvent, TokenUsage } from '../llm/types.js'
-import { ToolRegistry } from '../tools/registry.js'
-import { createTool } from '../tools/base.js'
+import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
-import { createUserMessage } from '../types/message.js'
 import { ask, askStream } from '../ask/index.js'
 import type { AskResult } from '../ask/index.js'
+import type { LLMConnector, StreamEvent, TokenUsage } from '../llm/types.js'
+import { createTool } from '../tools/base.js'
+import { ToolRegistry } from '../tools/registry.js'
+import { createUserMessage } from '../types/message.js'
 
 // ─── Mock LLM Factory ─────────────────────────────────────
 
@@ -77,7 +77,12 @@ describe('ask()', () => {
     const llm = createMockLLM([
       [
         { type: 'text', text: 'Let me check' },
-        { type: 'tool_use_start', id: 't1', name: 'echo', input: { message: 'test' } },
+        {
+          type: 'tool_use_start',
+          id: 't1',
+          name: 'echo',
+          input: { message: 'test' },
+        },
         { type: 'tool_use_end', id: 't1', output: '{"message":"test"}' },
         { type: 'done', usage: { inputTokens: 15, outputTokens: 10 } },
       ],
@@ -104,13 +109,23 @@ describe('ask()', () => {
     const llm = createMockLLM([
       [
         { type: 'text', text: 'Adding...' },
-        { type: 'tool_use_start', id: 't1', name: 'add', input: { a: 1, b: 2 } },
+        {
+          type: 'tool_use_start',
+          id: 't1',
+          name: 'add',
+          input: { a: 1, b: 2 },
+        },
         { type: 'tool_use_end', id: 't1', output: '{"a":1,"b":2}' },
         { type: 'done', usage: { inputTokens: 10, outputTokens: 5 } },
       ],
       [
         { type: 'text', text: 'Result: 3' },
-        { type: 'tool_use_start', id: 't2', name: 'add', input: { a: 3, b: 4 } },
+        {
+          type: 'tool_use_start',
+          id: 't2',
+          name: 'add',
+          input: { a: 3, b: 4 },
+        },
         { type: 'tool_use_end', id: 't2', output: '{"a":3,"b":4}' },
         { type: 'done', usage: { inputTokens: 15, outputTokens: 8 } },
       ],
@@ -165,7 +180,12 @@ describe('ask()', () => {
   it('should call onToolCall hook for each tool invocation', async () => {
     const llm = createMockLLM([
       [
-        { type: 'tool_use_start', id: 't1', name: 'echo', input: { message: 'test' } },
+        {
+          type: 'tool_use_start',
+          id: 't1',
+          name: 'echo',
+          input: { message: 'test' },
+        },
         { type: 'tool_use_end', id: 't1', output: '{"message":"test"}' },
         { type: 'done', usage: { inputTokens: 5, outputTokens: 3 } },
       ],
@@ -193,7 +213,12 @@ describe('ask()', () => {
   it('should skip tool execution when onToolCall returns false', async () => {
     const llm = createMockLLM([
       [
-        { type: 'tool_use_start', id: 't1', name: 'echo', input: { message: 'test' } },
+        {
+          type: 'tool_use_start',
+          id: 't1',
+          name: 'echo',
+          input: { message: 'test' },
+        },
         { type: 'tool_use_end', id: 't1', output: '{"message":"test"}' },
         { type: 'done', usage: { inputTokens: 5, outputTokens: 3 } },
       ],
@@ -216,7 +241,12 @@ describe('ask()', () => {
   it('should not execute tools when autoExecuteTools=false', async () => {
     const llm = createMockLLM([
       [
-        { type: 'tool_use_start', id: 't1', name: 'echo', input: { message: 'test' } },
+        {
+          type: 'tool_use_start',
+          id: 't1',
+          name: 'echo',
+          input: { message: 'test' },
+        },
         { type: 'tool_use_end', id: 't1', output: '{"message":"test"}' },
         { type: 'done', usage: { inputTokens: 5, outputTokens: 3 } },
       ],
@@ -254,16 +284,19 @@ describe('ask()', () => {
     const registry = new ToolRegistry()
     const messages = [createUserMessage('Hi')]
 
-    await expect(
-      ask(llm, { messages, tools: registry, options: { signal: ac.signal } }),
-    ).rejects.toThrow('Aborted')
+    await expect(ask(llm, { messages, tools: registry, options: { signal: ac.signal } })).rejects.toThrow('Aborted')
   })
 
   it('should return messages with tool results injected', async () => {
     const llm = createMockLLM([
       [
         { type: 'text', text: 'Calling tool' },
-        { type: 'tool_use_start', id: 't1', name: 'echo', input: { message: 'x' } },
+        {
+          type: 'tool_use_start',
+          id: 't1',
+          name: 'echo',
+          input: { message: 'x' },
+        },
         { type: 'tool_use_end', id: 't1', output: '{"message":"x"}' },
         { type: 'done', usage: { inputTokens: 5, outputTokens: 3 } },
       ],
@@ -303,12 +336,8 @@ describe('askStream()', () => {
     }
 
     // Should include both the text event and the final result
-    const textEvents = events.filter(
-      (e): e is StreamEvent & { type: 'text' } => e.type === 'text',
-    )
-    const resultEvents = events.filter(
-      (e): e is { type: 'result'; result: AskResult } => e.type === 'result',
-    )
+    const textEvents = events.filter((e): e is StreamEvent & { type: 'text' } => e.type === 'text')
+    const resultEvents = events.filter((e): e is { type: 'result'; result: AskResult } => e.type === 'result')
 
     expect(textEvents.length).toBeGreaterThanOrEqual(1)
     expect(textEvents[0]!.text).toBe('Hello')
@@ -320,7 +349,12 @@ describe('askStream()', () => {
     const llm = createMockLLM([
       [
         { type: 'text', text: 'Running' },
-        { type: 'tool_use_start', id: 't1', name: 'echo', input: { message: 'x' } },
+        {
+          type: 'tool_use_start',
+          id: 't1',
+          name: 'echo',
+          input: { message: 'x' },
+        },
         { type: 'tool_use_end', id: 't1', output: '{"message":"x"}' },
         { type: 'done', usage: { inputTokens: 5, outputTokens: 3 } },
       ],
@@ -343,9 +377,7 @@ describe('askStream()', () => {
     expect(types).toContain('tool_use_end')
     expect(types).toContain('result')
 
-    const resultEvent = events.find(
-      (e): e is { type: 'result'; result: AskResult } => e.type === 'result',
-    )
+    const resultEvent = events.find((e): e is { type: 'result'; result: AskResult } => e.type === 'result')
     expect(resultEvent?.result.toolCalls).toHaveLength(1)
   })
 })

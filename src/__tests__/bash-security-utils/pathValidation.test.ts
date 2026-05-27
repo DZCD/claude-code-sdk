@@ -3,14 +3,14 @@
  *
  * Tests for path extraction, dangerous path detection, and path validation.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-  filterOutFlags,
+  checkDangerousRemovalPaths,
   expandTilde,
+  extractPathsFromCommand,
+  filterOutFlags,
   getGlobBaseDirectory,
   isDangerousRemovalPath,
-  checkDangerousRemovalPaths,
-  extractPathsFromCommand,
 } from '../../tools/built-in/bash-security-utils/pathValidation.js'
 
 describe('pathValidation', () => {

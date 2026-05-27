@@ -4,11 +4,11 @@
  * Finds files matching a glob pattern using fast filesystem traversal.
  * Supports ** (recursive), * (wildcard), and ? (single char) patterns.
  */
-import { readdir, stat } from 'fs/promises'
-import { join, relative, sep } from 'path'
+import { readdir, stat } from 'node:fs/promises'
+import { join, relative, sep } from 'node:path'
 import { z } from 'zod'
-import { BaseTool } from '../base.js'
 import type { ToolContext, ToolResult } from '../../types/tool.js'
+import { BaseTool } from '../base.js'
 
 // ─── Schema ──────────────────────────────────────────────
 
@@ -54,8 +54,8 @@ function globToRegex(pattern: string): RegExp {
       const closing = pattern.indexOf('}', i)
       if (closing > i) {
         const inner = pattern.slice(i + 1, closing)
-        const parts = inner.split(',').map(s => s.trim())
-        regexStr += '(' + parts.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')'
+        const parts = inner.split(',').map((s) => s.trim())
+        regexStr += `(${parts.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`
         i = closing + 1
       } else {
         regexStr += '\\{'
@@ -64,7 +64,7 @@ function globToRegex(pattern: string): RegExp {
     } else {
       // Escape special regex characters
       if (/[+^${}()|[\]\\]/.test(ch!)) {
-        regexStr += '\\' + ch!
+        regexStr += `\\${ch!}`
       } else {
         regexStr += ch!
       }
@@ -112,7 +112,7 @@ async function walkDirectory(
   dirPath: string,
   pattern: string,
   baseDir: string,
-  maxResults: number = 1000,
+  maxResults = 1000,
   results: string[] = [],
 ): Promise<string[]> {
   if (results.length >= maxResults) return results
@@ -161,10 +161,7 @@ export class GlobTool extends BaseTool<typeof globSchema, GlobOutput> {
   description = 'Find files and directories that match a glob pattern. Supports *, **, and ? wildcards.'
   inputSchema = globSchema
 
-  async execute(
-    input: z.infer<typeof globSchema>,
-    _context: ToolContext,
-  ): Promise<ToolResult<GlobOutput>> {
+  async execute(input: z.infer<typeof globSchema>, _context: ToolContext): Promise<ToolResult<GlobOutput>> {
     const { pattern, path: searchPath = process.cwd() } = input
 
     let dirStats
@@ -192,9 +189,8 @@ export class GlobTool extends BaseTool<typeof globSchema, GlobOutput> {
 
       return {
         data: { files: sorted, numFiles: sorted.length },
-        content: sorted.length > 0
-          ? `Found ${sorted.length} file(s):\n${sorted.join('\n')}`
-          : 'No files matched the pattern.',
+        content:
+          sorted.length > 0 ? `Found ${sorted.length} file(s):\n${sorted.join('\n')}` : 'No files matched the pattern.',
       }
     } catch (err: unknown) {
       const nodeErr = err as Error

@@ -3,7 +3,7 @@
  *
  * Tests for the BashTool security type definitions.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { BASH_SECURITY_CHECK_IDS } from '../../tools/built-in/bash-security-utils/types.js'
 
 describe('BashTool Security Types', () => {

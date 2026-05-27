@@ -4,11 +4,11 @@
  * Searches file contents using regular expressions.
  * Supports case-insensitive search, glob filtering, and targeted path searching.
  */
-import { readFile, stat } from 'fs/promises'
-import { join } from 'path'
+import { readFile, stat } from 'node:fs/promises'
+import { join } from 'node:path'
 import { z } from 'zod'
-import { BaseTool } from '../base.js'
 import type { ToolContext, ToolResult } from '../../types/tool.js'
+import { BaseTool } from '../base.js'
 
 // ─── Schema ──────────────────────────────────────────────
 
@@ -53,8 +53,8 @@ function fileMatchesGlob(fileName: string, glob: string): boolean {
       const closing = glob.indexOf('}', i)
       if (closing > i) {
         const inner = glob.slice(i + 1, closing)
-        const parts = inner.split(',').map(s => s.trim())
-        regexStr += '(' + parts.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')'
+        const parts = inner.split(',').map((s) => s.trim())
+        regexStr += `(${parts.map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`
         i = closing + 1
       } else {
         regexStr += '\\{'
@@ -71,7 +71,7 @@ function fileMatchesGlob(fileName: string, glob: string): boolean {
 // ─── Recursive File Search ───────────────────────────────
 
 async function collectFiles(dirPath: string, globFilter?: string): Promise<string[]> {
-  const { readdir, stat: fsStat } = await import('fs/promises')
+  const { readdir, stat: fsStat } = await import('node:fs/promises')
   const files: string[] = []
 
   async function walk(dir: string) {
@@ -111,13 +111,11 @@ async function collectFiles(dirPath: string, globFilter?: string): Promise<strin
 
 export class GrepTool extends BaseTool<typeof grepSchema, GrepOutput> {
   name = 'grep'
-  description = 'Search file contents using regular expressions. Supports case-insensitive search and file type filtering.'
+  description =
+    'Search file contents using regular expressions. Supports case-insensitive search and file type filtering.'
   inputSchema = grepSchema
 
-  async execute(
-    input: z.infer<typeof grepSchema>,
-    _context: ToolContext,
-  ): Promise<ToolResult<GrepOutput>> {
+  async execute(input: z.infer<typeof grepSchema>, _context: ToolContext): Promise<ToolResult<GrepOutput>> {
     const { pattern, path: searchPath = process.cwd(), glob, '-i': caseInsensitive } = input
 
     // Validate the regex
@@ -190,15 +188,17 @@ export class GrepTool extends BaseTool<typeof grepSchema, GrepOutput> {
         }
       }
 
-      const contentPreview = results.slice(0, 20).map(r =>
-        `${r.file}:${r.line}:${r.lineContent}`
-      ).join('\n')
+      const contentPreview = results
+        .slice(0, 20)
+        .map((r) => `${r.file}:${r.line}:${r.lineContent}`)
+        .join('\n')
 
       return {
         data: { results, numMatches: results.length },
-        content: results.length > 0
-          ? `Found ${results.length} match(es):\n${contentPreview}${results.length > 20 ? `\n... and ${results.length - 20} more` : ''}`
-          : 'No matches found.',
+        content:
+          results.length > 0
+            ? `Found ${results.length} match(es):\n${contentPreview}${results.length > 20 ? `\n... and ${results.length - 20} more` : ''}`
+            : 'No matches found.',
       }
     } catch (err: unknown) {
       const nodeErr = err as Error

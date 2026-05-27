@@ -6,11 +6,11 @@
  * Covers: register/unregister workflows, permission modes
  * with tool execution, rule-based decisions.
  */
-import { describe, it, expect, vi } from 'vitest'
-import { ToolRegistry } from '../tools/registry.js'
+import { describe, expect, it, vi } from 'vitest'
+import { z } from 'zod'
 import { PermissionManager } from '../permission/manager.js'
 import { createTool } from '../tools/base.js'
-import { z } from 'zod'
+import { ToolRegistry } from '../tools/registry.js'
 
 // ─── Test Tools ──────────────────────────────────────────
 
@@ -110,16 +110,19 @@ describe('ToolRegistry + Permission Integration', () => {
       // read_file should be read-only
       expect(permissions.isToolReadOnly(readFileTool, { path: '/test/file.txt' })).toBe(true)
       // write_file should NOT be read-only
-      expect(permissions.isToolReadOnly(writeFileTool, { path: '/test/file.txt', content: 'data' })).toBe(false)
+      expect(
+        permissions.isToolReadOnly(writeFileTool, {
+          path: '/test/file.txt',
+          content: 'data',
+        }),
+      ).toBe(false)
     })
   })
 
   describe('dynamic registration and permission updates', () => {
     it('should allow adding tools after permission config', () => {
       const registry = new ToolRegistry()
-      const permissions = new PermissionManager('auto', [
-        { pattern: 'bash', behavior: 'ask', source: 'user' },
-      ])
+      const permissions = new PermissionManager('auto', [{ pattern: 'bash', behavior: 'ask', source: 'user' }])
 
       registry.register(readFileTool)
 
@@ -151,9 +154,7 @@ describe('ToolRegistry + Permission Integration', () => {
     })
 
     it('should deny with specific rule pattern', async () => {
-      const permissions = new PermissionManager('auto', [
-        { pattern: 'bash(rm *)', behavior: 'deny', source: 'user' },
-      ])
+      const permissions = new PermissionManager('auto', [{ pattern: 'bash(rm *)', behavior: 'deny', source: 'user' }])
 
       // Matching pattern — deny
       const rmDecision = await permissions.check({
@@ -191,11 +192,7 @@ describe('ToolRegistry + Permission Integration', () => {
       const registry = new ToolRegistry()
       registry.register(readFileTool)
 
-      const result = await registry.execute(
-        'nonexistent',
-        {},
-        { signal: new AbortController().signal },
-      )
+      const result = await registry.execute('nonexistent', {}, { signal: new AbortController().signal })
       expect(result.isError).toBe(true)
       expect(result.content).toContain('Unknown tool')
     })
@@ -203,9 +200,7 @@ describe('ToolRegistry + Permission Integration', () => {
 
   describe('permission rule patterns', () => {
     it('should match wildcard patterns', async () => {
-      const permissions = new PermissionManager('auto', [
-        { pattern: '*', behavior: 'deny', source: 'project' },
-      ])
+      const permissions = new PermissionManager('auto', [{ pattern: '*', behavior: 'deny', source: 'project' }])
 
       const decision = await permissions.check({
         toolName: 'any_tool',
@@ -239,9 +234,7 @@ describe('ToolRegistry + Permission Integration', () => {
     })
 
     it('should match rule patterns with argument wildcards', async () => {
-      const permissions = new PermissionManager('auto', [
-        { pattern: 'bash(git *)', behavior: 'allow', source: 'user' },
-      ])
+      const permissions = new PermissionManager('auto', [{ pattern: 'bash(git *)', behavior: 'allow', source: 'user' }])
 
       const gitDecision = await permissions.check({
         toolName: 'bash',
@@ -271,9 +264,7 @@ describe('ToolRegistry + Permission Integration', () => {
     })
 
     it('should reset permission manager state', () => {
-      const permissions = new PermissionManager('manual', [
-        { pattern: 'bash', behavior: 'deny', source: 'user' },
-      ])
+      const permissions = new PermissionManager('manual', [{ pattern: 'bash', behavior: 'deny', source: 'user' }])
       expect(permissions.getMode()).toBe('manual')
       expect(permissions.getRules()).toHaveLength(1)
 

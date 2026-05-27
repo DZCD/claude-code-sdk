@@ -5,33 +5,35 @@
  * Covers: text responses, tool_use → tool_result loop,
  * max_consecutive_tool_uses limit, auto-compact feature.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { LLMConnector, StreamEvent, TokenUsage } from '../llm/types.js'
-import type { Tool, ToolContext, ToolResult } from '../types/tool.js'
-import { ConversationManager } from '../conversation/manager.js'
-import { ToolRegistry } from '../tools/registry.js'
-import { createTool } from '../tools/base.js'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
+import { ConversationManager } from '../conversation/manager.js'
+import type { LLMConnector, StreamEvent, TokenUsage } from '../llm/types.js'
+import { createTool } from '../tools/base.js'
+import { ToolRegistry } from '../tools/registry.js'
+import type { Tool, ToolContext, ToolResult } from '../types/tool.js'
 
 // ─── Mock LLM Connector Factory ──────────────────────────
 
 function createMockLLM(sequence: StreamEvent[][]): LLMConnector {
   let callCount = 0
-  const mockSend = vi.fn().mockImplementation(
-    async function* (
-      _systemPrompt: string | undefined,
-      _messages: Array<{ role: string; content: string }>,
-      _tools: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>,
-    ): AsyncIterable<StreamEvent> {
-      const events = sequence[callCount] ?? []
-      if (sequence.length > 0) {
-        callCount = Math.min(callCount + 1, sequence.length - 1)
-      }
-      for (const event of events) {
-        yield event
-      }
-    },
-  )
+  const mockSend = vi.fn().mockImplementation(async function* (
+    _systemPrompt: string | undefined,
+    _messages: Array<{ role: string; content: string }>,
+    _tools: Array<{
+      name: string
+      description: string
+      input_schema: Record<string, unknown>
+    }>,
+  ): AsyncIterable<StreamEvent> {
+    const events = sequence[callCount] ?? []
+    if (sequence.length > 0) {
+      callCount = Math.min(callCount + 1, sequence.length - 1)
+    }
+    for (const event of events) {
+      yield event
+    }
+  })
 
   const mockCountTokens = vi.fn().mockResolvedValue(100)
 
@@ -88,7 +90,10 @@ describe('ConversationManager Integration', () => {
         [
           { type: 'text' as const, text: 'Hello' },
           { type: 'text' as const, text: ' world' },
-          { type: 'done' as const, usage: { inputTokens: 10, outputTokens: 5 } },
+          {
+            type: 'done' as const,
+            usage: { inputTokens: 10, outputTokens: 5 },
+          },
         ],
       ])
       cm = new ConversationManager(mockLLM, registry, 'You are a helpful assistant.')
@@ -101,14 +106,20 @@ describe('ConversationManager Integration', () => {
       expect(events).toHaveLength(3)
       expect(events[0]).toEqual({ type: 'text', text: 'Hello' })
       expect(events[1]).toEqual({ type: 'text', text: ' world' })
-      expect(events[2]).toEqual({ type: 'done', usage: { inputTokens: 10, outputTokens: 5 } })
+      expect(events[2]).toEqual({
+        type: 'done',
+        usage: { inputTokens: 10, outputTokens: 5 },
+      })
     })
 
     it('should track token usage after done event', async () => {
       mockLLM = createMockLLM([
         [
           { type: 'text' as const, text: 'Reply' },
-          { type: 'done' as const, usage: { inputTokens: 15, outputTokens: 8 } },
+          {
+            type: 'done' as const,
+            usage: { inputTokens: 15, outputTokens: 8 },
+          },
         ],
       ])
       cm = new ConversationManager(mockLLM, registry)
@@ -148,14 +159,29 @@ describe('ConversationManager Integration', () => {
       mockLLM = createMockLLM([
         [
           { type: 'text' as const, text: 'Let me check' },
-          { type: 'tool_use_start' as const, id: 'tool1', name: 'echo', input: { message: 'hello' } },
-          { type: 'tool_use_end' as const, id: 'tool1', output: '{"message":"hello"}' },
-          { type: 'done' as const, usage: { inputTokens: 20, outputTokens: 15 } },
+          {
+            type: 'tool_use_start' as const,
+            id: 'tool1',
+            name: 'echo',
+            input: { message: 'hello' },
+          },
+          {
+            type: 'tool_use_end' as const,
+            id: 'tool1',
+            output: '{"message":"hello"}',
+          },
+          {
+            type: 'done' as const,
+            usage: { inputTokens: 20, outputTokens: 15 },
+          },
         ],
         // Second LLM call (after tool result) → just text
         [
           { type: 'text' as const, text: 'Done with tool' },
-          { type: 'done' as const, usage: { inputTokens: 30, outputTokens: 10 } },
+          {
+            type: 'done' as const,
+            usage: { inputTokens: 30, outputTokens: 10 },
+          },
         ],
       ])
       cm = new ConversationManager(mockLLM, registry)
@@ -168,7 +194,7 @@ describe('ConversationManager Integration', () => {
       // Should have: text + tool_use_start + tool_use_end + done + text + done
       expect(events.length).toBeGreaterThan(3)
 
-      const toolUseEvents = events.filter(e => e.type === 'tool_use_start')
+      const toolUseEvents = events.filter((e) => e.type === 'tool_use_start')
       expect(toolUseEvents).toHaveLength(1)
       if (toolUseEvents[0]?.type === 'tool_use_start') {
         expect(toolUseEvents[0].name).toBe('echo')
@@ -176,8 +202,8 @@ describe('ConversationManager Integration', () => {
 
       // Check that tool result was added to history
       const history = cm.getHistory()
-      const toolResults = history.filter(m =>
-        m.role === 'user' && (m as Record<string, unknown>)._toolResult === true,
+      const toolResults = history.filter(
+        (m) => m.role === 'user' && (m as Record<string, unknown>)._toolResult === true,
       )
       expect(toolResults).toHaveLength(1)
     })
@@ -185,15 +211,35 @@ describe('ConversationManager Integration', () => {
     it('should handle multiple tool calls in one turn', async () => {
       mockLLM = createMockLLM([
         [
-          { type: 'tool_use_start' as const, id: 't1', name: 'echo', input: { message: 'a' } },
-          { type: 'tool_use_end' as const, id: 't1', output: '{"message":"a"}' },
-          { type: 'tool_use_start' as const, id: 't2', name: 'calculator', input: { a: 1, b: 2 } },
+          {
+            type: 'tool_use_start' as const,
+            id: 't1',
+            name: 'echo',
+            input: { message: 'a' },
+          },
+          {
+            type: 'tool_use_end' as const,
+            id: 't1',
+            output: '{"message":"a"}',
+          },
+          {
+            type: 'tool_use_start' as const,
+            id: 't2',
+            name: 'calculator',
+            input: { a: 1, b: 2 },
+          },
           { type: 'tool_use_end' as const, id: 't2', output: '{"a":1,"b":2}' },
-          { type: 'done' as const, usage: { inputTokens: 25, outputTokens: 20 } },
+          {
+            type: 'done' as const,
+            usage: { inputTokens: 25, outputTokens: 20 },
+          },
         ],
         [
           { type: 'text' as const, text: 'All done' },
-          { type: 'done' as const, usage: { inputTokens: 35, outputTokens: 5 } },
+          {
+            type: 'done' as const,
+            usage: { inputTokens: 35, outputTokens: 5 },
+          },
         ],
       ])
       cm = new ConversationManager(mockLLM, registry)
@@ -203,22 +249,18 @@ describe('ConversationManager Integration', () => {
         events.push(event)
       }
 
-      const toolUseStarts = events.filter(e => e.type === 'tool_use_start')
+      const toolUseStarts = events.filter((e) => e.type === 'tool_use_start')
       expect(toolUseStarts).toHaveLength(2)
 
       const history = cm.getHistory()
-      const toolResults = history.filter(m =>
-        m.role === 'user' && (m as Record<string, unknown>)._toolResult === true,
+      const toolResults = history.filter(
+        (m) => m.role === 'user' && (m as Record<string, unknown>)._toolResult === true,
       )
       expect(toolResults).toHaveLength(2)
     })
 
     it('should handle empty response from LLM (no tools, no text)', async () => {
-      mockLLM = createMockLLM([
-        [
-          { type: 'done' as const, usage: { inputTokens: 5, outputTokens: 1 } },
-        ],
-      ])
+      mockLLM = createMockLLM([[{ type: 'done' as const, usage: { inputTokens: 5, outputTokens: 1 } }]])
       cm = new ConversationManager(mockLLM, registry)
 
       const events: StreamEvent[] = []
@@ -236,18 +278,42 @@ describe('ConversationManager Integration', () => {
       // LLM always returns tool_use — infinite loop
       const alwaysTool = createMockLLM([
         [
-          { type: 'tool_use_start' as const, id: 'loop', name: 'echo', input: { message: 'x' } },
-          { type: 'tool_use_end' as const, id: 'loop', output: '{"message":"x"}' },
-          { type: 'done' as const, usage: { inputTokens: 10, outputTokens: 5 } },
+          {
+            type: 'tool_use_start' as const,
+            id: 'loop',
+            name: 'echo',
+            input: { message: 'x' },
+          },
+          {
+            type: 'tool_use_end' as const,
+            id: 'loop',
+            output: '{"message":"x"}',
+          },
+          {
+            type: 'done' as const,
+            usage: { inputTokens: 10, outputTokens: 5 },
+          },
         ],
       ])
       // Override the sequence logic to always return the same tool response
       const simpleMock: LLMConnector = {
         provider: 'anthropic',
         send: async function* () {
-          yield { type: 'tool_use_start' as const, id: 'loop', name: 'echo', input: { message: 'x' } }
-          yield { type: 'tool_use_end' as const, id: 'loop', output: '{"message":"x"}' }
-          yield { type: 'done' as const, usage: { inputTokens: 10, outputTokens: 5 } }
+          yield {
+            type: 'tool_use_start' as const,
+            id: 'loop',
+            name: 'echo',
+            input: { message: 'x' },
+          }
+          yield {
+            type: 'tool_use_end' as const,
+            id: 'loop',
+            output: '{"message":"x"}',
+          }
+          yield {
+            type: 'done' as const,
+            usage: { inputTokens: 10, outputTokens: 5 },
+          }
         },
         countTokens: vi.fn().mockResolvedValue(100),
       }
@@ -255,19 +321,21 @@ describe('ConversationManager Integration', () => {
       cm = new ConversationManager(simpleMock, registry, 'Test')
 
       const events: StreamEvent[] = []
-      for await (const event of cm.send('Loop please', { maxToolCallDepth: 3 })) {
+      for await (const event of cm.send('Loop please', {
+        maxToolCallDepth: 3,
+      })) {
         events.push(event)
       }
 
       // Should have an error event about exceeding max depth
-      const errorEvents = events.filter(e => e.type === 'error')
+      const errorEvents = events.filter((e) => e.type === 'error')
       expect(errorEvents.length).toBeGreaterThanOrEqual(1)
       if (errorEvents[0]?.type === 'error') {
         expect(errorEvents[0].error.message).toContain('maximum tool call depth')
       }
 
       // Should have exactly 3 tool_use_start events before error
-      const toolUses = events.filter(e => e.type === 'tool_use_start')
+      const toolUses = events.filter((e) => e.type === 'tool_use_start')
       expect(toolUses).toHaveLength(3)
     })
 
@@ -286,7 +354,7 @@ describe('ConversationManager Integration', () => {
         events.push(event)
       }
 
-      const errors = events.filter(e => e.type === 'error')
+      const errors = events.filter((e) => e.type === 'error')
       expect(errors).toHaveLength(0)
     })
   })
@@ -336,13 +404,28 @@ describe('ConversationManager Integration', () => {
     it('should handle tool_use_end with non-JSON output', async () => {
       mockLLM = createMockLLM([
         [
-          { type: 'tool_use_start' as const, id: 't1', name: 'echo', input: { message: 'hi' } },
-          { type: 'tool_use_end' as const, id: 't1', output: 'raw string output' },
-          { type: 'done' as const, usage: { inputTokens: 10, outputTokens: 5 } },
+          {
+            type: 'tool_use_start' as const,
+            id: 't1',
+            name: 'echo',
+            input: { message: 'hi' },
+          },
+          {
+            type: 'tool_use_end' as const,
+            id: 't1',
+            output: 'raw string output',
+          },
+          {
+            type: 'done' as const,
+            usage: { inputTokens: 10, outputTokens: 5 },
+          },
         ],
         [
           { type: 'text' as const, text: 'Done' },
-          { type: 'done' as const, usage: { inputTokens: 15, outputTokens: 3 } },
+          {
+            type: 'done' as const,
+            usage: { inputTokens: 15, outputTokens: 3 },
+          },
         ],
       ])
       cm = new ConversationManager(mockLLM, registry)
@@ -353,7 +436,7 @@ describe('ConversationManager Integration', () => {
       }
 
       // Should not crash; should complete the loop
-      const errors = events.filter(e => e.type === 'error')
+      const errors = events.filter((e) => e.type === 'error')
       expect(errors).toHaveLength(0)
     })
 
@@ -361,7 +444,10 @@ describe('ConversationManager Integration', () => {
       const errorMock: LLMConnector = {
         provider: 'anthropic',
         send: async function* () {
-          yield { type: 'error' as const, error: new Error('API rate limit exceeded') }
+          yield {
+            type: 'error' as const,
+            error: new Error('API rate limit exceeded'),
+          }
         },
         countTokens: vi.fn().mockResolvedValue(100),
       }

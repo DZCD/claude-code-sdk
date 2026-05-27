@@ -1,3 +1,5 @@
+import type { HookRegistry } from '../hooks/registry.js'
+import { executePostToolHooks, executePreToolHooks } from '../hooks/registry.js'
 /**
  * ClaudeCode SDK — Conversation Loop
  *
@@ -6,15 +8,17 @@
  * and turn management.
  */
 import type { LLMConnector, StreamEvent, ToolDefinition } from '../llm/types.js'
-import type { Tool } from '../types/tool.js'
+import type { ToolRegistry } from '../tools/registry.js'
 import type { Message } from '../types/message.js'
-import { ToolRegistry } from '../tools/registry.js'
+import type { Tool } from '../types/tool.js'
 
 export interface LoopOptions {
   /** Maximum number of tool call turns (default: 50) */
   maxToolCallDepth?: number
   /** Abort signal for cancellation */
   signal?: AbortSignal
+  /** Optional hook registry for pre/post tool hooks */
+  hooks?: HookRegistry
 }
 
 export interface LoopState {
@@ -35,6 +39,7 @@ export async function* conversationLoop(
 ): AsyncIterable<StreamEvent> {
   const maxDepth = options.maxToolCallDepth ?? 50
   const signal = options.signal ?? new AbortController().signal
+  const hooks = options.hooks
   let depth = 0
 
   while (depth < maxDepth) {
@@ -68,7 +73,9 @@ export async function* conversationLoop(
     } | null = null
 
     // Stream the response
-    for await (const event of llm.send(systemPrompt, apiMessages, apiTools, { signal })) {
+    for await (const event of llm.send(systemPrompt, apiMessages, apiTools, {
+      signal,
+    })) {
       switch (event.type) {
         case 'text':
           fullResponse += event.text
@@ -125,9 +132,29 @@ export async function* conversationLoop(
         return
       }
 
+      // Phase 3C: Pre-tool hook
+      if (hooks) {
+        const hookResult = await executePreToolHooks(hooks, toolUse.name, toolUse.input)
+        if (!hookResult.allowed) {
+          yield {
+            type: 'error',
+            error: new Error(`Tool ${toolUse.name} blocked by hook: ${hookResult.error ?? 'blocked'}`),
+          }
+          return
+        }
+        if (hookResult.modifiedInput) {
+          toolUse.input = hookResult.modifiedInput
+        }
+      }
+
       const result = await tools.execute(toolUse.name, toolUse.input, {
         signal,
       })
+
+      // Phase 3C: Post-tool hook
+      if (hooks) {
+        await executePostToolHooks(hooks, toolUse.name, toolUse.input, result)
+      }
 
       // Add tool result to messages
       // In a real implementation, we'd construct proper ToolResultMessage

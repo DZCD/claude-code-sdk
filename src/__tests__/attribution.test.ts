@@ -8,7 +8,7 @@
  * - Attribution texts generation (commit/PR)
  * - Serialization/deserialization
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { AttributionManager } from '../session/attribution.js'
 
 describe('AttributionManager', () => {
@@ -126,7 +126,7 @@ describe('AttributionManager', () => {
     })
 
     it('should handle tool calls within a turn', () => {
-      attribution.recordMessage('user')   // Turn 1
+      attribution.recordMessage('user') // Turn 1
       attribution.recordMessage('assistant') // Turn 1
       attribution.recordMessage('tool', { toolName: 'bash' }) // Turn 1
 
@@ -151,7 +151,9 @@ describe('AttributionManager', () => {
     })
 
     it('should include sourceLabel for assistant messages when specified', () => {
-      const meta = attribution.recordMessage('assistant', { toolName: 'claude-sonnet-4' })
+      const meta = attribution.recordMessage('assistant', {
+        toolName: 'claude-sonnet-4',
+      })
       expect(meta.sourceLabel).toBe('claude-sonnet-4')
     })
 

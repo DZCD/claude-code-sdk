@@ -1,10 +1,10 @@
 /**
  * Tests for MCP protocol types and module exports.
  */
-import { describe, it, expect } from 'vitest'
-import { MCPServerError } from '../mcp/types.js'
+import { describe, expect, it } from 'vitest'
 import { MCPServerManager } from '../mcp/manager.js'
 import { adaptMCPTool } from '../mcp/tool-adapter.js'
+import { MCPServerError } from '../mcp/types.js'
 import type { MCPServerConfig, MCPToolDefinition } from '../mcp/types.js'
 import type { ToolRegistry } from '../tools/registry.js'
 
@@ -53,7 +53,10 @@ describe('MCPServerManager', () => {
   it('registerAllTools on empty manager returns 0', () => {
     const manager = new MCPServerManager()
     // Create a mock registry
-    const registry = { has: () => false, register: () => {} } as unknown as ToolRegistry
+    const registry = {
+      has: () => false,
+      register: () => {},
+    } as unknown as ToolRegistry
     const count = manager.registerAllTools(registry)
     expect(count).toBe(0)
   })

@@ -4,7 +4,7 @@
  * Uses vitest mock to replace @anthropic-ai/foundry-sdk with a mock implementation
  * that simulates the streaming API.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FoundryConnector } from '../foundry.js'
 import type { FoundryConfig } from '../types.js'
 
@@ -55,9 +55,7 @@ describe('FoundryConnector', () => {
   })
 
   it('should create connector without API key (uses Azure AD)', () => {
-    const connector = new FoundryConnector(
-      makeConfig({ apiKey: undefined }),
-    )
+    const connector = new FoundryConnector(makeConfig({ apiKey: undefined }))
     expect(connector.provider).toBe('foundry')
   })
 
@@ -66,8 +64,16 @@ describe('FoundryConnector', () => {
   it('should stream text response', async () => {
     const connector = new FoundryConnector(makeConfig())
     const events = [
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'Hello' } },
-      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: ' from Foundry' } },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'Hello' },
+      },
+      {
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'text_delta', text: ' from Foundry' },
+      },
       { type: 'message_stop' },
     ]
 
@@ -95,9 +101,18 @@ describe('FoundryConnector', () => {
       {
         type: 'content_block_start',
         index: 0,
-        content_block: { type: 'tool_use', id: 'tu_789', name: 'grep', input: toolInput },
+        content_block: {
+          type: 'tool_use',
+          id: 'tu_789',
+          name: 'grep',
+          input: toolInput,
+        },
       },
-      { type: 'message_delta', delta: { stop_reason: 'tool_use', stop_sequence: null }, usage: { input_tokens: 15, output_tokens: 6 } },
+      {
+        type: 'message_delta',
+        delta: { stop_reason: 'tool_use', stop_sequence: null },
+        usage: { input_tokens: 15, output_tokens: 6 },
+      },
       { type: 'message_stop' },
     ]
 
@@ -125,7 +140,11 @@ describe('FoundryConnector', () => {
   it('should pass system prompt to the API', async () => {
     const connector = new FoundryConnector(makeConfig())
     const events = [
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'OK' } },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'OK' },
+      },
       { type: 'message_stop' },
     ]
 
@@ -160,7 +179,11 @@ describe('FoundryConnector', () => {
   it('should pass tool definitions to the API', async () => {
     const connector = new FoundryConnector(makeConfig())
     const events = [
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'OK' } },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'OK' },
+      },
       { type: 'message_stop' },
     ]
 
@@ -170,7 +193,11 @@ describe('FoundryConnector', () => {
       {
         name: 'web_search',
         description: 'Search the web',
-        input_schema: { type: 'object' as const, properties: { q: { type: 'string' } }, required: ['q'] },
+        input_schema: {
+          type: 'object' as const,
+          properties: { q: { type: 'string' } },
+          required: ['q'],
+        },
       },
     ]
 
@@ -188,7 +215,11 @@ describe('FoundryConnector', () => {
   it('should pass maxTokens from options', async () => {
     const connector = new FoundryConnector(makeConfig())
     const events = [
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'Short' } },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'Short' },
+      },
       { type: 'message_stop' },
     ]
 
@@ -208,9 +239,7 @@ describe('FoundryConnector', () => {
     const connector = new FoundryConnector(makeConfig())
     mockCountTokens.mockResolvedValue({ input_tokens: 77 })
 
-    const count = await connector.countTokens([
-      { role: 'user', content: 'Count these tokens' },
-    ])
+    const count = await connector.countTokens([{ role: 'user', content: 'Count these tokens' }])
 
     expect(count).toBe(77)
     expect(mockCountTokens).toHaveBeenCalledTimes(1)
@@ -223,7 +252,7 @@ describe('FoundryConnector', () => {
     mockCountTokens.mockRejectedValue(new Error('Not supported'))
 
     const count = await connector.countTokens([
-      { role: 'user', content: 'Test' },  // 4 chars / 4 = 1
+      { role: 'user', content: 'Test' }, // 4 chars / 4 = 1
     ])
 
     expect(count).toBe(1)
@@ -246,8 +275,16 @@ describe('FoundryConnector', () => {
   it('should capture usage from message_delta', async () => {
     const connector = new FoundryConnector(makeConfig())
     const events = [
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'Hello' } },
-      { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { input_tokens: 15, output_tokens: 3 } },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'Hello' },
+      },
+      {
+        type: 'message_delta',
+        delta: { stop_reason: 'end_turn', stop_sequence: null },
+        usage: { input_tokens: 15, output_tokens: 3 },
+      },
       { type: 'message_stop' },
     ]
 

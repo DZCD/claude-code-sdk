@@ -5,30 +5,21 @@
  * with the ToolRegistry or direct use.
  */
 import { BashTool } from './bash.js'
+import { FileEditTool } from './file_edit.js'
 import { FileReadTool } from './file_read.js'
 import { FileWriteTool } from './file_write.js'
-import { FileEditTool } from './file_edit.js'
 import { GlobTool } from './glob.js'
 import { GrepTool } from './grep.js'
 import { WebFetchTool } from './web_fetch.js'
 import { WebSearchTool } from './web_search.js'
 
-export {
-  BashTool,
-  FileReadTool,
-  FileWriteTool,
-  FileEditTool,
-  GlobTool,
-  GrepTool,
-  WebFetchTool,
-  WebSearchTool,
-}
+export { BashTool, FileReadTool, FileWriteTool, FileEditTool, GlobTool, GrepTool, WebFetchTool, WebSearchTool }
 
 /**
  * Register all built-in tools into a ToolRegistry.
  * Convenience function for quick SDK setup.
  */
-import { ToolRegistry } from '../registry.js'
+import type { ToolRegistry } from '../registry.js'
 
 export function registerAllBuiltInTools(registry: ToolRegistry): void {
   registry.register(

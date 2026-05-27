@@ -1,3 +1,6 @@
+import { AnthropicConnector, isAnthropicConfig } from './anthropic.js'
+import { BedrockConnector, isBedrockConfig } from './bedrock.js'
+import { FoundryConnector, isFoundryConfig } from './foundry.js'
 /**
  * ClaudeCode SDK — LLM Client
  *
@@ -5,10 +8,7 @@
  * Creates the appropriate connector based on configuration.
  */
 import type { LLMConfig, LLMConnector, LLMProvider } from './types.js'
-import { AnthropicConnector, isAnthropicConfig } from './anthropic.js'
-import { BedrockConnector, isBedrockConfig } from './bedrock.js'
 import { VertexConnector, isVertexConfig } from './vertex.js'
-import { FoundryConnector, isFoundryConfig } from './foundry.js'
 
 export { AnthropicConnector } from './anthropic.js'
 export { BedrockConnector } from './bedrock.js'

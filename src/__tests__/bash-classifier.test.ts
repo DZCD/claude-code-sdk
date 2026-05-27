@@ -4,8 +4,8 @@
  * Phase 2-G: Classifies bash commands into danger levels
  * (safe, auto_allow, ask, deny) for YOLO/auto-mode decision making.
  */
-import { describe, it, expect } from 'vitest'
-import { classifyBashCommand, isReadOnlyCommand, isAutoAllowCommand } from '../permission/bashClassifier.js'
+import { describe, expect, it } from 'vitest'
+import { classifyBashCommand, isAutoAllowCommand, isReadOnlyCommand } from '../permission/bashClassifier.js'
 
 describe('bashClassifier', () => {
   describe('classifyBashCommand', () => {

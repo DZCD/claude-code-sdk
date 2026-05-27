@@ -5,16 +5,9 @@
  * Uses @anthropic-ai/sdk for communication.
  */
 import Anthropic from '@anthropic-ai/sdk'
-import type {
-  AnthropicConfig,
-  LLMConnector,
-  LLMProvider,
-  StreamEvent,
-  ToolDefinition,
-  SendOptions,
-} from './types.js'
 import type { Stream } from '@anthropic-ai/sdk/streaming.js'
 import { withRetry } from './retry.js'
+import type { AnthropicConfig, LLMConnector, LLMProvider, SendOptions, StreamEvent, ToolDefinition } from './types.js'
 
 /**
  * Raw content block start event from the Anthropic SDK.
@@ -23,9 +16,7 @@ import { withRetry } from './retry.js'
 interface ContentBlockStart {
   type: 'content_block_start'
   index: number
-  content_block:
-    | { type: 'text'; text: string }
-    | { type: 'tool_use'; id: string; name: string; input: unknown }
+  content_block: { type: 'text'; text: string } | { type: 'tool_use'; id: string; name: string; input: unknown }
 }
 
 interface ContentBlockDelta {
@@ -98,14 +89,14 @@ export class AnthropicConnector implements LLMConnector {
     try {
       const stream = await withRetry(
         async (attempt) => {
-          return await this._client.messages.create({
+          return (await this._client.messages.create({
             model: this._model,
             max_tokens: options?.maxTokens ?? this._maxTokens,
             system: systemPrompt ? [{ type: 'text' as const, text: systemPrompt }] : undefined,
             messages: anthropicMessages,
             tools: tools.length > 0 ? (tools as Anthropic.Messages.Tool[]) : undefined,
             stream: true,
-          }) as unknown as Stream<StreamEvent_>
+          })) as unknown as Stream<StreamEvent_>
         },
         {
           maxRetries: options?.maxRetries ?? 3,
@@ -189,16 +180,16 @@ export class AnthropicConnector implements LLMConnector {
     }
   }
 
-  async countTokens(
-    messages: Array<{ role: string; content: string }>,
-  ): Promise<number> {
+  async countTokens(messages: Array<{ role: string; content: string }>): Promise<number> {
     try {
-      const response = await (this._client.messages as unknown as {
-        countTokens: (params: {
-          model: string
-          messages: Array<{ role: string; content: string }>
-        }) => Promise<{ input_tokens: number }>
-      }).countTokens({
+      const response = await (
+        this._client.messages as unknown as {
+          countTokens: (params: {
+            model: string
+            messages: Array<{ role: string; content: string }>
+          }) => Promise<{ input_tokens: number }>
+        }
+      ).countTokens({
         model: this._model,
         messages: messages.map((m) => ({
           role: m.role as 'user' | 'assistant',
@@ -214,8 +205,8 @@ export class AnthropicConnector implements LLMConnector {
 }
 
 /** Check if a config is for Anthropic */
-export function isAnthropicConfig(
-  config: { provider: string },
-): config is AnthropicConfig {
+export function isAnthropicConfig(config: {
+  provider: string
+}): config is AnthropicConfig {
   return config.provider === 'anthropic'
 }

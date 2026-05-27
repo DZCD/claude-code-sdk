@@ -4,12 +4,12 @@
  * Tests for conversationLoop directly and edge cases
  * that improve coverage on uncovered branches.
  */
-import { describe, it, expect, vi } from 'vitest'
-import type { LLMConnector, StreamEvent } from '../llm/types.js'
-import { conversationLoop } from '../conversation/loop.js'
-import { ToolRegistry } from '../tools/registry.js'
-import { createTool } from '../tools/base.js'
+import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
+import { conversationLoop } from '../conversation/loop.js'
+import type { LLMConnector, StreamEvent } from '../llm/types.js'
+import { createTool } from '../tools/base.js'
+import { ToolRegistry } from '../tools/registry.js'
 import { createUserMessage } from '../types/message.js'
 
 // ─── Mock LLM ────────────────────────────────────────────
@@ -44,7 +44,12 @@ describe('conversationLoop edge cases', () => {
       provider: 'anthropic',
       send: async function* () {
         if (!ac.signal.aborted) {
-          yield { type: 'tool_use_start', id: 't1', name: 'echo', input: { message: 'x' } }
+          yield {
+            type: 'tool_use_start',
+            id: 't1',
+            name: 'echo',
+            input: { message: 'x' },
+          }
           yield { type: 'tool_use_end', id: 't1', output: '{"message":"x"}' }
           yield { type: 'done', usage: { inputTokens: 1, outputTokens: 1 } }
         }
@@ -87,7 +92,7 @@ describe('conversationLoop edge cases', () => {
       events.push(event)
     }
 
-    const thinking = events.filter(e => e.type === 'thinking')
+    const thinking = events.filter((e) => e.type === 'thinking')
     expect(thinking).toHaveLength(1)
     if (thinking[0]?.type === 'thinking') {
       expect(thinking[0].thinking).toContain('Hmm')
@@ -110,7 +115,7 @@ describe('conversationLoop edge cases', () => {
       events.push(event)
     }
 
-    const pings = events.filter(e => e.type === 'ping')
+    const pings = events.filter((e) => e.type === 'ping')
     expect(pings).toHaveLength(1)
   })
 
@@ -121,7 +126,12 @@ describe('conversationLoop edge cases', () => {
     const mockLLM: LLMConnector = {
       provider: 'anthropic',
       send: async function* () {
-        yield { type: 'tool_use_start', id: 't1', name: 'echo', input: { message: 'hi' } }
+        yield {
+          type: 'tool_use_start',
+          id: 't1',
+          name: 'echo',
+          input: { message: 'hi' },
+        }
         yield { type: 'tool_use_end', id: 't1', output: '{"message":"hi"}' }
         yield { type: 'done', usage: { inputTokens: 5, outputTokens: 3 } }
       },
@@ -151,9 +161,9 @@ describe('conversationLoop edge cases', () => {
 
     // Should still complete but include tool_use_start and tool_use_end
     // The abort happens during tool execution phase of first iteration
-    const toolStarts = events.filter(e => e.type === 'tool_use_start')
+    const toolStarts = events.filter((e) => e.type === 'tool_use_start')
     expect(toolStarts).toHaveLength(1)
-    const errors = events.filter(e => e.type === 'error')
+    const errors = events.filter((e) => e.type === 'error')
     // Should have abort error because tool execution is aborted
     expect(errors.length).toBeGreaterThanOrEqual(1)
   })

@@ -1,3 +1,5 @@
+import type { Tool as SdkTool } from '@anthropic-ai/sdk/resources/messages.js'
+import type { Stream } from '@anthropic-ai/sdk/streaming.js'
 /**
  * ClaudeCode SDK — Google Vertex AI LLM Connector
  *
@@ -5,17 +7,8 @@
  * Uses @anthropic-ai/vertex-sdk for communication with Vertex AI's Anthropic API.
  */
 import { AnthropicVertex } from '@anthropic-ai/vertex-sdk'
-import type { Stream } from '@anthropic-ai/sdk/streaming.js'
-import type { Tool as SdkTool } from '@anthropic-ai/sdk/resources/messages.js'
-import type {
-  LLMConnector,
-  LLMProvider,
-  StreamEvent,
-  ToolDefinition,
-  SendOptions,
-  VertexConfig,
-} from './types.js'
 import { withRetry } from './retry.js'
+import type { LLMConnector, LLMProvider, SendOptions, StreamEvent, ToolDefinition, VertexConfig } from './types.js'
 
 /**
  * Raw content block start event from the Anthropic SDK stream.
@@ -23,9 +16,7 @@ import { withRetry } from './retry.js'
 interface ContentBlockStart {
   type: 'content_block_start'
   index: number
-  content_block:
-    | { type: 'text'; text: string }
-    | { type: 'tool_use'; id: string; name: string; input: unknown }
+  content_block: { type: 'text'; text: string } | { type: 'tool_use'; id: string; name: string; input: unknown }
 }
 
 interface ContentBlockDelta {
@@ -118,9 +109,7 @@ export class VertexConnector implements LLMConnector {
           return (await this._client.messages.create({
             model: this._model,
             max_tokens: options?.maxTokens ?? this._maxTokens,
-            system: systemPrompt
-              ? [{ type: 'text' as const, text: systemPrompt }]
-              : undefined,
+            system: systemPrompt ? [{ type: 'text' as const, text: systemPrompt }] : undefined,
             messages: vertexMessages,
             tools: tools.length > 0 ? (tools as unknown as SdkTool[]) : undefined,
             stream: true,
@@ -203,17 +192,17 @@ export class VertexConnector implements LLMConnector {
     }
   }
 
-  async countTokens(
-    messages: Array<{ role: string; content: string }>,
-  ): Promise<number> {
+  async countTokens(messages: Array<{ role: string; content: string }>): Promise<number> {
     try {
       // Vertex SDK supports countTokens via the messages resource
-      const response = await (this._client.messages as unknown as {
-        countTokens: (params: {
-          model: string
-          messages: Array<{ role: string; content: string }>
-        }) => Promise<{ input_tokens: number }>
-      }).countTokens({
+      const response = await (
+        this._client.messages as unknown as {
+          countTokens: (params: {
+            model: string
+            messages: Array<{ role: string; content: string }>
+          }) => Promise<{ input_tokens: number }>
+        }
+      ).countTokens({
         model: this._model,
         messages: messages.map((m) => ({
           role: m.role as 'user' | 'assistant',
@@ -223,17 +212,14 @@ export class VertexConnector implements LLMConnector {
       return response.input_tokens
     } catch {
       // Fallback: estimate from text length
-      return messages.reduce(
-        (acc, m) => acc + Math.ceil(m.content.length / 4),
-        0,
-      )
+      return messages.reduce((acc, m) => acc + Math.ceil(m.content.length / 4), 0)
     }
   }
 }
 
 /** Check if a config is for Google Vertex AI */
-export function isVertexConfig(
-  config: { provider: string },
-): config is VertexConfig {
+export function isVertexConfig(config: {
+  provider: string
+}): config is VertexConfig {
   return config.provider === 'vertex'
 }

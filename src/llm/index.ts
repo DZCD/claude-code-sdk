@@ -2,7 +2,14 @@
  * ClaudeCode SDK — LLM Module Index
  */
 
-export { createLLMConnector, AnthropicConnector, BedrockConnector, VertexConnector, FoundryConnector, getSupportedProviders } from './client.js'
+export {
+  createLLMConnector,
+  AnthropicConnector,
+  BedrockConnector,
+  VertexConnector,
+  FoundryConnector,
+  getSupportedProviders,
+} from './client.js'
 export type {
   LLMConfig,
   AnthropicConfig,

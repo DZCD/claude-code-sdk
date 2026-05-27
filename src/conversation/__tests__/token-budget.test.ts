@@ -3,8 +3,13 @@
  *
  * Token budget parsing and tracking.
  */
-import { describe, it, expect } from 'vitest'
-import { parseTokenBudget, findTokenBudgetPositions, getBudgetContinuationMessage, TokenBudget } from '../token-budget.js'
+import { describe, expect, it } from 'vitest'
+import {
+  TokenBudget,
+  findTokenBudgetPositions,
+  getBudgetContinuationMessage,
+  parseTokenBudget,
+} from '../token-budget.js'
 
 describe('parseTokenBudget', () => {
   it('should parse shorthand at start: +500k', () => {

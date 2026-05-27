@@ -4,7 +4,7 @@
  * Uses vitest mock to replace @anthropic-ai/bedrock-sdk with a mock implementation
  * that simulates the streaming API.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BedrockConnector } from '../bedrock.js'
 import type { BedrockConfig } from '../types.js'
 
@@ -52,9 +52,7 @@ describe('BedrockConnector', () => {
   })
 
   it('should create connector without credentials (uses default chain)', () => {
-    const connector = new BedrockConnector(
-      makeConfig({ accessKeyId: undefined, secretAccessKey: undefined }),
-    )
+    const connector = new BedrockConnector(makeConfig({ accessKeyId: undefined, secretAccessKey: undefined }))
     expect(connector.provider).toBe('bedrock')
   })
 
@@ -63,8 +61,16 @@ describe('BedrockConnector', () => {
   it('should stream text response', async () => {
     const connector = new BedrockConnector(makeConfig())
     const events = [
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'Hello' } },
-      { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: ' world' } },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'Hello' },
+      },
+      {
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'text_delta', text: ' world' },
+      },
       { type: 'message_stop' },
     ]
 
@@ -92,9 +98,18 @@ describe('BedrockConnector', () => {
       {
         type: 'content_block_start',
         index: 0,
-        content_block: { type: 'tool_use', id: 'tu_123', name: 'write_file', input: toolInput },
+        content_block: {
+          type: 'tool_use',
+          id: 'tu_123',
+          name: 'write_file',
+          input: toolInput,
+        },
       },
-      { type: 'message_delta', delta: { stop_reason: 'tool_use', stop_sequence: null }, usage: { input_tokens: 10, output_tokens: 5 } },
+      {
+        type: 'message_delta',
+        delta: { stop_reason: 'tool_use', stop_sequence: null },
+        usage: { input_tokens: 10, output_tokens: 5 },
+      },
       { type: 'message_stop' },
     ]
 
@@ -126,7 +141,11 @@ describe('BedrockConnector', () => {
   it('should pass system prompt to the API', async () => {
     const connector = new BedrockConnector(makeConfig())
     const events = [
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'OK' } },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'OK' },
+      },
       { type: 'message_stop' },
     ]
 
@@ -164,7 +183,11 @@ describe('BedrockConnector', () => {
   it('should pass tool definitions to the API', async () => {
     const connector = new BedrockConnector(makeConfig())
     const events = [
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'OK' } },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'OK' },
+      },
       { type: 'message_stop' },
     ]
 
@@ -174,7 +197,11 @@ describe('BedrockConnector', () => {
       {
         name: 'write_file',
         description: 'Write content to a file',
-        input_schema: { type: 'object' as const, properties: { path: { type: 'string' } }, required: ['path'] },
+        input_schema: {
+          type: 'object' as const,
+          properties: { path: { type: 'string' } },
+          required: ['path'],
+        },
       },
     ]
 
@@ -192,9 +219,7 @@ describe('BedrockConnector', () => {
   it('should estimate tokens from text length', async () => {
     const connector = new BedrockConnector(makeConfig())
     // Bedrock doesn't support countTokens, so it falls back to estimation
-    const count = await connector.countTokens([
-      { role: 'user', content: 'Hello world' },
-    ])
+    const count = await connector.countTokens([{ role: 'user', content: 'Hello world' }])
     // "Hello world" = 11 chars / 4 ≈ 2.75 → ceil = 3
     expect(count).toBe(3)
   })
@@ -217,8 +242,16 @@ describe('BedrockConnector', () => {
   it('should capture usage from message_delta', async () => {
     const connector = new BedrockConnector(makeConfig())
     const events = [
-      { type: 'content_block_start', index: 0, content_block: { type: 'text', text: 'Hello' } },
-      { type: 'message_delta', delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { input_tokens: 50, output_tokens: 10 } },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'Hello' },
+      },
+      {
+        type: 'message_delta',
+        delta: { stop_reason: 'end_turn', stop_sequence: null },
+        usage: { input_tokens: 50, output_tokens: 10 },
+      },
       { type: 'message_stop' },
     ]
 

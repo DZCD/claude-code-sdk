@@ -62,7 +62,12 @@ export interface AssistantMessage extends BaseMessage {
   role: 'assistant'
   content: string | ContentBlock[]
   /** Token usage from API response, attached after receiving streaming events */
-  usage?: { inputTokens: number; outputTokens: number; cacheCreationInputTokens?: number; cacheReadInputTokens?: number }
+  usage?: {
+    inputTokens: number
+    outputTokens: number
+    cacheCreationInputTokens?: number
+    cacheReadInputTokens?: number
+  }
 }
 
 export interface ToolResultMessage extends BaseMessage {

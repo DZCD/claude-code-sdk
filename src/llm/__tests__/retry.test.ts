@@ -3,8 +3,8 @@
  *
  * Tests the core retry logic in isolation from providers.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { withRetry, shouldRetry, getRetryDelay, isRetryableError } from '../retry.js'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { getRetryDelay, isRetryableError, shouldRetry, withRetry } from '../retry.js'
 
 // ─── getRetryDelay ──────────────────────────────────────────
 
@@ -52,7 +52,7 @@ describe('getRetryDelay', () => {
 
 describe('shouldRetry', () => {
   // Create API error-like objects
-  function makeApiError(status: number | undefined, message: string = 'error'): Error & { status?: number; message: string } {
+  function makeApiError(status: number | undefined, message = 'error'): Error & { status?: number; message: string } {
     const err = new Error(message) as Error & { status?: number }
     if (status !== undefined) err.status = status
     return err
@@ -183,14 +183,15 @@ describe('withRetry', () => {
   })
 
   it('should retry on failure and succeed', async () => {
-    const operation = vi.fn()
-      .mockRejectedValueOnce(retryableError('Transient error'))
-      .mockResolvedValueOnce('success')
+    const operation = vi.fn().mockRejectedValueOnce(retryableError('Transient error')).mockResolvedValueOnce('success')
 
     // We can't use fake timers for the actual retry since the sleep
     // promise needs to resolve. Let's use a very short base delay.
     vi.useRealTimers()
-    const result = await withRetry(operation, { maxRetries: 3, baseDelayMs: 1 })
+    const result = await withRetry(operation, {
+      maxRetries: 3,
+      baseDelayMs: 1,
+    })
     expect(result).toBe('success')
     expect(operation).toHaveBeenCalledTimes(2)
   })
@@ -200,13 +201,13 @@ describe('withRetry', () => {
     const operation = vi.fn().mockRejectedValue(error)
 
     vi.useRealTimers()
-    await expect(withRetry(operation, { maxRetries: 2, baseDelayMs: 1 }))
-      .rejects.toThrow('Persistent error')
+    await expect(withRetry(operation, { maxRetries: 2, baseDelayMs: 1 })).rejects.toThrow('Persistent error')
     expect(operation).toHaveBeenCalledTimes(3) // 1 initial + 2 retries
   })
 
   it('should yield retry events', async () => {
-    const operation = vi.fn()
+    const operation = vi
+      .fn()
       .mockRejectedValueOnce(retryableError('Fail 1'))
       .mockRejectedValueOnce(retryableError('Fail 2'))
       .mockResolvedValueOnce('success')
@@ -216,7 +217,9 @@ describe('withRetry', () => {
     const result = await withRetry(operation, {
       maxRetries: 3,
       baseDelayMs: 1,
-      onRetry: (event) => { events.push(event) },
+      onRetry: (event) => {
+        events.push(event)
+      },
     })
 
     expect(result).toBe('success')
@@ -232,8 +235,7 @@ describe('withRetry', () => {
     error.status = 400
     const operation = vi.fn().mockRejectedValue(error)
 
-    await expect(withRetry(operation, { maxRetries: 3 }))
-      .rejects.toThrow('Bad request')
+    await expect(withRetry(operation, { maxRetries: 3 })).rejects.toThrow('Bad request')
     expect(operation).toHaveBeenCalledTimes(1) // No retry
   })
 
@@ -244,10 +246,12 @@ describe('withRetry', () => {
     // Abort immediately
     controller.abort()
 
-    await expect(withRetry(operation, {
-      maxRetries: 3,
-      signal: controller.signal,
-    })).rejects.toThrow('aborted')
+    await expect(
+      withRetry(operation, {
+        maxRetries: 3,
+        signal: controller.signal,
+      }),
+    ).rejects.toThrow('aborted')
   })
 
   it('should pass attempt number to operation', async () => {
@@ -265,8 +269,7 @@ describe('withRetry', () => {
 
   it('should handle zero retries (fail fast)', async () => {
     const operation = vi.fn().mockRejectedValue(retryableError('fail'))
-    await expect(withRetry(operation, { maxRetries: 0 }))
-      .rejects.toThrow('fail')
+    await expect(withRetry(operation, { maxRetries: 0 })).rejects.toThrow('fail')
     expect(operation).toHaveBeenCalledTimes(1)
   })
 })

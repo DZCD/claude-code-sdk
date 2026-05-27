@@ -5,17 +5,10 @@
  * Uses @anthropic-ai/bedrock-sdk for communication with Bedrock's Anthropic API.
  */
 import { AnthropicBedrock } from '@anthropic-ai/bedrock-sdk'
-import type { Stream } from '@anthropic-ai/sdk/streaming.js'
 import type { Tool as SdkTool } from '@anthropic-ai/sdk/resources/messages.js'
-import type {
-  BedrockConfig,
-  LLMConnector,
-  LLMProvider,
-  StreamEvent,
-  ToolDefinition,
-  SendOptions,
-} from './types.js'
+import type { Stream } from '@anthropic-ai/sdk/streaming.js'
 import { withRetry } from './retry.js'
+import type { BedrockConfig, LLMConnector, LLMProvider, SendOptions, StreamEvent, ToolDefinition } from './types.js'
 
 /**
  * Raw content block start event from the Anthropic SDK stream.
@@ -23,9 +16,7 @@ import { withRetry } from './retry.js'
 interface ContentBlockStart {
   type: 'content_block_start'
   index: number
-  content_block:
-    | { type: 'text'; text: string }
-    | { type: 'tool_use'; id: string; name: string; input: unknown }
+  content_block: { type: 'text'; text: string } | { type: 'tool_use'; id: string; name: string; input: unknown }
 }
 
 interface ContentBlockDelta {
@@ -123,9 +114,7 @@ export class BedrockConnector implements LLMConnector {
           return (await this._client.messages.create({
             model: this._model,
             max_tokens: options?.maxTokens ?? this._maxTokens,
-            system: systemPrompt
-              ? [{ type: 'text' as const, text: systemPrompt }]
-              : undefined,
+            system: systemPrompt ? [{ type: 'text' as const, text: systemPrompt }] : undefined,
             messages: bedrockMessages,
             tools: tools.length > 0 ? (tools as unknown as SdkTool[]) : undefined,
             stream: true,
@@ -208,21 +197,16 @@ export class BedrockConnector implements LLMConnector {
     }
   }
 
-  async countTokens(
-    messages: Array<{ role: string; content: string }>,
-  ): Promise<number> {
+  async countTokens(messages: Array<{ role: string; content: string }>): Promise<number> {
     // Bedrock SDK does not support countTokens yet.
     // Fallback: estimate from text length (roughly 4 chars per token).
-    return messages.reduce(
-      (acc, m) => acc + Math.ceil(m.content.length / 4),
-      0,
-    )
+    return messages.reduce((acc, m) => acc + Math.ceil(m.content.length / 4), 0)
   }
 }
 
 /** Check if a config is for AWS Bedrock */
-export function isBedrockConfig(
-  config: { provider: string },
-): config is BedrockConfig {
+export function isBedrockConfig(config: {
+  provider: string
+}): config is BedrockConfig {
   return config.provider === 'bedrock'
 }

@@ -1,9 +1,13 @@
-import { describe, it, expect, vi } from 'vitest'
-import { ToolRegistry } from '../tools/registry.js'
-import { BaseTool, createTool } from '../tools/base.js'
+import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
+import { BaseTool, createTool } from '../tools/base.js'
+import { ToolRegistry } from '../tools/registry.js'
 
 // ─── Test Fixtures ───────────────────────────────────────
+
+const echoSchema = z.object({
+  message: z.string(),
+})
 
 class EchoTool extends BaseTool<typeof echoSchema, string> {
   name = 'echo'
@@ -18,9 +22,19 @@ class EchoTool extends BaseTool<typeof echoSchema, string> {
   }
 }
 
-const echoSchema = z.object({
-  message: z.string(),
+const failingSchema = z.object({
+  shouldFail: z.boolean(),
 })
+
+class FailingTool extends BaseTool<typeof failingSchema, string> {
+  name = 'failing'
+  description = 'Always fails'
+  inputSchema = failingSchema
+
+  async execute() {
+    throw new Error('Expected failure')
+  }
+}
 
 const addSchema = z.object({
   a: z.number(),
@@ -93,18 +107,26 @@ describe('ToolRegistry', () => {
   it('should execute a tool by name', async () => {
     const registry = new ToolRegistry()
     registry.register(echoTool)
-    const result = await registry.execute('echo', { message: 'hello' }, {
-      signal: new AbortController().signal,
-    })
+    const result = await registry.execute(
+      'echo',
+      { message: 'hello' },
+      {
+        signal: new AbortController().signal,
+      },
+    )
     expect(result.content).toBe('Echo: hello')
     expect(result.isError).toBeFalsy()
   })
 
   it('should return error for unknown tool', async () => {
     const registry = new ToolRegistry()
-    const result = await registry.execute('unknown', {}, {
-      signal: new AbortController().signal,
-    })
+    const result = await registry.execute(
+      'unknown',
+      {},
+      {
+        signal: new AbortController().signal,
+      },
+    )
     expect(result.isError).toBe(true)
     expect(result.content).toContain('Unknown tool')
   })
@@ -112,9 +134,13 @@ describe('ToolRegistry', () => {
   it('should return error for invalid input', async () => {
     const registry = new ToolRegistry()
     registry.register(echoTool)
-    const result = await registry.execute('echo', { wrong: 'field' }, {
-      signal: new AbortController().signal,
-    })
+    const result = await registry.execute(
+      'echo',
+      { wrong: 'field' },
+      {
+        signal: new AbortController().signal,
+      },
+    )
     expect(result.isError).toBe(true)
     expect(result.content).toContain('Invalid input')
   })
@@ -130,9 +156,13 @@ describe('ToolRegistry', () => {
       },
     })
     registry.register(errorTool)
-    const result = await registry.execute('error_tool', {}, {
-      signal: new AbortController().signal,
-    })
+    const result = await registry.execute(
+      'error_tool',
+      {},
+      {
+        signal: new AbortController().signal,
+      },
+    )
     expect(result.isError).toBe(true)
     expect(result.content).toContain('Something went wrong')
   })
@@ -165,9 +195,12 @@ describe('BaseTool', () => {
     expect(tool.isConcurrencySafe()).toBe(false)
     expect(tool.userFacingName()).toBe('echo')
 
-    const result = await tool.execute({ message: 'hi' }, {
-      signal: new AbortController().signal,
-    })
+    const result = await tool.execute(
+      { message: 'hi' },
+      {
+        signal: new AbortController().signal,
+      },
+    )
     expect(result.content).toBe('Echo: hi')
     expect(result.data).toBe('hi')
   })
@@ -177,9 +210,12 @@ describe('BaseTool', () => {
     const toolInterface = tool.toTool()
     expect(toolInterface.name).toBe('echo')
 
-    const result = await toolInterface.execute({ message: 'test' }, {
-      signal: new AbortController().signal,
-    })
+    const result = await toolInterface.execute(
+      { message: 'test' },
+      {
+        signal: new AbortController().signal,
+      },
+    )
     expect(result.content).toBe('Echo: test')
   })
 })
@@ -188,17 +224,23 @@ describe('BaseTool', () => {
 
 describe('createTool', () => {
   it('should create a tool from object definition', async () => {
-    const result = await echoTool.execute({ message: 'world' }, {
-      signal: new AbortController().signal,
-    })
+    const result = await echoTool.execute(
+      { message: 'world' },
+      {
+        signal: new AbortController().signal,
+      },
+    )
     expect(result.content).toBe('Echo: world')
     expect(result.data).toBe('world')
   })
 
   it('should handle numeric inputs', async () => {
-    const result = await addTool.execute({ a: 3, b: 4 }, {
-      signal: new AbortController().signal,
-    })
+    const result = await addTool.execute(
+      { a: 3, b: 4 },
+      {
+        signal: new AbortController().signal,
+      },
+    )
     expect(result.data).toBe(7)
     expect(result.content).toBe('Result: 7')
   })

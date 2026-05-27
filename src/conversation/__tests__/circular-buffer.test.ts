@@ -3,7 +3,7 @@
  *
  * Fixed-size circular buffer with auto-eviction.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { CircularBuffer } from '../circular-buffer.js'
 
 describe('CircularBuffer', () => {

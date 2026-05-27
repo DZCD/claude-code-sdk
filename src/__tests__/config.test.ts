@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { ConfigManager } from '../config/manager.js'
 
 describe('ConfigManager', () => {
@@ -56,8 +56,8 @@ describe('ConfigManager', () => {
     expect(config.llm.provider).toBe('anthropic')
     expect(config.llm.model).toBe('env-model')
     // Clean up
-    delete process.env.ANTHROPIC_API_KEY
-    delete process.env.ANTHROPIC_MODEL
+    process.env.ANTHROPIC_API_KEY = undefined
+    process.env.ANTHROPIC_MODEL = undefined
   })
 
   it('should reset to defaults', () => {
@@ -82,9 +82,9 @@ describe('ConfigManager', () => {
       expect(config.llm.region).toBe('us-west-2')
     }
 
-    delete process.env.AWS_ACCESS_KEY_ID
-    delete process.env.AWS_SECRET_ACCESS_KEY
-    delete process.env.AWS_REGION
+    process.env.AWS_ACCESS_KEY_ID = undefined
+    process.env.AWS_SECRET_ACCESS_KEY = undefined
+    process.env.AWS_REGION = undefined
   })
 
   it('should load env vars for Vertex AI', () => {
@@ -97,7 +97,7 @@ describe('ConfigManager', () => {
 
     expect(config.llm.provider).toBe('vertex')
 
-    delete process.env.ANTHROPIC_VERTEX_PROJECT_ID
-    delete process.env.CLOUD_ML_REGION
+    process.env.ANTHROPIC_VERTEX_PROJECT_ID = undefined
+    process.env.CLOUD_ML_REGION = undefined
   })
 })

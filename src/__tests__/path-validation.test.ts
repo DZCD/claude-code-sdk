@@ -4,14 +4,14 @@
  * Phase 2-G: Implements sandbox constraints, directory whitelists,
  * sensitive path protection, glob pattern validation.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-  validatePath,
-  isPathAllowed,
-  isDangerousRemovalPath,
+  SENSITIVE_PATHS,
   expandTilde,
   getGlobBaseDirectory,
-  SENSITIVE_PATHS,
+  isDangerousRemovalPath,
+  isPathAllowed,
+  validatePath,
 } from '../permission/pathValidation.js'
 import type { PathValidationOptions } from '../types/permission.js'
 
@@ -24,105 +24,55 @@ const defaultOptions: PathValidationOptions = {
 describe('pathValidation', () => {
   describe('validatePath', () => {
     it('should allow paths within working directory', () => {
-      const result = validatePath(
-        '/home/user/project/src/file.ts',
-        '/home/user/project',
-        defaultOptions,
-        'read',
-      )
+      const result = validatePath('/home/user/project/src/file.ts', '/home/user/project', defaultOptions, 'read')
       expect(result.allowed).toBe(true)
     })
 
     it('should deny paths outside working directory', () => {
-      const result = validatePath(
-        '/etc/passwd',
-        '/home/user/project',
-        defaultOptions,
-        'read',
-      )
+      const result = validatePath('/etc/passwd', '/home/user/project', defaultOptions, 'read')
       expect(result.allowed).toBe(false)
     })
 
     it('should deny sensitive paths when protection enabled', () => {
-      const result = validatePath(
-        '/home/user/project/.env',
-        '/home/user/project',
-        defaultOptions,
-        'read',
-      )
+      const result = validatePath('/home/user/project/.env', '/home/user/project', defaultOptions, 'read')
       expect(result.allowed).toBe(false)
     })
 
     it('should deny sensitive SSH paths', () => {
-      const result = validatePath(
-        '/home/user/.ssh/id_rsa',
-        '/home/user/project',
-        defaultOptions,
-        'read',
-      )
+      const result = validatePath('/home/user/.ssh/id_rsa', '/home/user/project', defaultOptions, 'read')
       expect(result.allowed).toBe(false)
     })
 
     it('should handle relative paths', () => {
-      const result = validatePath(
-        'src/file.ts',
-        '/home/user/project',
-        defaultOptions,
-        'read',
-      )
+      const result = validatePath('src/file.ts', '/home/user/project', defaultOptions, 'read')
       expect(result.allowed).toBe(true)
       expect(result.resolvedPath).toContain('/home/user/project/src/file.ts')
     })
 
     it('should block glob patterns in write operations', () => {
-      const result = validatePath(
-        '/home/user/project/src/*.ts',
-        '/home/user/project',
-        defaultOptions,
-        'write',
-      )
+      const result = validatePath('/home/user/project/src/*.ts', '/home/user/project', defaultOptions, 'write')
       expect(result.allowed).toBe(false)
       expect(result.reason).toContain('Glob pattern')
     })
 
     it('should allow glob patterns for read operations if base dir is allowed', () => {
-      const result = validatePath(
-        '/home/user/project/src/*.ts',
-        '/home/user/project',
-        defaultOptions,
-        'read',
-      )
+      const result = validatePath('/home/user/project/src/*.ts', '/home/user/project', defaultOptions, 'read')
       expect(result.allowed).toBe(true)
     })
 
     it('should deny glob patterns for read if base dir is outside allowed', () => {
-      const result = validatePath(
-        '/etc/*.conf',
-        '/home/user/project',
-        defaultOptions,
-        'read',
-      )
+      const result = validatePath('/etc/*.conf', '/home/user/project', defaultOptions, 'read')
       expect(result.allowed).toBe(false)
     })
 
     it('should block paths with shell expansion syntax', () => {
-      const result = validatePath(
-        '/home/user/project/$HOME/file.txt',
-        '/home/user/project',
-        defaultOptions,
-        'read',
-      )
+      const result = validatePath('/home/user/project/$HOME/file.txt', '/home/user/project', defaultOptions, 'read')
       expect(result.allowed).toBe(false)
       expect(result.reason).toContain('Shell expansion')
     })
 
     it('should block tilde expansion variants', () => {
-      const result = validatePath(
-        '~root/.ssh/id_rsa',
-        '/home/user/project',
-        defaultOptions,
-        'read',
-      )
+      const result = validatePath('~root/.ssh/id_rsa', '/home/user/project', defaultOptions, 'read')
       expect(result.allowed).toBe(false)
       expect(result.reason).toContain('Tilde expansion')
     })
@@ -131,19 +81,17 @@ describe('pathValidation', () => {
       const result = validatePath(
         '~/project/file.txt',
         '/home/user/project',
-        { ...defaultOptions, allowedDirectories: [require('os').homedir() + '/project'] },
+        {
+          ...defaultOptions,
+          allowedDirectories: [`${require('node:os').homedir()}/project`],
+        },
         'read',
       )
       expect(result.allowed).toBe(true)
     })
 
     it('should provide resolved path in result', () => {
-      const result = validatePath(
-        'src/file.ts',
-        '/home/user/project',
-        defaultOptions,
-        'read',
-      )
+      const result = validatePath('src/file.ts', '/home/user/project', defaultOptions, 'read')
       expect(result.resolvedPath).toBeTruthy()
       expect(result.resolvedPath).toContain('/home/user/project')
     })
@@ -151,15 +99,11 @@ describe('pathValidation', () => {
 
   describe('isPathAllowed (low-level)', () => {
     it('should allow path in allowed directories', () => {
-      expect(
-        isPathAllowed('/home/user/project/src/file.ts', defaultOptions, 'read').allowed,
-      ).toBe(true)
+      expect(isPathAllowed('/home/user/project/src/file.ts', defaultOptions, 'read').allowed).toBe(true)
     })
 
     it('should deny path outside allowed directories', () => {
-      expect(
-        isPathAllowed('/tmp/somefile', defaultOptions, 'read').allowed,
-      ).toBe(false)
+      expect(isPathAllowed('/tmp/somefile', defaultOptions, 'read').allowed).toBe(false)
     })
 
     it('should deny paths in denyWithinAllow', () => {
@@ -167,9 +111,7 @@ describe('pathValidation', () => {
         allowedDirectories: ['/home/user/project'],
         denyWithinAllow: ['/home/user/project/.claude'],
       }
-      expect(
-        isPathAllowed('/home/user/project/.claude/settings.json', options, 'read').allowed,
-      ).toBe(false)
+      expect(isPathAllowed('/home/user/project/.claude/settings.json', options, 'read').allowed).toBe(false)
     })
 
     it('should deny sensitive dotfiles at root of home', () => {
@@ -178,22 +120,16 @@ describe('pathValidation', () => {
         denyWithinAllow: [],
         enableSensitivePathProtection: true,
       }
-      expect(
-        isPathAllowed('/home/user/.ssh/id_rsa', options, 'read').allowed,
-      ).toBe(false)
+      expect(isPathAllowed('/home/user/.ssh/id_rsa', options, 'read').allowed).toBe(false)
     })
 
     it('should allow read operations more permissively', () => {
       // Reads in allowed dirs should be allowed
-      expect(
-        isPathAllowed('/home/user/project/file.txt', defaultOptions, 'read').allowed,
-      ).toBe(true)
+      expect(isPathAllowed('/home/user/project/file.txt', defaultOptions, 'read').allowed).toBe(true)
     })
 
     it('should allow write operations in allowed directories', () => {
-      expect(
-        isPathAllowed('/home/user/project/src/output.ts', defaultOptions, 'write').allowed,
-      ).toBe(true)
+      expect(isPathAllowed('/home/user/project/src/output.ts', defaultOptions, 'write').allowed).toBe(true)
     })
 
     it('should block write to sensitive paths even if within allowed dir', () => {
@@ -202,9 +138,7 @@ describe('pathValidation', () => {
         denyWithinAllow: [],
         enableSensitivePathProtection: true,
       }
-      expect(
-        isPathAllowed('/home/user/project/.env', options, 'write').allowed,
-      ).toBe(false)
+      expect(isPathAllowed('/home/user/project/.env', options, 'write').allowed).toBe(false)
     })
   })
 
@@ -251,7 +185,7 @@ describe('pathValidation', () => {
     })
 
     it('should flag home directory', () => {
-      expect(isDangerousRemovalPath(require('os').homedir())).toBe(true)
+      expect(isDangerousRemovalPath(require('node:os').homedir())).toBe(true)
     })
 
     it('should flag direct children of root', () => {

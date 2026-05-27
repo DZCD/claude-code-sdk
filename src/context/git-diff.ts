@@ -69,7 +69,10 @@ export function parseGitNumstat(stdout: string): {
   let totalRemoved = 0
   let filesCount = 0
 
-  const lines = stdout.trim().split('\n').filter(l => l.length > 0)
+  const lines = stdout
+    .trim()
+    .split('\n')
+    .filter((l) => l.length > 0)
 
   for (const line of lines) {
     const parts = line.split('\t')
@@ -85,10 +88,10 @@ export function parseGitNumstat(stdout: string): {
       continue
     }
 
-    const added = parseInt(addedStr ?? '0', 10)
-    const removed = parseInt(removedStr ?? '0', 10)
+    const added = Number.parseInt(addedStr ?? '0', 10)
+    const removed = Number.parseInt(removedStr ?? '0', 10)
 
-    if (isNaN(added) || isNaN(removed)) continue
+    if (Number.isNaN(added) || Number.isNaN(removed)) continue
 
     perFileStats.set(filename, { added, removed, isBinary: false })
     totalAdded += added
@@ -119,9 +122,9 @@ export function parseShortstat(stdout: string): GitDiffStats | null {
   if (!filesMatch) return null
 
   return {
-    filesCount: parseInt(filesMatch[1]!, 10),
-    linesAdded: insertionsMatch ? parseInt(insertionsMatch[1]!, 10) : 0,
-    linesRemoved: deletionsMatch ? parseInt(deletionsMatch[1]!, 10) : 0,
+    filesCount: Number.parseInt(filesMatch[1]!, 10),
+    linesAdded: insertionsMatch ? Number.parseInt(insertionsMatch[1]!, 10) : 0,
+    linesRemoved: deletionsMatch ? Number.parseInt(deletionsMatch[1]!, 10) : 0,
   }
 }
 
@@ -140,11 +143,19 @@ export async function fetchUntrackedFiles(
   const { stdout } = git(['ls-files', '--others', '--exclude-standard'], cwd)
   if (!stdout) return new Map()
 
-  const files = stdout.split('\n').filter(l => l.length > 0).slice(0, maxFiles)
+  const files = stdout
+    .split('\n')
+    .filter((l) => l.length > 0)
+    .slice(0, maxFiles)
   const result = new Map<string, PerFileStats>()
 
   for (const file of files) {
-    result.set(file, { added: 0, removed: 0, isBinary: false, isUntracked: true })
+    result.set(file, {
+      added: 0,
+      removed: 0,
+      isBinary: false,
+      isUntracked: true,
+    })
   }
 
   return result
@@ -161,10 +172,7 @@ export async function fetchGitDiff(cwd: string): Promise<GitDiffResult | null> {
   if (!root) return null
 
   // Quick probe using --shortstat
-  const { stdout: shortstatOut, code: shortstatCode } = git(
-    ['--no-optional-locks', 'diff', 'HEAD', '--shortstat'],
-    cwd,
-  )
+  const { stdout: shortstatOut, code: shortstatCode } = git(['--no-optional-locks', 'diff', 'HEAD', '--shortstat'], cwd)
 
   if (shortstatCode === 0) {
     const quickStats = parseShortstat(shortstatOut)
@@ -178,10 +186,7 @@ export async function fetchGitDiff(cwd: string): Promise<GitDiffResult | null> {
   }
 
   // Get detailed stats via --numstat
-  const { stdout: numstatOut, code: numstatCode } = git(
-    ['--no-optional-locks', 'diff', 'HEAD', '--numstat'],
-    cwd,
-  )
+  const { stdout: numstatOut, code: numstatCode } = git(['--no-optional-locks', 'diff', 'HEAD', '--numstat'], cwd)
 
   if (numstatCode !== 0) return null
 

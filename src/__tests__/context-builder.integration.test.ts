@@ -1,15 +1,15 @@
+import { execSync } from 'node:child_process'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 /**
  * Integration Tests — ContextBuilder
  *
  * Tests context building with mock git commands and CLAUDE.md.
  * Uses vitest mocks for filesystem and child_process.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ContextBuilder } from '../context/builder.js'
-import { mkdtemp, writeFile, rm } from 'node:fs/promises'
-import { join } from 'node:path'
-import { tmpdir } from 'node:os'
-import { execSync } from 'node:child_process'
 
 // ─── Tests ───────────────────────────────────────────────
 
@@ -80,9 +80,21 @@ describe('ContextBuilder Integration', () => {
     it('should include git status when available', async () => {
       // Initialize a git repo and make changes
       try {
-        execSync('git init', { cwd: tempDir, encoding: 'utf-8', timeout: 3000 })
-        execSync('git config user.email test@test.com', { cwd: tempDir, encoding: 'utf-8', timeout: 3000 })
-        execSync('git config user.name Test', { cwd: tempDir, encoding: 'utf-8', timeout: 3000 })
+        execSync('git init', {
+          cwd: tempDir,
+          encoding: 'utf-8',
+          timeout: 3000,
+        })
+        execSync('git config user.email test@test.com', {
+          cwd: tempDir,
+          encoding: 'utf-8',
+          timeout: 3000,
+        })
+        execSync('git config user.name Test', {
+          cwd: tempDir,
+          encoding: 'utf-8',
+          timeout: 3000,
+        })
         await writeFile(join(tempDir, 'test.txt'), 'content')
       } catch {
         // Git not available — skip this test

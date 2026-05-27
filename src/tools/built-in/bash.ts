@@ -13,13 +13,13 @@
  * - sedValidation: Sed command safety validation
  * - modeValidation: Mode-specific permission behavior
  */
-import { exec } from 'child_process'
-import { promisify } from 'util'
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
 import { z } from 'zod'
-import { BaseTool } from '../base.js'
 import type { ToolContext, ToolResult } from '../../types/tool.js'
-import { bashCommandIsSafe } from './bash-security-utils/bashSecurity.js'
+import { BaseTool } from '../base.js'
 import { checkBashPermission } from './bash-security-utils/bashPermissions.js'
+import { bashCommandIsSafe } from './bash-security-utils/bashSecurity.js'
 import { checkPermissionMode } from './bash-security-utils/modeValidation.js'
 import { checkReadOnlyConstraints } from './bash-security-utils/readOnlyValidation.js'
 import type { PermissionContext } from './bash-security-utils/types.js'
@@ -29,10 +29,27 @@ const execAsync = promisify(exec)
 // ─── Read-Only Commands ──────────────────────────────────
 
 const READ_ONLY_COMMANDS = new Set([
-  'ls', 'cat', 'head', 'tail', 'wc', 'stat', 'file',
-  'which', 'whereis', 'type',
-  'pwd', 'date', 'env', 'printenv', 'uname', 'hostname', 'id',
-  'whoami', 'groups', 'getconf', 'locale',
+  'ls',
+  'cat',
+  'head',
+  'tail',
+  'wc',
+  'stat',
+  'file',
+  'which',
+  'whereis',
+  'type',
+  'pwd',
+  'date',
+  'env',
+  'printenv',
+  'uname',
+  'hostname',
+  'id',
+  'whoami',
+  'groups',
+  'getconf',
+  'locale',
 ])
 
 // ─── Schema ──────────────────────────────────────────────
@@ -48,13 +65,16 @@ export const bashSchema = z.object({
  */
 function isReadOnlyCommand(command: string): boolean {
   // Split by common operators and check each command
-  const parts = command.split(/[;&|]+/).map(s => s.trim()).filter(Boolean)
+  const parts = command
+    .split(/[;&|]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
 
   // Handle && and || within parts
   const allParts: string[] = []
   for (const part of parts) {
     const subparts = part.split(/\s+(&&|\|\|)\s+/).filter((_, i) => i % 2 === 0)
-    allParts.push(...subparts.map(s => s.trim()).filter(Boolean))
+    allParts.push(...subparts.map((s) => s.trim()).filter(Boolean))
   }
 
   const commandsToCheck = allParts.length > 0 ? allParts : parts
@@ -76,7 +96,8 @@ function isReadOnlyCommand(command: string): boolean {
 
 export class BashTool extends BaseTool<typeof bashSchema, { stdout: string; stderr: string; exitCode: number }> {
   name = 'bash'
-  description = 'Execute a bash command on the local system. Use this tool to run shell commands, scripts, and CLI tools.'
+  description =
+    'Execute a bash command on the local system. Use this tool to run shell commands, scripts, and CLI tools.'
   inputSchema = bashSchema
 
   /**
@@ -91,7 +112,11 @@ export class BashTool extends BaseTool<typeof bashSchema, { stdout: string; stde
     const safetyResult = bashCommandIsSafe(command)
     if (!safetyResult.safe) {
       return {
-        data: { stdout: '', stderr: safetyResult.message || 'Command rejected by security check', exitCode: 1 },
+        data: {
+          stdout: '',
+          stderr: safetyResult.message || 'Command rejected by security check',
+          exitCode: 1,
+        },
         content: `Security Error: ${safetyResult.message}\n\nCommand was blocked by security validation.`,
         isError: true,
       }
@@ -101,7 +126,11 @@ export class BashTool extends BaseTool<typeof bashSchema, { stdout: string; stde
     const readOnlyResult = checkReadOnlyConstraints(command)
     if (!readOnlyResult.safe) {
       return {
-        data: { stdout: '', stderr: readOnlyResult.message || 'Command rejected by read-only validation', exitCode: 1 },
+        data: {
+          stdout: '',
+          stderr: readOnlyResult.message || 'Command rejected by read-only validation',
+          exitCode: 1,
+        },
         content: `Security Error: ${readOnlyResult.message}`,
         isError: true,
       }
@@ -147,21 +176,35 @@ export class BashTool extends BaseTool<typeof bashSchema, { stdout: string; stde
         isError: false,
       }
     } catch (err: unknown) {
-      const error = err as Error & { code?: number; stderr?: string; stdout?: string; killed?: boolean; signal?: string }
+      const error = err as Error & {
+        code?: number
+        stderr?: string
+        stdout?: string
+        killed?: boolean
+        signal?: string
+      }
       const exitCode = error.code ?? 1
       const stderrText = error.stderr || ''
       const stdoutText = error.stdout || ''
 
       if (error.killed || error.signal) {
         return {
-          data: { stdout: stdoutText, stderr: `Command timed out after ${timeout}ms\n${stderrText}`, exitCode },
+          data: {
+            stdout: stdoutText,
+            stderr: `Command timed out after ${timeout}ms\n${stderrText}`,
+            exitCode,
+          },
           content: `Error: Command timed out after ${timeout}ms\n${stderrText || stdoutText || '(No output)'}`,
           isError: true,
         }
       }
 
       return {
-        data: { stdout: stdoutText, stderr: stderrText || error.message, exitCode },
+        data: {
+          stdout: stdoutText,
+          stderr: stderrText || error.message,
+          exitCode,
+        },
         content: `Exit code ${exitCode}\n\n${stderrText || stdoutText || error.message}`,
         isError: true,
       }

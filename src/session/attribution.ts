@@ -96,10 +96,7 @@ export class AttributionManager {
    * Record a message and return its attribution metadata.
    * In 'none' mode, returns empty metadata and does not count.
    */
-  recordMessage(
-    source: MessageSource,
-    options?: { toolName?: string },
-  ): AttributionMetadata {
+  recordMessage(source: MessageSource, options?: { toolName?: string }): AttributionMetadata {
     const now = new Date().toISOString()
     this._lastActivityTime = now
 
@@ -125,10 +122,7 @@ export class AttributionManager {
       source,
       turnNumber: this._turnNumber,
       timestamp: now,
-      sourceLabel:
-        source === 'tool' || source === 'assistant'
-          ? options?.toolName
-          : undefined,
+      sourceLabel: source === 'tool' || source === 'assistant' ? options?.toolName : undefined,
     }
   }
 
@@ -156,10 +150,7 @@ export class AttributionManager {
       return { commit: '', pr: '' }
     }
 
-    const modelRef =
-      this._modelName !== 'Claude'
-        ? this._modelName
-        : 'Claude'
+    const modelRef = this._modelName !== 'Claude' ? this._modelName : 'Claude'
 
     return {
       commit: `Co-Authored-By: ${modelRef} <noreply@anthropic.com>`,

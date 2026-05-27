@@ -93,10 +93,7 @@ export class AutoCompactor {
    *
    * Returns the compaction result (but does NOT modify the original array).
    */
-  async compact(
-    messages: Message[],
-    llm: SummaryLLM | null,
-  ): Promise<CompactResult> {
+  async compact(messages: Message[], llm: SummaryLLM | null): Promise<CompactResult> {
     if (messages.length === 0) {
       return { compacted: false, originalCount: 0, finalCount: 0 }
     }

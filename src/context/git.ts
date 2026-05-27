@@ -6,7 +6,7 @@
  */
 import { execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { join, dirname, resolve, sep } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -83,7 +83,7 @@ function git(args: string[], cwd: string): { stdout: string; stderr: string; cod
     if (e instanceof Error && 'stdout' in e) {
       return {
         stdout: (e as { stdout: string }).stdout?.toString().trim() ?? '',
-        stderr: ((e as unknown) as { stderr: string }).stderr?.toString().trim() ?? '',
+        stderr: (e as unknown as { stderr: string }).stderr?.toString().trim() ?? '',
         code: 1,
       }
     }
@@ -181,15 +181,18 @@ export async function getFileStatus(cwd: string): Promise<FileStatusResult> {
   const tracked: string[] = []
   const untracked: string[] = []
 
-  stdout.split('\n').filter(line => line.length > 0).forEach(line => {
-    const status = line.substring(0, 2)
-    const filename = line.substring(2).trim()
-    if (status === '??') {
-      untracked.push(filename)
-    } else if (filename) {
-      tracked.push(filename)
-    }
-  })
+  stdout
+    .split('\n')
+    .filter((line) => line.length > 0)
+    .forEach((line) => {
+      const status = line.substring(0, 2)
+      const filename = line.substring(2).trim()
+      if (status === '??') {
+        untracked.push(filename)
+      } else if (filename) {
+        tracked.push(filename)
+      }
+    })
 
   return { tracked, untracked }
 }
@@ -205,14 +208,7 @@ export async function getGitState(cwd: string): Promise<GitRepoState | null> {
   if (!root) return null
 
   try {
-    const [
-      commitHash,
-      branchName,
-      remoteUrl,
-      isHeadOnRemote,
-      isClean,
-      worktreeCount,
-    ] = await Promise.all([
+    const [commitHash, branchName, remoteUrl, isHeadOnRemote, isClean, worktreeCount] = await Promise.all([
       getHead(cwd),
       getBranch(cwd),
       getRemoteUrl(cwd),

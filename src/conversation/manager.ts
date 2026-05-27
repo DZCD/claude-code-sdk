@@ -6,14 +6,14 @@
  * Phase 2 extended with compact, micro-compact, and token tracking.
  */
 import type { LLMConnector, StreamEvent, TokenUsage } from '../llm/types.js'
+import type { ToolRegistry } from '../tools/registry.js'
 import type { Message, Snowflake } from '../types/message.js'
-import { createUserMessage, createAssistantMessage } from '../types/message.js'
-import { ToolRegistry } from '../tools/registry.js'
-import { conversationLoop, type LoopOptions } from './loop.js'
-import { TokenTracker, estimateContextTokens } from './token-tracker.js'
-import { TokenBudget } from './token-budget.js'
-import { MicroCompactor, type MicroCompactOptions } from './micro-compact.js'
+import { createAssistantMessage, createUserMessage } from '../types/message.js'
 import { AutoCompactor, type CompactOptions, type CompactResult, type SummaryLLM } from './auto-compact.js'
+import { type LoopOptions, conversationLoop } from './loop.js'
+import { type MicroCompactOptions, MicroCompactor } from './micro-compact.js'
+import { TokenBudget } from './token-budget.js'
+import { TokenTracker, estimateContextTokens } from './token-tracker.js'
 
 export type { CompactOptions, CompactResult, MicroCompactOptions }
 
@@ -38,10 +38,7 @@ export class ConversationManager {
    * Automatically handles the tool-calling loop.
    * Applies micro-compact and auto-compact if configured.
    */
-  async *send(
-    message: string,
-    options?: LoopOptions,
-  ): AsyncIterable<StreamEvent> {
+  async *send(message: string, options?: LoopOptions): AsyncIterable<StreamEvent> {
     // Step 1: Micro-compact existing messages (if configured)
     if (this._microCompactor) {
       const compacted = this._microCompactor.compactAll(this._messages)
@@ -51,10 +48,7 @@ export class ConversationManager {
 
     // Step 2: Auto-compact check (if configured)
     if (this._autoCompactor) {
-      const result = await this._autoCompactor.compact(
-        this._messages,
-        this._summaryLLM ?? null,
-      )
+      const result = await this._autoCompactor.compact(this._messages, this._summaryLLM ?? null)
       if (result.compacted) {
         this._compactionHistory.push(result)
         // Apply in-memory compaction: replace candidates with summary
@@ -80,13 +74,7 @@ export class ConversationManager {
     this._messages.push(userMsg)
 
     // Step 4: Run the conversation loop
-    for await (const event of conversationLoop(
-      this._llm,
-      this._systemPrompt,
-      this._messages,
-      this._tools,
-      options,
-    )) {
+    for await (const event of conversationLoop(this._llm, this._systemPrompt, this._messages, this._tools, options)) {
       if (event.type === 'done') {
         // Track token usage
         const usage = event.usage ?? { inputTokens: 0, outputTokens: 0 }

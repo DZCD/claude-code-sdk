@@ -1,14 +1,14 @@
+import { execSync } from 'node:child_process'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 /**
  * Tests — ContextBuilder Phase 2 Extensions
  *
  * Tests the enhanced ContextBuilder with git state, diff, and memory features.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ContextBuilder } from '../builder.js'
-import { mkdtemp, writeFile, mkdir, rm } from 'node:fs/promises'
-import { join } from 'node:path'
-import { tmpdir } from 'node:os'
-import { execSync } from 'node:child_process'
 
 describe('ContextBuilder — Phase 2 Extensions', () => {
   let tempDir: string
@@ -24,9 +24,21 @@ describe('ContextBuilder — Phase 2 Extensions', () => {
   describe('enhanced git status', () => {
     it('should include branch and commit info when in git repo', async () => {
       execSync('git init', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
-      execSync('git config user.email test@test.com', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
-      execSync('git config user.name Test', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
-      execSync('git commit --allow-empty -m "Initial"', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
+      execSync('git config user.email test@test.com', {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        timeout: 5000,
+      })
+      execSync('git config user.name Test', {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        timeout: 5000,
+      })
+      execSync('git commit --allow-empty -m "Initial"', {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        timeout: 5000,
+      })
 
       const builder = new ContextBuilder(tempDir)
       const content = await builder.build({
@@ -54,9 +66,21 @@ describe('ContextBuilder — Phase 2 Extensions', () => {
   describe('git diff info', () => {
     it('should include diff stats when there are changes', async () => {
       execSync('git init', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
-      execSync('git config user.email test@test.com', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
-      execSync('git config user.name Test', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
-      execSync('git commit --allow-empty -m "Initial"', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
+      execSync('git config user.email test@test.com', {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        timeout: 5000,
+      })
+      execSync('git config user.name Test', {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        timeout: 5000,
+      })
+      execSync('git commit --allow-empty -m "Initial"', {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        timeout: 5000,
+      })
       await writeFile(join(tempDir, 'new-file.ts'), 'const x = 1;\n')
 
       const builder = new ContextBuilder(tempDir)
@@ -71,9 +95,21 @@ describe('ContextBuilder — Phase 2 Extensions', () => {
 
     it('should not include diff info when disabled', async () => {
       execSync('git init', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
-      execSync('git config user.email test@test.com', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
-      execSync('git config user.name Test', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
-      execSync('git commit --allow-empty -m "Initial"', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
+      execSync('git config user.email test@test.com', {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        timeout: 5000,
+      })
+      execSync('git config user.name Test', {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        timeout: 5000,
+      })
+      execSync('git commit --allow-empty -m "Initial"', {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        timeout: 5000,
+      })
       await writeFile(join(tempDir, 'new-file.ts'), 'content')
 
       const builder = new ContextBuilder(tempDir)
@@ -149,9 +185,21 @@ describe('ContextBuilder — Phase 2 Extensions', () => {
   describe('combined context', () => {
     it('should combine git, diff, and memory information', async () => {
       execSync('git init', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
-      execSync('git config user.email test@test.com', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
-      execSync('git config user.name Test', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
-      execSync('git commit --allow-empty -m "Initial"', { cwd: tempDir, encoding: 'utf-8', timeout: 5000 })
+      execSync('git config user.email test@test.com', {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        timeout: 5000,
+      })
+      execSync('git config user.name Test', {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        timeout: 5000,
+      })
+      execSync('git commit --allow-empty -m "Initial"', {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        timeout: 5000,
+      })
       await writeFile(join(tempDir, 'CLAUDE.md'), '# Guide')
       await writeFile(join(tempDir, 'new.ts'), 'const a = 1;\n')
 

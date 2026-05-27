@@ -1,3 +1,6 @@
+import type { LoopOptions } from '../conversation/loop.js'
+import { FeedbackInjector } from '../feedback/index.js'
+import type { FeedbackOptions } from '../feedback/index.js'
 /**
  * ask / askStream — Tool Call 自动执行循环
  *
@@ -8,15 +11,14 @@
  * @public
  */
 import type { LLMConnector, StreamEvent, TokenUsage } from '../llm/types.js'
-import type { Message, Snowflake } from '../types/message.js'
 import type { ToolRegistry } from '../tools/registry.js'
-import type { LoopOptions } from '../conversation/loop.js'
+import type { Message, Snowflake } from '../types/message.js'
 
 // ─── Types ────────────────────────────────────────────────
 
 /**
  * Options for ask() and askStream().
- * Extends LoopOptions with tool execution control.
+ * Extends LoopOptions with tool execution control and feedback integration.
  */
 export interface AskOptions extends LoopOptions {
   /** 自动执行工具调用（默认 true）。设为 false 只记录 tool_use 信息，不执行 */
@@ -25,6 +27,13 @@ export interface AskOptions extends LoopOptions {
   onToolCall?: (toolName: string, input: Record<string, unknown>) => Promise<boolean> | boolean
   /** 最大 tool call 深度（默认 10） */
   maxToolCallDepth?: number
+  /**
+   * 反馈选项：允许用户在 LLM 回复后注入修正。
+   * - disabled: 无反馈（默认）
+   * - manual: 调用 onFeedback 回调等待用户注入修正
+   * - auto: 自动检测工具错误并注入修正消息
+   */
+  feedback?: FeedbackOptions
 }
 
 /**
@@ -172,22 +181,14 @@ export async function ask(
     }
 
     // 一轮 LLM 调用（仅流式事件，不自动执行工具）
-    const turn = await doOneTurn(
-      llm,
-      params.systemPrompt,
-      result.messages,
-      params.tools,
-      signal,
-    )
+    const turn = await doOneTurn(llm, params.systemPrompt, result.messages, params.tools, signal)
 
     result.text += turn.text
     result.usage.inputTokens += turn.usage.inputTokens ?? 0
     result.usage.outputTokens += turn.usage.outputTokens ?? 0
 
-    // 无工具调用 → 完成
-    if (turn.toolUses.length === 0) break
-
     // 执行或记录工具调用
+    const currentToolCalls: ToolCallRecord[] = []
     for (const toolUse of turn.toolUses) {
       // onToolCall 钩子 — 决定是否执行此工具
       if (params.options?.onToolCall) {
@@ -209,13 +210,15 @@ export async function ask(
         toolResult = ''
       }
 
-      result.toolCalls.push({
+      const record: ToolCallRecord = {
         id: toolUse.id,
         name: toolUse.name,
         input: toolUse.input,
         result: toolResult,
         isError,
-      })
+      }
+      currentToolCalls.push(record)
+      result.toolCalls.push(record)
 
       // 注入 tool result 到消息历史（供下一轮 LLM 使用）
       result.messages.push({
@@ -223,8 +226,62 @@ export async function ask(
         role: 'user',
         content: toolResult,
         createdAt: new Date().toISOString(),
+        // @ts-expect-error: tool result metadata
+        _toolUseId: toolUse.id,
       } as Message)
     }
+
+    const feedbackOpts = params.options?.feedback
+    let feedbackInjected = false
+
+    if (turn.toolUses.length === 0) {
+      // 无工具调用：纯文本回复，允许 manual feedback
+      // 每次 feedback 注入后继续循环，直到 onFeedback 返回 null 为止
+      if (feedbackOpts && feedbackOpts.mode === 'manual') {
+        const injector = new FeedbackInjector(feedbackOpts)
+        const userFeedback = await injector.waitForFeedback({
+          text: turn.text,
+          toolCalls: currentToolCalls,
+          messages: [...result.messages],
+        })
+        if (userFeedback) {
+          result.messages = injector.applyFeedback(result.messages, userFeedback)
+          feedbackInjected = true
+        }
+      }
+
+      // 无工具调用且无反馈注入 → 完成
+      if (!feedbackInjected) break
+    } else {
+      // 有工具调用 → 检查反馈
+      if (feedbackOpts && feedbackOpts.mode !== 'disabled') {
+        const injector = new FeedbackInjector(feedbackOpts)
+
+        if (feedbackOpts.mode === 'auto') {
+          const autoFeedback = injector.getAutoFeedback(currentToolCalls)
+          if (autoFeedback) {
+            result.messages = injector.applyFeedback(result.messages, autoFeedback)
+            feedbackInjected = true
+          }
+        }
+
+        if (feedbackOpts.mode === 'manual' && !feedbackInjected) {
+          const userFeedback = await injector.waitForFeedback({
+            text: turn.text,
+            toolCalls: currentToolCalls,
+            messages: [...result.messages],
+          })
+          if (userFeedback) {
+            result.messages = injector.applyFeedback(result.messages, userFeedback)
+            feedbackInjected = true
+          }
+        }
+      }
+    }
+
+    // 如果有反馈注入，继续循环（下一轮 LLM 处理修正后的上下文）
+    // 否则正常结束
+    if (turn.toolUses.length === 0 && !feedbackInjected) break
 
     iteration++
   }
@@ -292,12 +349,7 @@ export async function* askStream(
     let turnUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
 
     // 透传 LLM 流式事件
-    for await (const event of llm.send(
-      params.systemPrompt,
-      apiMessages,
-      apiTools,
-      { signal },
-    )) {
+    for await (const event of llm.send(params.systemPrompt, apiMessages, apiTools, { signal })) {
       switch (event.type) {
         case 'text':
           turnText += event.text

@@ -4,11 +4,11 @@
  * Phase 2-G: Tests the integrated PermissionManager with bash classifier,
  * path validation, and plan mode refinements.
  */
-import { describe, it, expect, vi } from 'vitest'
-import { PermissionManager } from '../permission/manager.js'
-import type { PermissionMode, PlanModeConfig } from '../types/permission.js'
+import { describe, expect, it, vi } from 'vitest'
 import { classifyBashCommand } from '../permission/bashClassifier.js'
 import { isDangerousBashCommand } from '../permission/dangerousPatterns.js'
+import { PermissionManager } from '../permission/manager.js'
+import type { PermissionMode, PlanModeConfig } from '../types/permission.js'
 
 describe('PermissionManager — Phase 2-G Extensions', () => {
   describe('plan mode refinement', () => {

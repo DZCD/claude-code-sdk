@@ -99,11 +99,7 @@ export function parseSedEditCommand(command: string): SedEditInfo | null {
       i++
       if (i < tokens.length) {
         const nextArg = tokens[i]
-        if (
-          typeof nextArg === 'string' &&
-          !nextArg.startsWith('-') &&
-          (nextArg === '' || nextArg.startsWith('.'))
-        ) {
+        if (typeof nextArg === 'string' && !nextArg.startsWith('-') && (nextArg === '' || nextArg.startsWith('.'))) {
           i++ // Skip the backup suffix
         }
       }
@@ -223,10 +219,7 @@ export function parseSedEditCommand(command: string): SedEditInfo | null {
  * Apply a sed substitution to file content.
  * Returns the new content after applying the substitution.
  */
-export function applySedSubstitution(
-  content: string,
-  sedInfo: SedEditInfo,
-): string {
+export function applySedSubstitution(content: string, sedInfo: SedEditInfo): string {
   // Convert sed pattern to JavaScript regex
   let regexFlags = ''
 
@@ -235,8 +228,7 @@ export function applySedSubstitution(
   if (sedInfo.flags.includes('m') || sedInfo.flags.includes('M')) regexFlags += 'm'
 
   // Convert sed pattern to JavaScript regex pattern
-  let jsPattern = sedInfo.pattern
-    .replace(/\\\//g, '/') // Unescape \/ to /
+  let jsPattern = sedInfo.pattern.replace(/\\\//g, '/') // Unescape \/ to /
 
   // In BRE mode (no -E flag), metacharacters have opposite escaping
   if (!sedInfo.extendedRegex) {

@@ -4,12 +4,12 @@
  * Phase 2-G: Identifies risky shell patterns that could be destructive
  * or used for privilege escalation (rm -rf, sudo, pipe to curl|bash, etc.)
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
+  getCommandRiskLevel,
+  getDangerousPatterns,
   isDangerousBashCommand,
   isDangerousRemovalPath,
-  getDangerousPatterns,
-  getCommandRiskLevel,
 } from '../permission/dangerousPatterns.js'
 
 describe('dangerousPatterns', () => {
@@ -115,7 +115,7 @@ describe('dangerousPatterns', () => {
     })
 
     it('should flag home directory', () => {
-      expect(isDangerousRemovalPath(require('os').homedir())).toBe(true)
+      expect(isDangerousRemovalPath(require('node:os').homedir())).toBe(true)
     })
 
     it('should flag direct children of root', () => {

@@ -11,27 +11,28 @@
  * - Persistence: save/load session state to disk
  * - Extended config: maxTurns, timeout, session metadata
  */
-import { randomUUID } from 'crypto'
-import type { SDKConfig, SessionConfig } from '../types/config.js'
-import type { LLMConfig, LLMConnector, StreamEvent, TokenUsage } from '../llm/types.js'
-import type { Tool, ToolResult, ToolContext } from '../types/tool.js'
-import type { PermissionMode, PermissionRule } from '../types/permission.js'
-import type { MCPServerConfig, MCPConnection } from '../mcp/types.js'
-import { createLLMConnector } from '../llm/client.js'
-import { ToolRegistry } from '../tools/registry.js'
-import { ConversationManager } from '../conversation/manager.js'
-import { PermissionManager } from '../permission/manager.js'
-import { ContextBuilder } from '../context/builder.js'
+import { randomUUID } from 'node:crypto'
 import { ConfigManager } from '../config/manager.js'
+import { ContextBuilder } from '../context/builder.js'
+import { ConversationManager } from '../conversation/manager.js'
+import { HookRegistry } from '../hooks/registry.js'
+import { createLLMConnector } from '../llm/client.js'
+import type { LLMConfig, LLMConnector, StreamEvent, TokenUsage } from '../llm/types.js'
 import { MCPServerManager } from '../mcp/manager.js'
+import type { MCPConnection, MCPServerConfig } from '../mcp/types.js'
+import { PermissionManager } from '../permission/manager.js'
+import { ToolRegistry } from '../tools/registry.js'
+import type { SDKConfig, SessionConfig } from '../types/config.js'
+import type { PermissionMode, PermissionRule } from '../types/permission.js'
+import type { Tool, ToolContext, ToolResult } from '../types/tool.js'
 import {
   AttributionManager,
-  type AttributionMode,
   type AttributionMetadata,
+  type AttributionMode,
   type AttributionStats,
   type AttributionTexts,
 } from './attribution.js'
-import { SessionPersistence, type SessionListEntry, type SessionSnapshot } from './persistence.js'
+import { type SessionListEntry, SessionPersistence, type SessionSnapshot } from './persistence.js'
 
 export interface SessionResponse {
   content: string
@@ -56,6 +57,7 @@ export class ClaudeCodeSDK {
   private readonly _sessionId: string
   private readonly _attribution: AttributionManager
   private readonly _persistence?: SessionPersistence
+  private readonly _hooks: HookRegistry
 
   private _conversation: ConversationManager
   private _mcpServersInitialized = false
@@ -73,13 +75,11 @@ export class ClaudeCodeSDK {
     this._sessionId = randomUUID()
     this._llm = createLLMConnector(resolvedConfig.llm)
     this._tools = new ToolRegistry()
-    this._permissions = new PermissionManager(
-      resolvedConfig.permissionMode,
-      resolvedConfig.permissionRules,
-    )
+    this._permissions = new PermissionManager(resolvedConfig.permissionMode, resolvedConfig.permissionRules)
     this._contextBuilder = new ContextBuilder()
     this._mcpManager = new MCPServerManager()
-    this._systemPrompt = 'You are Claude, a helpful AI assistant powered by Anthropic. You have access to a set of tools you can use to help the user.'
+    this._systemPrompt =
+      'You are Claude, a helpful AI assistant powered by Anthropic. You have access to a set of tools you can use to help the user.'
 
     // Phase 2-E: Attribution
     this._attribution = new AttributionManager({
@@ -91,6 +91,9 @@ export class ClaudeCodeSDK {
     if (sessionCfg.storageDir) {
       this._persistence = new SessionPersistence(sessionCfg.storageDir)
     }
+
+    // Phase 3C: Hook System
+    this._hooks = new HookRegistry()
 
     this._conversation = this._createConversation()
   }
@@ -120,6 +123,18 @@ export class ClaudeCodeSDK {
     return this
   }
 
+  /** Add a hook registry */
+  withHooks(hooks: HookRegistry): this {
+    // Copy all hooks from the given registry
+    for (const { phase, name } of hooks.getSummary()) {
+      const handler = hooks.getHooks(phase as any).get(name)
+      if (handler) {
+        this._hooks.register(phase as any, name, handler as any)
+      }
+    }
+    return this
+  }
+
   // ─── Send / Stream ─────────────────────────────────────
 
   /** Send a message and get a complete (non-streaming) response */
@@ -136,7 +151,7 @@ export class ClaudeCodeSDK {
     const toolCalls: SessionResponse['toolCalls'] = []
     let finalUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
 
-    for await (const event of this._conversation.send(message)) {
+    for await (const event of this._conversation.send(message, { hooks: this._hooks })) {
       switch (event.type) {
         case 'text':
           contentParts.push(event.text)
@@ -182,7 +197,7 @@ export class ClaudeCodeSDK {
 
     const conversation = this._conversation
     const attribution = this._attribution
-    const iterable = conversation.send(message)
+    const iterable = conversation.send(message, { hooks: this._hooks })
     const self = this
 
     return {
@@ -250,6 +265,11 @@ export class ClaudeCodeSDK {
     return this._llm
   }
 
+  /** Get the hook registry */
+  getHooks(): HookRegistry {
+    return this._hooks
+  }
+
   /** Get the MCP server manager */
   getMCPServerManager(): MCPServerManager {
     return this._mcpManager
@@ -314,14 +334,16 @@ export class ClaudeCodeSDK {
    */
   getSessionConfig(): SessionConfig {
     const config = this._configManager.getConfig()
-    return config.session ?? {
-      maxTurns: 0,
-      timeout: 0,
-      idleTimeout: 0,
-      attributionMode: 'simple',
-      autoSave: false,
-      autoSaveInterval: 60_000,
-    }
+    return (
+      config.session ?? {
+        maxTurns: 0,
+        timeout: 0,
+        idleTimeout: 0,
+        attributionMode: 'simple',
+        autoSave: false,
+        autoSaveInterval: 60_000,
+      }
+    )
   }
 
   /**
@@ -376,9 +398,7 @@ export class ClaudeCodeSDK {
    */
   async saveSession(label?: string): Promise<string> {
     if (!this._persistence) {
-      throw new Error(
-        'Session persistence is not configured. Set session.storageDir in SDKConfig.',
-      )
+      throw new Error('Session persistence is not configured. Set session.storageDir in SDKConfig.')
     }
 
     const config = this._configManager.getConfig()
@@ -414,9 +434,7 @@ export class ClaudeCodeSDK {
     // Extract storage directory from config
     const storageDir = config.session?.storageDir
     if (!storageDir) {
-      throw new Error(
-        'Session persistence requires session.storageDir in SDKConfig.',
-      )
+      throw new Error('Session persistence requires session.storageDir in SDKConfig.')
     }
 
     const persistence = new SessionPersistence(storageDir)
@@ -445,7 +463,7 @@ export class ClaudeCodeSDK {
         uniqueTools: snapshot.attribution.uniqueTools,
         startTime: snapshot.createdAt,
         lastActivityTime: snapshot.updatedAt,
-        modelName: sdk._attribution['_modelName'] ?? 'Claude',
+        modelName: sdk._attribution._modelName ?? 'Claude',
         mode: config.session?.attributionMode ?? 'simple',
       })
       // Replace the attribution manager
@@ -460,9 +478,7 @@ export class ClaudeCodeSDK {
    */
   async listSavedSessions(): Promise<SessionListEntry[]> {
     if (!this._persistence) {
-      throw new Error(
-        'Session persistence is not configured. Set session.storageDir in SDKConfig.',
-      )
+      throw new Error('Session persistence is not configured. Set session.storageDir in SDKConfig.')
     }
     return await this._persistence.listSessions()
   }
@@ -472,9 +488,7 @@ export class ClaudeCodeSDK {
    */
   async deleteSession(sessionId: string): Promise<boolean> {
     if (!this._persistence) {
-      throw new Error(
-        'Session persistence is not configured. Set session.storageDir in SDKConfig.',
-      )
+      throw new Error('Session persistence is not configured. Set session.storageDir in SDKConfig.')
     }
     return await this._persistence.delete(sessionId)
   }
@@ -483,11 +497,7 @@ export class ClaudeCodeSDK {
 
   /** Create a new conversation manager */
   private _createConversation(): ConversationManager {
-    return new ConversationManager(
-      this._llm,
-      this._tools,
-      this._systemPrompt,
-    )
+    return new ConversationManager(this._llm, this._tools, this._systemPrompt)
   }
 
   /**
@@ -505,17 +515,13 @@ export class ClaudeCodeSDK {
       throw new Error('Session is paused. Resume it before sending messages.')
     }
     if (this._sessionStatus === 'completed' || this._sessionStatus === 'archived') {
-      throw new Error(
-        `Session is ${this._sessionStatus}. Start a new conversation to continue.`,
-      )
+      throw new Error(`Session is ${this._sessionStatus}. Start a new conversation to continue.`)
     }
 
     // Check max turns
     const maxTurns = config.maxTurns ?? 0
     if (maxTurns > 0 && this._turnCount >= maxTurns) {
-      throw new Error(
-        `Session has reached maximum turns (${maxTurns}). Start a new conversation.`,
-      )
+      throw new Error(`Session has reached maximum turns (${maxTurns}). Start a new conversation.`)
     }
 
     // Check timeout
@@ -523,9 +529,7 @@ export class ClaudeCodeSDK {
     if (timeout > 0) {
       const elapsed = Date.now() - this._lastActivityTime
       if (elapsed > timeout) {
-        throw new Error(
-          `Session timed out after ${timeout}ms of inactivity.`,
-        )
+        throw new Error(`Session timed out after ${timeout}ms of inactivity.`)
       }
     }
   }

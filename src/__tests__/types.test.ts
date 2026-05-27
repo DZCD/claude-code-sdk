@@ -1,15 +1,15 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import type { LLMConfig, SDKConfig } from '../types/config.js'
 import {
-  generateId,
-  createUserMessage,
   createAssistantMessage,
-  createToolResultMessage,
   createSystemMessage,
+  createToolResultMessage,
+  createUserMessage,
+  generateId,
   toContentBlocks,
 } from '../types/message.js'
-import type { Tool, ToolContext, ToolResult } from '../types/tool.js'
 import type { PermissionMode } from '../types/permission.js'
-import type { LLMConfig, SDKConfig } from '../types/config.js'
+import type { Tool, ToolContext, ToolResult } from '../types/tool.js'
 
 // ─── Message Tests ───────────────────────────────────────
 

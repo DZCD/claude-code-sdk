@@ -6,11 +6,9 @@
  * - bypassPermissions: Auto-allow everything
  * - default/dontAsk: Pass through to other checks
  */
-import type { PermissionResult, PermissionContext } from './types.js'
+import type { PermissionContext, PermissionResult } from './types.js'
 
-const FILESYSTEM_COMMANDS = [
-  'mkdir', 'touch', 'rm', 'rmdir', 'mv', 'cp', 'sed',
-] as const
+const FILESYSTEM_COMMANDS = ['mkdir', 'touch', 'rm', 'rmdir', 'mv', 'cp', 'sed'] as const
 
 type FilesystemCommand = (typeof FILESYSTEM_COMMANDS)[number]
 
@@ -27,10 +25,7 @@ function isFilesystemCommand(command: string): command is FilesystemCommand {
  * - 'ask' if the command needs approval in current mode
  * - 'passthrough' if no mode-specific handling applies
  */
-export function checkPermissionMode(
-  command: string,
-  context: PermissionContext,
-): PermissionResult {
+export function checkPermissionMode(command: string, context: PermissionContext): PermissionResult {
   const trimmedCmd = command.trim()
   const [baseCmd] = trimmedCmd.split(/\s+/)
 
@@ -68,8 +63,6 @@ export function checkPermissionMode(
 /**
  * Get the list of commands that are auto-allowed in the given mode.
  */
-export function getAutoAllowedCommands(
-  mode: PermissionContext['mode'],
-): readonly string[] {
+export function getAutoAllowedCommands(mode: PermissionContext['mode']): readonly string[] {
   return mode === 'acceptEdits' ? FILESYSTEM_COMMANDS : []
 }

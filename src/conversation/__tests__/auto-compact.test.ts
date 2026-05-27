@@ -3,10 +3,10 @@
  *
  * Context-aware auto-compaction for conversation history.
  */
-import { describe, it, expect, vi } from 'vitest'
-import { AutoCompactor } from '../auto-compact.js'
+import { describe, expect, it, vi } from 'vitest'
 import type { Message } from '../../types/message.js'
-import { createUserMessage, createAssistantMessage } from '../../types/message.js'
+import { createAssistantMessage, createUserMessage } from '../../types/message.js'
+import { AutoCompactor } from '../auto-compact.js'
 
 function createAssistantWithUsage(usageTokens: number): Message {
   return {
@@ -18,20 +18,21 @@ function createAssistantWithUsage(usageTokens: number): Message {
 describe('AutoCompactor', () => {
   describe('needsCompact', () => {
     it('should return true when context exceeds threshold (80%)', () => {
-      const compactor = new AutoCompactor({ threshold: 0.8, contextWindowSize: 1000 })
+      const compactor = new AutoCompactor({
+        threshold: 0.8,
+        contextWindowSize: 1000,
+      })
       // Simulate 900 tokens used out of 1000
-      const messages: Message[] = [
-        createAssistantWithUsage(800),
-        createUserMessage('more content that adds up'),
-      ]
+      const messages: Message[] = [createAssistantWithUsage(800), createUserMessage('more content that adds up')]
       expect(compactor.needsCompact(messages, 1000)).toBe(true)
     })
 
     it('should return false when context is under threshold', () => {
-      const compactor = new AutoCompactor({ threshold: 0.8, contextWindowSize: 1000 })
-      const messages: Message[] = [
-        createAssistantWithUsage(100),
-      ]
+      const compactor = new AutoCompactor({
+        threshold: 0.8,
+        contextWindowSize: 1000,
+      })
+      const messages: Message[] = [createAssistantWithUsage(100)]
       expect(compactor.needsCompact(messages, 1000)).toBe(false)
     })
 
@@ -43,9 +44,7 @@ describe('AutoCompactor', () => {
     it('should use default threshold of 0.8', () => {
       const compactor = new AutoCompactor()
       // Default context window is 200000, 80% = 160000
-      const messages: Message[] = [
-        createAssistantWithUsage(170000),
-      ]
+      const messages: Message[] = [createAssistantWithUsage(170000)]
       expect(compactor.needsCompact(messages, 200000)).toBe(true)
     })
   })
@@ -69,9 +68,7 @@ describe('AutoCompactor', () => {
 
     it('should return empty array when fewer messages than keep count', () => {
       const compactor = new AutoCompactor({ keepRecentMessages: 5 })
-      const messages: Message[] = [
-        createUserMessage('only one'),
-      ]
+      const messages: Message[] = [createUserMessage('only one')]
       expect(compactor.getCompactCandidates(messages)).toEqual([])
     })
 
@@ -90,7 +87,10 @@ describe('AutoCompactor', () => {
 
   describe('compact', () => {
     it('should return compacted=false when no compaction needed', async () => {
-      const compactor = new AutoCompactor({ threshold: 0.9, contextWindowSize: 1000 })
+      const compactor = new AutoCompactor({
+        threshold: 0.9,
+        contextWindowSize: 1000,
+      })
       const messages: Message[] = [createUserMessage('short')]
       const result = await compactor.compact(messages, null)
       expect(result.compacted).toBe(false)
@@ -104,7 +104,7 @@ describe('AutoCompactor', () => {
       })
       // Long messages to exceed the 200-token threshold
       const messages: Message[] = Array.from({ length: 10 }, (_, i) =>
-        createUserMessage(`Message number ${i} `.repeat(50))
+        createUserMessage(`Message number ${i} `.repeat(50)),
       )
       const result = await compactor.compact(messages, null)
       expect(result.compacted).toBe(true)
@@ -123,9 +123,7 @@ describe('AutoCompactor', () => {
       }
 
       // Long messages to exceed threshold
-      const messages: Message[] = Array.from({ length: 10 }, (_, i) =>
-        createUserMessage(`Message ${i} `.repeat(50))
-      )
+      const messages: Message[] = Array.from({ length: 10 }, (_, i) => createUserMessage(`Message ${i} `.repeat(50)))
 
       const result = await compactor.compact(messages, mockLLM)
       expect(result.compacted).toBe(true)

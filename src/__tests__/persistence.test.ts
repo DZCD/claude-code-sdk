@@ -1,13 +1,13 @@
+import { existsSync } from 'node:fs'
+import { mkdir, readFile, rm } from 'node:fs/promises'
+import { join } from 'node:path'
 /**
  * ClaudeCode SDK — Session Persistence Tests
  *
  * Tests for session state serialization/deserialization,
  * save/load, session restore logic, and interruption detection.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdir, rm, readFile } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SessionPersistence } from '../session/persistence.js'
 import type { Message, TokenUsage } from '../types/message.js'
 
@@ -177,17 +177,23 @@ describe('SessionPersistence', () => {
   describe('list and delete', () => {
     it('should list all saved sessions', async () => {
       const m1 = makeMessages(1)
-      const s1 = persistence.buildSnapshot(m1, testTokenUsage, { id: 'session-1', label: 'S1' })
+      const s1 = persistence.buildSnapshot(m1, testTokenUsage, {
+        id: 'session-1',
+        label: 'S1',
+      })
       await persistence.save(s1)
 
       const m2 = makeMessages(2)
-      const s2 = persistence.buildSnapshot(m2, testTokenUsage, { id: 'session-2', label: 'S2' })
+      const s2 = persistence.buildSnapshot(m2, testTokenUsage, {
+        id: 'session-2',
+        label: 'S2',
+      })
       await persistence.save(s2)
 
       const list = await persistence.listSessions()
       expect(list).toHaveLength(2)
-      expect(list.map(s => s.id)).toContain('session-1')
-      expect(list.map(s => s.id)).toContain('session-2')
+      expect(list.map((s) => s.id)).toContain('session-1')
+      expect(list.map((s) => s.id)).toContain('session-2')
     })
 
     it('should delete a saved session', async () => {
@@ -209,8 +215,12 @@ describe('SessionPersistence', () => {
 
     it('should exclude deleted sessions from list', async () => {
       const messages = makeMessages(1)
-      const s1 = persistence.buildSnapshot(messages, testTokenUsage, { id: 'keep' })
-      const s2 = persistence.buildSnapshot(messages, testTokenUsage, { id: 'remove' })
+      const s1 = persistence.buildSnapshot(messages, testTokenUsage, {
+        id: 'keep',
+      })
+      const s2 = persistence.buildSnapshot(messages, testTokenUsage, {
+        id: 'remove',
+      })
       await persistence.save(s1)
       await persistence.save(s2)
 
@@ -270,8 +280,18 @@ describe('SessionPersistence', () => {
 
     it('should detect no interruption when last message is assistant', () => {
       const messages: Message[] = [
-        { id: '1', role: 'user', content: 'Hi', createdAt: '2024-01-01T00:00:00Z' },
-        { id: '2', role: 'assistant', content: 'Hello!', createdAt: '2024-01-01T00:00:01Z' },
+        {
+          id: '1',
+          role: 'user',
+          content: 'Hi',
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+        {
+          id: '2',
+          role: 'assistant',
+          content: 'Hello!',
+          createdAt: '2024-01-01T00:00:01Z',
+        },
       ]
       const result = persistence.detectInterruption(messages)
       expect(result.interrupted).toBe(false)
@@ -280,9 +300,24 @@ describe('SessionPersistence', () => {
 
     it('should detect interruption when last message is user', () => {
       const messages: Message[] = [
-        { id: '1', role: 'user', content: 'Turn 1', createdAt: '2024-01-01T00:00:00Z' },
-        { id: '2', role: 'assistant', content: 'Response 1', createdAt: '2024-01-01T00:00:01Z' },
-        { id: '3', role: 'user', content: 'Incomplete turn', createdAt: '2024-01-01T00:00:02Z' },
+        {
+          id: '1',
+          role: 'user',
+          content: 'Turn 1',
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+        {
+          id: '2',
+          role: 'assistant',
+          content: 'Response 1',
+          createdAt: '2024-01-01T00:00:01Z',
+        },
+        {
+          id: '3',
+          role: 'user',
+          content: 'Incomplete turn',
+          createdAt: '2024-01-01T00:00:02Z',
+        },
       ]
       const result = persistence.detectInterruption(messages)
       expect(result.interrupted).toBe(true)
@@ -291,13 +326,30 @@ describe('SessionPersistence', () => {
 
     it('should detect interruption ending on tool result (unmatched)', () => {
       const messages: Message[] = [
-        { id: '1', role: 'user', content: 'Use tool', createdAt: '2024-01-01T00:00:00Z' },
-        { id: '2', role: 'assistant', content: 'Running...', createdAt: '2024-01-01T00:00:01Z' },
-        { id: '3', role: 'user', content: [{
-          type: 'tool_result',
-          toolUseId: 't1',
-          content: 'Done',
-        }], createdAt: '2024-01-01T00:00:02Z' },
+        {
+          id: '1',
+          role: 'user',
+          content: 'Use tool',
+          createdAt: '2024-01-01T00:00:00Z',
+        },
+        {
+          id: '2',
+          role: 'assistant',
+          content: 'Running...',
+          createdAt: '2024-01-01T00:00:01Z',
+        },
+        {
+          id: '3',
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              toolUseId: 't1',
+              content: 'Done',
+            },
+          ],
+          createdAt: '2024-01-01T00:00:02Z',
+        },
       ]
       const result = persistence.detectInterruption(messages)
       expect(result.lastTurnComplete).toBe(false)
@@ -305,7 +357,12 @@ describe('SessionPersistence', () => {
 
     it('should handle single user message as interrupted', () => {
       const messages: Message[] = [
-        { id: '1', role: 'user', content: 'Hello?', createdAt: '2024-01-01T00:00:00Z' },
+        {
+          id: '1',
+          role: 'user',
+          content: 'Hello?',
+          createdAt: '2024-01-01T00:00:00Z',
+        },
       ]
       const result = persistence.detectInterruption(messages)
       expect(result.interrupted).toBe(true)

@@ -6,10 +6,10 @@
  * Phase 2 extended with enhanced git, diff, and memory integration.
  */
 import { execSync } from 'node:child_process'
-import { readFile, access } from 'node:fs/promises'
+import { access, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { findGitRoot, getGitState, getFileStatus } from './git.js'
 import { fetchGitDiff } from './git-diff.js'
+import { findGitRoot, getFileStatus, getGitState } from './git.js'
 import { MemoryFileLoader } from './memory-file.js'
 
 export interface ContextOptions {
@@ -185,19 +185,14 @@ export class ContextBuilder {
 
   /** Load CLAUDE.md from project root (backward compatible) */
   async loadClaudeMd(): Promise<string> {
-    const paths = [
-      join(this._cwd, 'CLAUDE.md'),
-      join(this._cwd, '.claude', 'CLAUDE.md'),
-    ]
+    const paths = [join(this._cwd, 'CLAUDE.md'), join(this._cwd, '.claude', 'CLAUDE.md')]
 
     for (const filePath of paths) {
       try {
         await access(filePath)
         const content = await readFile(filePath, 'utf-8')
         return content.trim()
-      } catch {
-        continue
-      }
+      } catch {}
     }
 
     return ''
@@ -225,10 +220,14 @@ export class ContextBuilder {
         if (!file.content.trim()) continue
 
         // Annotate the source
-        const label = file.type === 'User' ? 'User memory' :
-                      file.type === 'Local' ? 'Local memory' :
-                      file.type === 'Managed' ? 'Managed' :
-                      'Project memory'
+        const label =
+          file.type === 'User'
+            ? 'User memory'
+            : file.type === 'Local'
+              ? 'Local memory'
+              : file.type === 'Managed'
+                ? 'Managed'
+                : 'Project memory'
 
         const shortPath = file.filePath.replace(this._cwd, '.')
         parts.push(`[${label} — ${shortPath}]`)

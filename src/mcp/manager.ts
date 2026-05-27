@@ -9,12 +9,24 @@
  */
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { CallToolResultSchema, ListResourcesResultSchema, ReadResourceResultSchema, ListPromptsResultSchema } from '@modelcontextprotocol/sdk/types.js'
+import {
+  CallToolResultSchema,
+  ListPromptsResultSchema,
+  ListResourcesResultSchema,
+  ReadResourceResultSchema,
+} from '@modelcontextprotocol/sdk/types.js'
+import type { ToolRegistry } from '../tools/registry.js'
 import type { Tool } from '../types/tool.js'
-import type { MCPServerConfig, MCPConnection, MCPResourceDefinition, MCPResourceContent, MCPPromptDefinition, MCPGetPromptResult } from './types.js'
-import { MCPServerError } from './types.js'
 import { adaptMCPTool } from './tool-adapter.js'
-import { ToolRegistry } from '../tools/registry.js'
+import type {
+  MCPConnection,
+  MCPGetPromptResult,
+  MCPPromptDefinition,
+  MCPResourceContent,
+  MCPResourceDefinition,
+  MCPServerConfig,
+} from './types.js'
+import { MCPServerError } from './types.js'
 
 /**
  * Internal wrapper for a connected MCP client.
@@ -74,9 +86,7 @@ export class MCPServerManager {
 
     // If no servers connected successfully, throw
     if (this._servers.size === 0 && errors.length > 0) {
-      throw errors.length === 1
-        ? errors[0]
-        : new AggregateError(errors, 'Failed to connect to any MCP server')
+      throw errors.length === 1 ? errors[0] : new AggregateError(errors, 'Failed to connect to any MCP server')
     }
 
     // Log warnings for failed connections (but don't fail the whole batch)
@@ -88,14 +98,8 @@ export class MCPServerManager {
   /**
    * Connect to a single MCP server.
    */
-  private async _connectServer(
-    config: MCPServerConfig,
-    signal?: AbortSignal,
-  ): Promise<ConnectedServer> {
-    const client = new Client(
-      { name: 'claude-code-sdk', version: '0.1.0' },
-      { capabilities: {} },
-    )
+  private async _connectServer(config: MCPServerConfig, signal?: AbortSignal): Promise<ConnectedServer> {
+    const client = new Client({ name: 'claude-code-sdk', version: '0.1.0' }, { capabilities: {} })
 
     if (config.type === 'stdio') {
       const transport = new StdioClientTransport({
@@ -109,16 +113,12 @@ export class MCPServerManager {
       // URL-based (Streamable HTTP) transport
       const headers: Record<string, string> = {}
       if (config.authorizationToken) {
-        headers['Authorization'] = `Bearer ${config.authorizationToken}`
+        headers.Authorization = `Bearer ${config.authorizationToken}`
       }
 
       // Use dynamic import for Streamable HTTP transport
-      const { StreamableHTTPClientTransport } = await import(
-        '@modelcontextprotocol/sdk/client/streamableHttp.js'
-      )
-      const transport = new StreamableHTTPClientTransport(
-        new URL(config.commandOrUrl),
-      )
+      const { StreamableHTTPClientTransport } = await import('@modelcontextprotocol/sdk/client/streamableHttp.js')
+      const transport = new StreamableHTTPClientTransport(new URL(config.commandOrUrl))
       // Set authorization header via options if transport supports it
       await client.connect(transport, signal ? { signal } : undefined)
     }
@@ -126,12 +126,14 @@ export class MCPServerManager {
     // Discover tools
     const serverCapabilities = client.getServerCapabilities()
     const capabilities = serverCapabilities
-      ? Object.keys(serverCapabilities).filter(
-          (k) => serverCapabilities[k as keyof typeof serverCapabilities],
-        )
+      ? Object.keys(serverCapabilities).filter((k) => serverCapabilities[k as keyof typeof serverCapabilities])
       : []
 
-    let mcpTools: Array<{ name: string; description?: string; inputSchema: Record<string, unknown> }> = []
+    let mcpTools: Array<{
+      name: string
+      description?: string
+      inputSchema: Record<string, unknown>
+    }> = []
     try {
       const toolsResult = await client.listTools()
       mcpTools = toolsResult.tools as unknown as typeof mcpTools
@@ -146,14 +148,17 @@ export class MCPServerManager {
     // Wrap each MCP tool into our SDK Tool interface
     const adaptedTools: Tool[] = filteredTools.map((mcpTool) =>
       adaptMCPTool(mcpTool, async (name, args) => {
-        const result = await client.callTool(
-          { name, arguments: args },
-          CallToolResultSchema,
-        )
+        const result = await client.callTool({ name, arguments: args }, CallToolResultSchema)
         return {
-          content: (result.content ?? []) as Array<{ type: string; text?: string }>,
+          content: (result.content ?? []) as Array<{
+            type: string
+            text?: string
+          }>,
           isError: result.isError ?? false,
-        } as { content: Array<{ type: string; text?: string }>; isError?: boolean }
+        } as {
+          content: Array<{ type: string; text?: string }>
+          isError?: boolean
+        }
       }),
     )
 
@@ -171,7 +176,11 @@ export class MCPServerManager {
    */
   private _filterTools(
     config: MCPServerConfig,
-    tools: Array<{ name: string; description?: string; inputSchema: Record<string, unknown> }>,
+    tools: Array<{
+      name: string
+      description?: string
+      inputSchema: Record<string, unknown>
+    }>,
   ): typeof tools {
     const toolConfig = config.toolConfiguration
     if (!toolConfig) return tools
@@ -233,7 +242,7 @@ export class MCPServerManager {
     if (this._servers.size === 0) return []
 
     const servers = serverName
-      ? [this._servers.get(serverName)].filter(Boolean) as ConnectedServer[]
+      ? ([this._servers.get(serverName)].filter(Boolean) as ConnectedServer[])
       : Array.from(this._servers.values())
 
     if (serverName && servers.length === 0) return []
@@ -244,10 +253,7 @@ export class MCPServerManager {
         if (!capabilities?.resources) return [] as MCPResourceDefinition[]
 
         try {
-          const result = await server.client.request(
-            { method: 'resources/list' },
-            ListResourcesResultSchema,
-          )
+          const result = await server.client.request({ method: 'resources/list' }, ListResourcesResultSchema)
           if (!result.resources) return []
 
           return result.resources.map((resource) => ({
@@ -286,10 +292,7 @@ export class MCPServerManager {
 
     const capabilities = server.client.getServerCapabilities()
     if (!capabilities?.resources) {
-      throw new MCPServerError(
-        `Server "${serverName}" does not support resources`,
-        serverName,
-      )
+      throw new MCPServerError(`Server "${serverName}" does not support resources`, serverName)
     }
 
     try {
@@ -305,11 +308,7 @@ export class MCPServerManager {
         blob: 'blob' in content ? (content as any).blob : undefined,
       })) as MCPResourceContent[]
     } catch (err) {
-      throw new MCPServerError(
-        `Failed to read resource "${uri}": ${(err as Error).message}`,
-        serverName,
-        err,
-      )
+      throw new MCPServerError(`Failed to read resource "${uri}": ${(err as Error).message}`, serverName, err)
     }
   }
 
@@ -325,7 +324,7 @@ export class MCPServerManager {
     if (this._servers.size === 0) return []
 
     const servers = serverName
-      ? [this._servers.get(serverName)].filter(Boolean) as ConnectedServer[]
+      ? ([this._servers.get(serverName)].filter(Boolean) as ConnectedServer[])
       : Array.from(this._servers.values())
 
     if (serverName && servers.length === 0) return []
@@ -336,10 +335,7 @@ export class MCPServerManager {
         if (!capabilities?.prompts) return [] as MCPPromptDefinition[]
 
         try {
-          const result = await server.client.request(
-            { method: 'prompts/list' },
-            ListPromptsResultSchema,
-          )
+          const result = await server.client.request({ method: 'prompts/list' }, ListPromptsResultSchema)
           if (!result.prompts) return []
 
           return result.prompts.map((prompt) => ({
@@ -371,11 +367,7 @@ export class MCPServerManager {
    * @returns The rendered prompt result with messages
    * @throws MCPServerError if server not found or doesn't support prompts
    */
-  async getPrompt(
-    serverName: string,
-    name: string,
-    args?: Record<string, string>,
-  ): Promise<MCPGetPromptResult> {
+  async getPrompt(serverName: string, name: string, args?: Record<string, string>): Promise<MCPGetPromptResult> {
     const server = this._servers.get(serverName)
     if (!server) {
       throw new MCPServerError(
@@ -386,10 +378,7 @@ export class MCPServerManager {
 
     const capabilities = server.client.getServerCapabilities()
     if (!capabilities?.prompts) {
-      throw new MCPServerError(
-        `Server "${serverName}" does not support prompts`,
-        serverName,
-      )
+      throw new MCPServerError(`Server "${serverName}" does not support prompts`, serverName)
     }
 
     try {
@@ -402,11 +391,7 @@ export class MCPServerManager {
         messages: result.messages as Array<{ role: string; content: unknown }>,
       }
     } catch (err) {
-      throw new MCPServerError(
-        `Failed to get prompt "${name}": ${(err as Error).message}`,
-        serverName,
-        err,
-      )
+      throw new MCPServerError(`Failed to get prompt "${name}": ${(err as Error).message}`, serverName, err)
     }
   }
 

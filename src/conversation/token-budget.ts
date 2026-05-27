@@ -18,7 +18,7 @@ const MULTIPLIERS: Record<string, number> = {
 }
 
 function parseBudgetMatch(value: string, suffix: string): number {
-  return parseFloat(value) * (MULTIPLIERS[suffix.toLowerCase()] ?? 1)
+  return Number.parseFloat(value) * (MULTIPLIERS[suffix.toLowerCase()] ?? 1)
 }
 
 /**
@@ -40,17 +40,12 @@ export function parseTokenBudget(text: string): number | null {
  * Find all budget-related positions in text.
  * Returns array of {start, end} positions for each match.
  */
-export function findTokenBudgetPositions(
-  text: string,
-): Array<{ start: number; end: number }> {
+export function findTokenBudgetPositions(text: string): Array<{ start: number; end: number }> {
   const positions: Array<{ start: number; end: number }> = []
 
   const startMatch = text.match(SHORTHAND_START_RE)
   if (startMatch) {
-    const offset =
-      startMatch.index! +
-      startMatch[0].length -
-      startMatch[0].trimStart().length
+    const offset = startMatch.index! + startMatch[0].length - startMatch[0].trimStart().length
     positions.push({
       start: offset,
       end: startMatch.index! + startMatch[0].length,
@@ -60,9 +55,7 @@ export function findTokenBudgetPositions(
   const endMatch = text.match(SHORTHAND_END_RE)
   if (endMatch) {
     const endStart = endMatch.index! + 1 // +1: regex includes leading \s
-    const alreadyCovered = positions.some(
-      p => endStart >= p.start && endStart < p.end,
-    )
+    const alreadyCovered = positions.some((p) => endStart >= p.start && endStart < p.end)
     if (!alreadyCovered) {
       positions.push({
         start: endStart,
@@ -81,11 +74,7 @@ export function findTokenBudgetPositions(
 /**
  * Generate a continuation message when token budget is reached.
  */
-export function getBudgetContinuationMessage(
-  pct: number,
-  turnTokens: number,
-  budget: number,
-): string {
+export function getBudgetContinuationMessage(pct: number, turnTokens: number, budget: number): string {
   const fmt = (n: number): string => new Intl.NumberFormat('en-US').format(n)
   return `Stopped at ${pct}% of token target (${fmt(turnTokens)} / ${fmt(budget)}). Keep working — do not summarize.`
 }
@@ -96,9 +85,7 @@ export function getBudgetContinuationMessage(
 export class TokenBudget {
   private _used = 0
 
-  constructor(
-    private readonly _budget: number,
-  ) {}
+  constructor(private readonly _budget: number) {}
 
   /** Get remaining budget tokens */
   get remaining(): number {

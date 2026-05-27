@@ -2,9 +2,9 @@
  * ClaudeCode SDK — Configuration Types
  */
 
-import type { PermissionMode, PermissionRule } from './permission.js'
 import type { MCPServerConfig } from '../mcp/types.js'
 import type { AttributionMode } from '../session/attribution.js'
+import type { PermissionMode, PermissionRule } from './permission.js'
 
 export type LLMProvider = 'anthropic' | 'bedrock' | 'vertex' | 'foundry'
 

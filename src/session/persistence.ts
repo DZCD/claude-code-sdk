@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+import { existsSync } from 'node:fs'
 /**
  * ClaudeCode SDK — Session Persistence
  *
@@ -12,11 +14,9 @@
  * - No dependency on AppState, sidechains, or Claude Code runtime
  * - Messages stored as-is using SDK Message types
  */
-import { mkdir, readFile, writeFile, readdir, unlink } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
-import { randomUUID } from 'crypto'
-import type { Message, ContentBlock, TokenUsage } from '../types/message.js'
+import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import type { ContentBlock, Message, TokenUsage } from '../types/message.js'
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -117,11 +117,7 @@ export class SessionPersistence {
   /**
    * Build a session snapshot from messages and token usage
    */
-  buildSnapshot(
-    messages: Message[],
-    tokenUsage: TokenUsage,
-    metadata?: Partial<SessionMetadata>,
-  ): SessionSnapshot {
+  buildSnapshot(messages: Message[], tokenUsage: TokenUsage, metadata?: Partial<SessionMetadata>): SessionSnapshot {
     const id = metadata?.id ?? randomUUID()
     const now = new Date().toISOString()
 
@@ -131,7 +127,7 @@ export class SessionPersistence {
       updatedAt: now,
       messageCount: messages.length,
       tokenUsage: { ...tokenUsage },
-      messages: messages.map(m => {
+      messages: messages.map((m) => {
         const msg = m as { id?: string; createdAt?: string }
         return {
           id: msg.id ?? randomUUID(),
@@ -190,7 +186,7 @@ export class SessionPersistence {
     await this.ensureDir()
 
     const files = await readdir(this._storageDir)
-    const jsonFiles = files.filter(f => f.endsWith('.json'))
+    const jsonFiles = files.filter((f) => f.endsWith('.json'))
 
     const entries: SessionListEntry[] = []
 
@@ -234,10 +230,10 @@ export class SessionPersistence {
    * Restore messages from a snapshot
    */
   restoreMessages(snapshot: SessionSnapshot): Message[] {
-    return snapshot.messages.map(m => ({
+    return snapshot.messages.map((m) => ({
       id: m.id,
       role: m.role as Message['role'],
-      content: typeof m.content === 'string' ? m.content : m.content as ContentBlock[],
+      content: typeof m.content === 'string' ? m.content : (m.content as ContentBlock[]),
       createdAt: m.createdAt,
     })) as Message[]
   }

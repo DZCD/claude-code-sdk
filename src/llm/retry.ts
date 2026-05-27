@@ -65,17 +65,14 @@ export function getRetryDelay(
 ): number {
   // Prefer retry-after header if available
   if (retryAfterHeader) {
-    const seconds = parseInt(retryAfterHeader, 10)
-    if (!isNaN(seconds)) {
+    const seconds = Number.parseInt(retryAfterHeader, 10)
+    if (!Number.isNaN(seconds)) {
       return seconds * 1000
     }
   }
 
   // Exponential backoff: 500, 1000, 2000, 4000, 8000, ...
-  const baseDelay = Math.min(
-    baseDelayMs * Math.pow(2, attempt - 1),
-    maxDelayMs,
-  )
+  const baseDelay = Math.min(baseDelayMs * 2 ** (attempt - 1), maxDelayMs)
   // Add 0-25% jitter
   const jitter = Math.random() * 0.25 * baseDelay
   return baseDelay + jitter
@@ -108,10 +105,7 @@ export function is529Error(error: unknown): boolean {
 
   const err = error as Error & { status?: number }
 
-  return (
-    err.status === 529 ||
-    (err.message?.includes('"type":"overloaded_error"') ?? false)
-  )
+  return err.status === 529 || (err.message?.includes('"type":"overloaded_error"') ?? false)
 }
 
 /**
@@ -194,13 +188,18 @@ export function isRetryableError(error: unknown): ErrorClassification {
 
   // Overloaded
   if (is529Error(error)) {
-    return { kind: 'overloaded', retryable: true, status: status ?? 529, message: msg }
+    return {
+      kind: 'overloaded',
+      retryable: true,
+      status: status ?? 529,
+      message: msg,
+    }
   }
 
   // Network errors
   if (status === undefined) {
     const networkPatterns = ['ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND', 'EPIPE', 'ETIMEDOUT', 'socket hang up']
-    if (networkPatterns.some(p => msg.includes(p))) {
+    if (networkPatterns.some((p) => msg.includes(p))) {
       return { kind: 'network', retryable: true, message: msg }
     }
   }
@@ -217,7 +216,12 @@ export function isRetryableError(error: unknown): ErrorClassification {
 
   // Server errors
   if (status !== undefined && status >= 500) {
-    return { kind: 'overloaded' as const, retryable: true, status, message: msg }
+    return {
+      kind: 'overloaded' as const,
+      retryable: true,
+      status,
+      message: msg,
+    }
   }
 
   return { kind: 'non_retryable', retryable: false, status, message: msg }
@@ -240,10 +244,7 @@ export function isRetryableError(error: unknown): ErrorClassification {
  * }, { maxRetries: 3 })
  * ```
  */
-export async function withRetry<T>(
-  operation: (attempt: number) => Promise<T>,
-  options: RetryOptions = {},
-): Promise<T> {
+export async function withRetry<T>(operation: (attempt: number) => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES
   const baseDelayMs = options.baseDelayMs ?? DEFAULT_BASE_DELAY_MS
   const maxDelayMs = options.maxDelayMs ?? DEFAULT_MAX_DELAY_MS

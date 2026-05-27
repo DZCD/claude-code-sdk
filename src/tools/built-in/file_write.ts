@@ -4,11 +4,11 @@
  * Writes content to a file on the local filesystem. Creates the file
  * if it doesn't exist, or overwrites it if it does.
  */
-import { mkdir, readFile, writeFile } from 'fs/promises'
-import { dirname } from 'path'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
 import { z } from 'zod'
-import { BaseTool } from '../base.js'
 import type { ToolContext, ToolResult } from '../../types/tool.js'
+import { BaseTool } from '../base.js'
 
 // ─── Schema ──────────────────────────────────────────────
 
@@ -27,13 +27,11 @@ export interface FileWriteOutput {
 
 export class FileWriteTool extends BaseTool<typeof fileWriteSchema, FileWriteOutput> {
   name = 'write'
-  description = 'Write content to a file on the local filesystem. Creates the file if it does not exist, or overwrites it if it does.'
+  description =
+    'Write content to a file on the local filesystem. Creates the file if it does not exist, or overwrites it if it does.'
   inputSchema = fileWriteSchema
 
-  async execute(
-    input: z.infer<typeof fileWriteSchema>,
-    _context: ToolContext,
-  ): Promise<ToolResult<FileWriteOutput>> {
+  async execute(input: z.infer<typeof fileWriteSchema>, _context: ToolContext): Promise<ToolResult<FileWriteOutput>> {
     const { file_path, content } = input
 
     // Check if file exists to determine create vs update
@@ -57,7 +55,11 @@ export class FileWriteTool extends BaseTool<typeof fileWriteSchema, FileWriteOut
     } catch (err: unknown) {
       const nodeErr = err as NodeJS.ErrnoException
       return {
-        data: { type: existed ? 'update' : 'create', filePath: file_path, content: '' },
+        data: {
+          type: existed ? 'update' : 'create',
+          filePath: file_path,
+          content: '',
+        },
         content: `Error writing file: ${nodeErr.message}`,
         isError: true,
       }
@@ -67,9 +69,10 @@ export class FileWriteTool extends BaseTool<typeof fileWriteSchema, FileWriteOut
 
     return {
       data: { type, filePath: file_path, content },
-      content: type === 'create'
-        ? `File created successfully at: ${file_path}`
-        : `The file ${file_path} has been updated successfully.`,
+      content:
+        type === 'create'
+          ? `File created successfully at: ${file_path}`
+          : `The file ${file_path} has been updated successfully.`,
     }
   }
 }

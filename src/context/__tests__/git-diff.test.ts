@@ -3,11 +3,8 @@
  *
  * Git diff parsing and statistics.
  */
-import { describe, it, expect } from 'vitest'
-import {
-  parseGitNumstat,
-  parseShortstat,
-} from '../git-diff.js'
+import { describe, expect, it } from 'vitest'
+import { parseGitNumstat, parseShortstat } from '../git-diff.js'
 
 describe('parseGitNumstat', () => {
   it('should parse single file numstat output', () => {
