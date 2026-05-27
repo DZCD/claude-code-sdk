@@ -8,6 +8,75 @@
  * @module claude-code-sdk
  */
 
-export const VERSION = "0.1.0";
+export const VERSION = '0.1.0'
 
-// Core exports will be added as modules are implemented
+// Session Engine (main entry point)
+export { ClaudeCodeSDK } from './session/index.js'
+export type { SessionResponse } from './session/index.js'
+
+// Tool System
+export { BaseTool, createTool, ToolRegistry } from './tools/index.js'
+export type { Tool, ToolResult, ToolContext, ToolDefinition, ToolCallRecord, AnyZodObject } from './types/tool.js'
+
+// LLM Layer
+export { createLLMConnector, AnthropicConnector, BedrockConnector, VertexConnector, FoundryConnector, getSupportedProviders } from './llm/index.js'
+export type {
+  LLMConfig,
+  AnthropicConfig,
+  BedrockConfig,
+  VertexConfig,
+  FoundryConfig,
+  LLMConnector,
+  LLMProvider,
+  StreamEvent,
+  TokenUsage,
+  SendOptions,
+} from './llm/index.js'
+
+// Conversation
+export { ConversationManager, conversationLoop } from './conversation/index.js'
+export type { LoopOptions } from './conversation/index.js'
+
+// Context Building
+export { ContextBuilder } from './context/index.js'
+export type { ContextOptions } from './context/index.js'
+
+// Permission System
+export { PermissionManager } from './permission/index.js'
+
+// Config Management
+export { ConfigManager } from './config/index.js'
+
+// MCP Protocol
+export { MCPServerManager } from './mcp/index.js'
+export type {
+  MCPServerConfig,
+  MCPServerToolConfiguration,
+  MCPConnection,
+  MCPToolDefinition,
+} from './mcp/index.js'
+
+// Core Types
+export type {
+  Message,
+  UserMessage,
+  AssistantMessage,
+  ToolResultMessage,
+  SystemMessage,
+  ContentBlock,
+  TextBlock,
+  ToolUseBlock,
+  ToolResultBlock,
+  ThinkingBlock,
+  Snowflake,
+} from './types/message.js'
+
+export type {
+  PermissionMode,
+  PermissionRequest,
+  PermissionDecision,
+  PermissionResult,
+  PermissionRule,
+} from './types/permission.js'
+
+export type { SDKConfig } from './types/config.js'

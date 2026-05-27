@@ -1,0 +1,190 @@
+/**
+ * ClaudeCode SDK — AWS Bedrock LLM Connector
+ *
+ * Implements the LLMConnector interface for AWS Bedrock.
+ * Uses @anthropic-ai/bedrock-sdk for communication with Bedrock's Anthropic API.
+ */
+import { AnthropicBedrock } from '@anthropic-ai/bedrock-sdk'
+import type { Stream } from '@anthropic-ai/sdk/streaming.js'
+import type { Tool as SdkTool } from '@anthropic-ai/sdk/resources/messages.js'
+import type {
+  BedrockConfig,
+  LLMConnector,
+  LLMProvider,
+  StreamEvent,
+  ToolDefinition,
+  SendOptions,
+} from './types.js'
+
+/**
+ * Raw content block start event from the Anthropic SDK stream.
+ */
+interface ContentBlockStart {
+  type: 'content_block_start'
+  index: number
+  content_block:
+    | { type: 'text'; text: string }
+    | { type: 'tool_use'; id: string; name: string; input: unknown }
+}
+
+interface ContentBlockDelta {
+  type: 'content_block_delta'
+  index: number
+  delta:
+    | { type: 'text_delta'; text: string }
+    | { type: 'input_json_delta'; partial_json: string }
+    | { type: 'thinking_delta'; thinking: string }
+}
+
+interface MessageDeltaEvent {
+  type: 'message_delta'
+  delta: {
+    stop_reason: string | null
+    stop_sequence: string | null
+  }
+  usage: { input_tokens: number; output_tokens: number }
+}
+
+interface MessageStop {
+  type: 'message_stop'
+}
+
+type BedrockStreamEvent =
+  | ContentBlockStart
+  | ContentBlockDelta
+  | MessageDeltaEvent
+  | MessageStop
+  | { type: 'ping' }
+  | { type: 'message_start'; message: unknown }
+
+/**
+ * AWS Bedrock LLM connector.
+ *
+ * Uses @anthropic-ai/bedrock-sdk which handles AWS SigV4 authentication
+ * and provides the same Messages API interface as @anthropic-ai/sdk.
+ *
+ * @example
+ * ```ts
+ * const connector = new BedrockConnector({
+ *   provider: 'bedrock',
+ *   model: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
+ *   region: 'us-east-1',
+ * })
+ * ```
+ */
+export class BedrockConnector implements LLMConnector {
+  readonly provider: LLMProvider = 'bedrock'
+  private readonly _client: AnthropicBedrock
+  private readonly _model: string
+  private readonly _maxTokens: number
+
+  constructor(private readonly _config: BedrockConfig) {
+    // Build client options conditionally to satisfy type overloads
+    this._client = new AnthropicBedrock({
+      ...(_config.region ? { awsRegion: _config.region } : {}),
+      ...(_config.accessKeyId && _config.secretAccessKey
+        ? {
+            awsAccessKey: _config.accessKeyId,
+            awsSecretKey: _config.secretAccessKey,
+          }
+        : {}),
+      maxRetries: 3,
+    } as ConstructorParameters<typeof AnthropicBedrock>[0])
+    this._model = _config.model
+    this._maxTokens = _config.maxTokens ?? 8192
+  }
+
+  async *send(
+    systemPrompt: string | undefined,
+    messages: Array<{ role: string; content: string }>,
+    tools: ToolDefinition[],
+    options?: SendOptions,
+  ): AsyncIterable<StreamEvent> {
+    const bedrockMessages = messages.map((msg) => ({
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content,
+    }))
+
+    try {
+      const stream = (await this._client.messages.create({
+        model: this._model,
+        max_tokens: options?.maxTokens ?? this._maxTokens,
+        system: systemPrompt
+          ? [{ type: 'text' as const, text: systemPrompt }]
+          : undefined,
+        messages: bedrockMessages,
+        tools: tools.length > 0 ? (tools as unknown as SdkTool[]) : undefined,
+        stream: true,
+      })) as unknown as Stream<BedrockStreamEvent>
+
+      let toolUseId = ''
+      let toolUseName = ''
+      let toolUseInput = ''
+
+      for await (const event of stream) {
+        if (event.type === 'content_block_start') {
+          const block = event.content_block
+          if (block.type === 'text') {
+            yield { type: 'text', text: block.text }
+          } else if (block.type === 'tool_use') {
+            toolUseId = block.id
+            toolUseName = block.name
+            toolUseInput = JSON.stringify(block.input)
+            yield {
+              type: 'tool_use_start',
+              id: toolUseId,
+              name: toolUseName,
+              input: block.input as Record<string, unknown>,
+            }
+          }
+        } else if (event.type === 'content_block_delta') {
+          const delta = event.delta
+          if (delta.type === 'text_delta') {
+            yield { type: 'text', text: delta.text }
+          } else if (delta.type === 'input_json_delta') {
+            toolUseInput += delta.partial_json
+          } else if (delta.type === 'thinking_delta') {
+            yield { type: 'thinking', thinking: delta.thinking }
+          }
+        } else if (event.type === 'message_delta') {
+          if (event.delta.stop_reason === 'tool_use' && toolUseId) {
+            yield {
+              type: 'tool_use_end',
+              id: toolUseId,
+              output: toolUseInput,
+            }
+          }
+        } else if (event.type === 'message_stop') {
+          yield {
+            type: 'done',
+            usage: {
+              inputTokens: 0,
+              outputTokens: 0,
+            },
+          }
+        }
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      yield { type: 'error', error }
+    }
+  }
+
+  async countTokens(
+    messages: Array<{ role: string; content: string }>,
+  ): Promise<number> {
+    // Bedrock SDK does not support countTokens yet.
+    // Fallback: estimate from text length (roughly 4 chars per token).
+    return messages.reduce(
+      (acc, m) => acc + Math.ceil(m.content.length / 4),
+      0,
+    )
+  }
+}
+
+/** Check if a config is for AWS Bedrock */
+export function isBedrockConfig(
+  config: { provider: string },
+): config is BedrockConfig {
+  return config.provider === 'bedrock'
+}

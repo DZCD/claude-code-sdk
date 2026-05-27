@@ -1,0 +1,173 @@
+/**
+ * ClaudeCode SDK - Anthropic LLM Connector
+ *
+ * Implements the LLMConnector interface for Anthropic's Direct API.
+ * Uses @anthropic-ai/sdk for communication.
+ */
+import Anthropic from '@anthropic-ai/sdk'
+import type {
+  AnthropicConfig,
+  LLMConnector,
+  LLMProvider,
+  StreamEvent,
+  ToolDefinition,
+  SendOptions,
+} from './types.js'
+import type { Stream } from '@anthropic-ai/sdk/streaming.js'
+
+/**
+ * Raw content block start event from the Anthropic SDK.
+ * We define this locally because the SDK types may vary by version.
+ */
+interface ContentBlockStart {
+  type: 'content_block_start'
+  index: number
+  content_block:
+    | { type: 'text'; text: string }
+    | { type: 'tool_use'; id: string; name: string; input: unknown }
+}
+
+interface ContentBlockDelta {
+  type: 'content_block_delta'
+  index: number
+  delta:
+    | { type: 'text_delta'; text: string }
+    | { type: 'input_json_delta'; partial_json: string }
+    | { type: 'thinking_delta'; thinking: string }
+}
+
+interface MessageDelta {
+  type: 'message_delta'
+  delta: {
+    stop_reason: string | null
+    stop_sequence: string | null
+  }
+  usage: unknown
+}
+
+interface MessageStop {
+  type: 'message_stop'
+}
+
+type StreamEvent_ = ContentBlockStart | ContentBlockDelta | MessageDelta | MessageStop | { type: 'ping' } | { type: 'message_start'; message: unknown }
+
+export class AnthropicConnector implements LLMConnector {
+  readonly provider: LLMProvider = 'anthropic'
+  private readonly _client: Anthropic
+  private readonly _model: string
+  private readonly _maxTokens: number
+
+  constructor(private readonly _config: AnthropicConfig) {
+    this._client = new Anthropic({
+      apiKey: _config.apiKey,
+      baseURL: _config.baseUrl,
+      maxRetries: 3,
+    })
+    this._model = _config.model
+    this._maxTokens = _config.maxTokens ?? 8192
+  }
+
+  async *send(
+    systemPrompt: string | undefined,
+    messages: Array<{ role: string; content: string }>,
+    tools: ToolDefinition[],
+    options?: SendOptions,
+  ): AsyncIterable<StreamEvent> {
+    const anthropicMessages = messages.map((msg) => ({
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content,
+    }))
+
+    try {
+      const stream = await this._client.messages.create({
+        model: this._model,
+        max_tokens: options?.maxTokens ?? this._maxTokens,
+        system: systemPrompt ? [{ type: 'text' as const, text: systemPrompt }] : undefined,
+        messages: anthropicMessages,
+        tools: tools.length > 0 ? (tools as Anthropic.Messages.Tool[]) : undefined,
+        stream: true,
+      }) as unknown as Stream<StreamEvent_>
+
+      let toolUseId = ''
+      let toolUseName = ''
+      let toolUseInput = ''
+
+      for await (const event of stream) {
+        if (event.type === 'content_block_start') {
+          const block = event.content_block
+          if (block.type === 'text') {
+            yield { type: 'text', text: block.text }
+          } else if (block.type === 'tool_use') {
+            toolUseId = block.id
+            toolUseName = block.name
+            toolUseInput = JSON.stringify(block.input)
+            yield {
+              type: 'tool_use_start',
+              id: toolUseId,
+              name: toolUseName,
+              input: block.input as Record<string, unknown>,
+            }
+          }
+        } else if (event.type === 'content_block_delta') {
+          const delta = event.delta
+          if (delta.type === 'text_delta') {
+            yield { type: 'text', text: delta.text }
+          } else if (delta.type === 'input_json_delta') {
+            toolUseInput += delta.partial_json
+          } else if (delta.type === 'thinking_delta') {
+            yield { type: 'thinking', thinking: delta.thinking }
+          }
+        } else if (event.type === 'message_delta') {
+          if (event.delta.stop_reason === 'tool_use' && toolUseId) {
+            yield {
+              type: 'tool_use_end',
+              id: toolUseId,
+              output: toolUseInput,
+            }
+          }
+        } else if (event.type === 'message_stop') {
+          yield {
+            type: 'done',
+            usage: {
+              inputTokens: 0,
+              outputTokens: 0,
+            },
+          }
+        }
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      yield { type: 'error', error }
+    }
+  }
+
+  async countTokens(
+    messages: Array<{ role: string; content: string }>,
+  ): Promise<number> {
+    try {
+      const response = await (this._client.messages as unknown as {
+        countTokens: (params: {
+          model: string
+          messages: Array<{ role: string; content: string }>
+        }) => Promise<{ input_tokens: number }>
+      }).countTokens({
+        model: this._model,
+        messages: messages.map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        })),
+      })
+      return response.input_tokens
+    } catch {
+      // Fallback: estimate from text length
+      return messages.reduce((acc, m) => acc + Math.ceil(m.content.length / 4), 0)
+    }
+  }
+}
+
+/** Check if a config is for Anthropic */
+export function isAnthropicConfig(
+  config: { provider: string },
+): config is AnthropicConfig {
+  return config.provider === 'anthropic'
+}
