@@ -8,7 +8,7 @@
  * @public
  */
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.4.0";
 
 // Config Management
 export { ConfigManager } from "./config/index.js";
@@ -113,6 +113,10 @@ export {
 export { BaseTool, createTool, ToolRegistry } from "./tools/index.js";
 export type { SDKConfig } from "./types/config.js";
 
+// Ask — Tool Call 自动执行循环
+export { ask, askStream } from "./ask/index.js";
+export type { AskOptions, AskResult } from "./ask/index.js";
+
 // Core Types
 export type {
 	AssistantMessage,
@@ -143,3 +147,17 @@ export type {
 	ToolDefinition,
 	ToolResult,
 } from "./types/tool.js";
+
+// Streaming
+export {
+	createStreamConsumer,
+	StreamConsumer,
+	streamToBlocks,
+	streamToText,
+} from "./streaming/index.js";
+export type {
+	StreamBlock,
+	TextBlock as StreamingTextBlock,
+	ToolUseBlock as StreamingToolUseBlock,
+	ThinkingBlock as StreamingThinkingBlock,
+} from "./streaming/types.js";
