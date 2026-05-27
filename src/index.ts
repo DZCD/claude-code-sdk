@@ -13,6 +13,14 @@ export const VERSION = "0.4.0";
 // Config Management
 export { ConfigManager } from "./config/index.js";
 export type {
+	ConfigChangeCallback,
+	ConfigChangeEvent,
+	ConfigSchema,
+	ConfigSchemaProperty,
+	ConfigSources,
+	ConfigValidationResult,
+} from "./config/index.js";
+export type {
 	ContextOptions,
 	FileStatusResult,
 	GitDiffResult,
@@ -79,12 +87,17 @@ export {
 } from "./llm/index.js";
 export type {
 	MCPConnection,
+	MCPResourceContent,
+	MCPResourceDefinition,
 	MCPServerConfig,
 	MCPServerToolConfiguration,
 	MCPToolDefinition,
+	MCPPromptArgument,
+	MCPPromptDefinition,
+	MCPGetPromptResult,
 } from "./mcp/index.js";
 // MCP Protocol
-export { MCPServerManager } from "./mcp/index.js";
+export { MCPServerError, MCPServerManager, adaptMCPTool } from "./mcp/index.js";
 // Permission System
 export { PermissionManager } from "./permission/index.js";
 export type {
@@ -111,6 +124,17 @@ export {
 } from "./session/index.js";
 // Tool System
 export { BaseTool, createTool, ToolRegistry } from "./tools/index.js";
+export {
+	BashTool,
+	FileEditTool,
+	FileReadTool,
+	FileWriteTool,
+	GlobTool,
+	GrepTool,
+	registerAllBuiltInTools,
+	WebFetchTool,
+	WebSearchTool,
+} from "./tools/built-in/index.js";
 export type { SDKConfig } from "./types/config.js";
 
 // Ask — Tool Call 自动执行循环

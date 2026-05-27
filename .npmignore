@@ -1,0 +1,28 @@
+# Source files (not needed at runtime)
+src/
+examples/
+design-*.md
+*.ts
+tsconfig.json
+
+# Tests (not needed at runtime)
+__tests__/
+**/__tests__/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# CI configurations
+.github/
+.gitlab-ci.yml
+.circleci/
+Jenkinsfile
+
+# Local environment
+.env
+.env.local
+.env.*.local
+node_modules/
+.git/
+dist/tsconfig.tsbuildinfo
