@@ -226,7 +226,7 @@ export async function ask(
         role: 'user',
         content: toolResult,
         createdAt: new Date().toISOString(),
-        // @ts-expect-error: tool result metadata
+        // tool result metadata
         _toolUseId: toolUse.id,
       } as Message)
     }

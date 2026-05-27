@@ -24,6 +24,7 @@ export type {
   PreTurnHookResult,
   HookHandlerMap,
 } from './types.js'
+import type { HookHandlerMap, HookPhase } from './types.js'
 
 /**
  * HookSystem — 钩子系统门面类。

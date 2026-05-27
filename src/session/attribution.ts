@@ -81,6 +81,10 @@ export class AttributionManager {
   private _startTime: string
   private _lastActivityTime: string
   private _modelName: string
+  /** Get the model name used by this session */
+  get modelName(): string {
+    return this._modelName
+  }
   private _mode: AttributionMode
   private _hasUserThisTurn = false
 

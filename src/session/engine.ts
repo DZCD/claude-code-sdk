@@ -463,7 +463,7 @@ export class ClaudeCodeSDK {
         uniqueTools: snapshot.attribution.uniqueTools,
         startTime: snapshot.createdAt,
         lastActivityTime: snapshot.updatedAt,
-        modelName: sdk._attribution._modelName ?? 'Claude',
+        modelName: sdk._attribution.modelName ?? 'Claude',
         mode: config.session?.attributionMode ?? 'simple',
       })
       // Replace the attribution manager
