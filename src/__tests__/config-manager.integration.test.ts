@@ -209,12 +209,13 @@ describe('ConfigManager Integration', () => {
     })
 
     it('should handle no env vars gracefully', () => {
-      // Clean all relevant env vars (delete, NOT =undefined — Node.js converts undefined to "undefined" string)
-      delete process.env.ANTHROPIC_API_KEY
-      delete process.env.ANTHROPIC_MODEL
-      delete process.env.AWS_ACCESS_KEY_ID
-      delete process.env.AWS_SECRET_ACCESS_KEY
-      delete process.env.ANTHROPIC_VERTEX_PROJECT_ID
+      // Clean all relevant env vars (set to empty string, NOT delete — biome noDelete rule
+      // and NOT =undefined — Node.js converts undefined to the string "undefined" which is truthy)
+      process.env.ANTHROPIC_API_KEY = ''
+      process.env.ANTHROPIC_MODEL = ''
+      process.env.AWS_ACCESS_KEY_ID = ''
+      process.env.AWS_SECRET_ACCESS_KEY = ''
+      process.env.ANTHROPIC_VERTEX_PROJECT_ID = ''
 
       const cm = new ConfigManager()
       cm.mergeFromEnv()

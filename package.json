@@ -1,6 +1,6 @@
 {
-  "name": "claude-code-sdk",
-  "version": "0.4.0",
+  "name": "claude-code-sdk-ts",
+  "version": "0.5.0",
   "description": "A standalone TypeScript SDK for Claude Code - decoupled from Claude Code runtime",
   "type": "module",
   "main": "./dist/index.js",
@@ -21,6 +21,9 @@
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
+    "test:e2e:verbose": "vitest run --config vitest.e2e.config.ts --reporter=verbose",
+    "test:e2e:script": "npx tsx scripts/e2e-test.ts",
     "lint": "biome check src/",
     "lint:fix": "biome check --apply src/",
     "type-check": "tsc --noEmit",

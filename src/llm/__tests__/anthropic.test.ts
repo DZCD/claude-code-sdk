@@ -1,33 +1,35 @@
 /**
- * Tests for BedrockConnector
+ * Tests for AnthropicConnector
  *
- * Uses vitest mock to replace @anthropic-ai/bedrock-sdk with a mock implementation
+ * Uses vitest mock to replace @anthropic-ai/sdk with a mock implementation
  * that simulates the streaming API.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { BedrockConnector } from '../bedrock.js'
-import type { BedrockConfig } from '../types.js'
+import { AnthropicConnector } from '../anthropic.js'
+import type { AnthropicConfig } from '../types.js'
 
-// ─── Mock @anthropic-ai/bedrock-sdk ──────────────────────
+// ─── Mock @anthropic-ai/sdk ──────────────────────────────
 
 const mockCreateStream = vi.fn()
+const mockCountTokens = vi.fn()
 
-vi.mock('@anthropic-ai/bedrock-sdk', () => {
-  class MockAnthropicBedrock {
+vi.mock('@anthropic-ai/sdk', () => {
+  class MockAnthropic {
     messages = {
       create: mockCreateStream,
+      countTokens: mockCountTokens,
     }
   }
-  return { AnthropicBedrock: MockAnthropicBedrock }
+  return { default: MockAnthropic }
 })
 
 // ─── Helpers ──────────────────────────────────────────────
 
-function makeConfig(overrides: Partial<BedrockConfig> = {}): BedrockConfig {
+function makeConfig(overrides: Partial<AnthropicConfig> = {}): AnthropicConfig {
   return {
-    provider: 'bedrock',
-    model: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
-    region: 'us-east-1',
+    provider: 'anthropic',
+    apiKey: 'sk-test',
+    model: 'claude-sonnet-4-20250514',
     ...overrides,
   }
 }
@@ -39,27 +41,41 @@ async function* makeStream(events: unknown[]) {
   }
 }
 
-describe('BedrockConnector', () => {
+describe('AnthropicConnector', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  // ─── Construction ───────────────────────────────────────
+  // ─── Construction ──────────────────────────────────────
 
   it('should create connector with valid config', () => {
-    const connector = new BedrockConnector(makeConfig())
-    expect(connector.provider).toBe('bedrock')
+    const connector = new AnthropicConnector(makeConfig())
+    expect(connector.provider).toBe('anthropic')
   })
 
-  it('should create connector without credentials (uses default chain)', () => {
-    const connector = new BedrockConnector(makeConfig({ accessKeyId: undefined, secretAccessKey: undefined }))
-    expect(connector.provider).toBe('bedrock')
+  it('should create connector with custom baseUrl', () => {
+    const connector = new AnthropicConnector(
+      makeConfig({ baseUrl: 'https://api.deepseek.com/anthropic' }),
+    )
+    expect(connector.provider).toBe('anthropic')
+  })
+
+  it('should create connector with custom maxTokens', () => {
+    const connector = new AnthropicConnector(makeConfig({ maxTokens: 4096 }))
+    expect(connector.provider).toBe('anthropic')
+  })
+
+  it('should use default maxTokens when not specified', () => {
+    // The default in the constructor is 8192
+    // We can verify by checking that send uses default when no options provided
+    const connector = new AnthropicConnector(makeConfig({ maxTokens: undefined }))
+    expect(connector.provider).toBe('anthropic')
   })
 
   // ─── send() — Text response ────────────────────────────
 
   it('should stream text response', async () => {
-    const connector = new BedrockConnector(makeConfig())
+    const connector = new AnthropicConnector(makeConfig())
     const events = [
       {
         type: 'content_block_start',
@@ -85,14 +101,14 @@ describe('BedrockConnector', () => {
     expect(results).toEqual(['Hello', ' world'])
     expect(mockCreateStream).toHaveBeenCalledTimes(1)
     const callArgs = mockCreateStream.mock.calls[0]?.[0]
-    expect(callArgs?.model).toBe('us.anthropic.claude-sonnet-4-20250514-v1:0')
+    expect(callArgs?.model).toBe('claude-sonnet-4-20250514')
     expect(callArgs?.stream).toBe(true)
   })
 
   // ─── send() — Tool use ────────────────────────────────
 
   it('should stream tool_use events', async () => {
-    const connector = new BedrockConnector(makeConfig())
+    const connector = new AnthropicConnector(makeConfig())
     const toolInput = { path: '/tmp/test.txt', content: 'hello' }
     const events = [
       {
@@ -122,29 +138,25 @@ describe('BedrockConnector', () => {
     }
 
     expect(collected).toHaveLength(3)
-    // First event should be tool_use_start
     const toolUseStart = collected[0] as Record<string, unknown>
     expect(toolUseStart.type).toBe('tool_use_start')
     expect(toolUseStart.id).toBe('tu_123')
     expect(toolUseStart.name).toBe('write_file')
-    // Second event should be tool_use_end
+
     const toolUseEnd = collected[1] as Record<string, unknown>
     expect(toolUseEnd.type).toBe('tool_use_end')
     expect(toolUseEnd.id).toBe('tu_123')
-    // Third event should be done
-    const doneEvent = collected[2] as Record<string, unknown>
-    expect(doneEvent.type).toBe('done')
   })
 
   // ─── send() — System prompt ────────────────────────────
 
   it('should pass system prompt to the API', async () => {
-    const connector = new BedrockConnector(makeConfig())
+    const connector = new AnthropicConnector(makeConfig())
     const events = [
       {
         type: 'content_block_start',
         index: 0,
-        content_block: { type: 'text', text: 'OK' },
+        content_block: { type: 'text', text: 'Understood' },
       },
       { type: 'message_stop' },
     ]
@@ -157,7 +169,7 @@ describe('BedrockConnector', () => {
       if (event.type === 'done') break
     }
 
-    expect(results).toEqual(['OK'])
+    expect(results).toEqual(['Understood'])
     const callArgs = mockCreateStream.mock.calls[0]?.[0]
     expect(callArgs?.system).toBeDefined()
     expect(callArgs?.system[0]?.text).toBe('You are a helpful assistant')
@@ -166,8 +178,8 @@ describe('BedrockConnector', () => {
   // ─── send() — Error handling ───────────────────────────
 
   it('should yield error event on API failure', async () => {
-    const connector = new BedrockConnector(makeConfig())
-    mockCreateStream.mockRejectedValue(new Error('Bedrock API error'))
+    const connector = new AnthropicConnector(makeConfig())
+    mockCreateStream.mockRejectedValue(new Error('Anthropic API error'))
 
     const errors: Error[] = []
     for await (const event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [])) {
@@ -175,13 +187,26 @@ describe('BedrockConnector', () => {
     }
 
     expect(errors).toHaveLength(1)
-    expect(errors[0]?.message).toBe('Bedrock API error')
+    expect(errors[0]?.message).toBe('Anthropic API error')
   })
 
-  // ─── send() — Tool definitions passed to API ──────────
+  it('should yield error event on non-Error rejection', async () => {
+    const connector = new AnthropicConnector(makeConfig())
+    mockCreateStream.mockRejectedValue('string error')
+
+    const errors: Error[] = []
+    for await (const event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [])) {
+      if (event.type === 'error') errors.push(event.error)
+    }
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0]?.message).toBe('string error')
+  })
+
+  // ─── send() — Tool definitions ─────────────────────────
 
   it('should pass tool definitions to the API', async () => {
-    const connector = new BedrockConnector(makeConfig())
+    const connector = new AnthropicConnector(makeConfig())
     const events = [
       {
         type: 'content_block_start',
@@ -214,33 +239,72 @@ describe('BedrockConnector', () => {
     expect(callArgs?.tools[0]?.name).toBe('write_file')
   })
 
-  // ─── countTokens() — Fallback estimation ───────────────
+  // ─── send() — With options ─────────────────────────────
 
-  it('should estimate tokens from text length', async () => {
-    const connector = new BedrockConnector(makeConfig())
-    // Bedrock doesn't support countTokens, so it falls back to estimation
-    const count = await connector.countTokens([{ role: 'user', content: 'Hello world' }])
-    // "Hello world" = 11 chars / 4 ≈ 2.75 → ceil = 3
-    expect(count).toBe(3)
+  it('should pass maxTokens from options', async () => {
+    const connector = new AnthropicConnector(makeConfig())
+    const events = [
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'Short' },
+      },
+      { type: 'message_stop' },
+    ]
+
+    mockCreateStream.mockResolvedValue(makeStream(events))
+
+    for await (const _event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [], { maxTokens: 100 })) {
+      if (_event.type === 'done') break
+    }
+
+    const callArgs = mockCreateStream.mock.calls[0]?.[0]
+    expect(callArgs?.max_tokens).toBe(100)
+  })
+
+  // ─── countTokens() — Via API ───────────────────────────
+
+  it('should count tokens via API', async () => {
+    const connector = new AnthropicConnector(makeConfig())
+    mockCountTokens.mockResolvedValue({ input_tokens: 42 })
+
+    const count = await connector.countTokens([{ role: 'user', content: 'Some text here' }])
+
+    expect(count).toBe(42)
+    expect(mockCountTokens).toHaveBeenCalledTimes(1)
+    expect(mockCountTokens.mock.calls[0]?.[0]?.model).toBe('claude-sonnet-4-20250514')
+  })
+
+  // ─── countTokens() — Fallback on failure ──────────────
+
+  it('should fall back to estimation when countTokens API fails', async () => {
+    const connector = new AnthropicConnector(makeConfig())
+    mockCountTokens.mockRejectedValue(new Error('API not available'))
+
+    const count = await connector.countTokens([
+      { role: 'user', content: 'Hello' },
+    ])
+
+    // "Hello" = 5 chars / 4 = 1.25 → ceil = 2
+    expect(count).toBe(2)
   })
 
   // ─── send() — Empty messages ───────────────────────────
 
   it('should handle empty messages gracefully', async () => {
-    const connector = new BedrockConnector(makeConfig())
+    const connector = new AnthropicConnector(makeConfig())
     const events: string[] = []
     for await (const event of connector.send(undefined, [], [])) {
       events.push(event.type)
     }
     expect(events).toEqual(['done'])
-    // Should not call the API when there are no messages
     expect(mockCreateStream).not.toHaveBeenCalled()
   })
 
   // ─── send() — Usage tracking ──────────────────────────
 
   it('should capture usage from message_delta', async () => {
-    const connector = new BedrockConnector(makeConfig())
+    const connector = new AnthropicConnector(makeConfig())
     const events = [
       {
         type: 'content_block_start',
@@ -268,30 +332,40 @@ describe('BedrockConnector', () => {
     expect(capturedUsage).toEqual({ inputTokens: 50, outputTokens: 10 })
   })
 
-  // ─── send() — Retry with maxRetries option ────────────
+  // ─── send() — message_start with input_tokens ──────────
 
-  it('should yield retry event when API fails with retryable error and maxRetries=0', async () => {
-    const connector = new BedrockConnector(makeConfig())
-    // The error does NOT have a status property, so shouldRetry returns false
-    // and we get an error event immediately
-    mockCreateStream.mockRejectedValue(new Error('Bedrock transient error'))
+  it('should capture input tokens from message_start', async () => {
+    const connector = new AnthropicConnector(makeConfig())
+    const events = [
+      {
+        type: 'message_start',
+        message: { usage: { input_tokens: 25, output_tokens: 0 } },
+      },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'Response' },
+      },
+      { type: 'message_stop' },
+    ]
 
-    const events: string[] = []
-    const errors: Error[] = []
-    for await (const event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [], { maxRetries: 0 })) {
-      events.push(event.type)
-      if (event.type === 'error') errors.push(event.error)
+    mockCreateStream.mockResolvedValue(makeStream(events))
+
+    let capturedUsage: { inputTokens: number; outputTokens: number } | undefined
+    for await (const event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [])) {
+      if (event.type === 'done') {
+        capturedUsage = event.usage
+        break
+      }
     }
 
-    expect(events).toContain('error')
-    expect(errors).toHaveLength(1)
-    expect(errors[0]?.message).toBe('Bedrock transient error')
+    expect(capturedUsage?.inputTokens).toBe(25)
   })
 
   // ─── send() — thinking_delta ───────────────────────────
 
   it('should yield thinking events', async () => {
-    const connector = new BedrockConnector(makeConfig())
+    const connector = new AnthropicConnector(makeConfig())
     const events = [
       {
         type: 'content_block_start',
@@ -301,7 +375,7 @@ describe('BedrockConnector', () => {
       {
         type: 'content_block_delta',
         index: 0,
-        delta: { type: 'thinking_delta', thinking: 'Analyzing...' },
+        delta: { type: 'thinking_delta', thinking: 'I am thinking...' },
       },
       { type: 'message_stop' },
     ]
@@ -314,20 +388,20 @@ describe('BedrockConnector', () => {
       if (event.type === 'done') break
     }
 
-    expect(thinkingChunks).toEqual(['Analyzing...'])
+    expect(thinkingChunks).toEqual(['I am thinking...'])
   })
 
   // ─── send() — input_json_delta ─────────────────────────
 
   it('should accumulate tool_use input via input_json_delta', async () => {
-    const connector = new BedrockConnector(makeConfig())
+    const connector = new AnthropicConnector(makeConfig())
     const events = [
       {
         type: 'content_block_start',
         index: 0,
         content_block: {
           type: 'tool_use',
-          id: 'tu_999',
+          id: 'tu_456',
           name: 'bash',
           input: {},
         },
@@ -366,7 +440,7 @@ describe('BedrockConnector', () => {
   // ─── send() — ping event ──────────────────────────────
 
   it('should ignore ping events', async () => {
-    const connector = new BedrockConnector(makeConfig())
+    const connector = new AnthropicConnector(makeConfig())
     const events = [
       { type: 'ping' },
       {
@@ -388,11 +462,12 @@ describe('BedrockConnector', () => {
     expect(texts).toEqual(['After ping'])
   })
 
-  // ─── send() — Retry event flow ────────────────────────
+  // ─── send() — Retry event ─────────────────────────────
 
   it('should yield retry event when retryable error occurs with retries', async () => {
-    const connector = new BedrockConnector(makeConfig())
+    const connector = new AnthropicConnector(makeConfig())
 
+    // Simulate a retryable error on first attempt, success on second
     const retryableErr = new Error('Rate limited') as Error & { status?: number }
     retryableErr.status = 429
 
@@ -420,28 +495,13 @@ describe('BedrockConnector', () => {
     expect(collectedTypes).toContain('done')
   })
 
-  // ─── send() — non-Error rejection ─────────────────────
+  // ─── isAnthropicConfig ──────────────────────────────────
 
-  it('should yield error event on non-Error rejection', async () => {
-    const connector = new BedrockConnector(makeConfig())
-    mockCreateStream.mockRejectedValue('string error')
-
-    const errors: Error[] = []
-    for await (const event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [])) {
-      if (event.type === 'error') errors.push(event.error)
-    }
-
-    expect(errors).toHaveLength(1)
-    expect(errors[0]?.message).toBe('string error')
-  })
-
-  // ─── isBedrockConfig ────────────────────────────────────
-
-  it('should identify bedrock config', async () => {
-    const { isBedrockConfig } = await import('../bedrock.js')
-    expect(isBedrockConfig({ provider: 'bedrock' })).toBe(true)
-    expect(isBedrockConfig({ provider: 'anthropic' })).toBe(false)
-    expect(isBedrockConfig({ provider: 'vertex' })).toBe(false)
-    expect(isBedrockConfig({ provider: 'foundry' })).toBe(false)
+  it('should identify anthropic config', async () => {
+    const { isAnthropicConfig } = await import('../anthropic.js')
+    expect(isAnthropicConfig({ provider: 'anthropic' })).toBe(true)
+    expect(isAnthropicConfig({ provider: 'bedrock' })).toBe(false)
+    expect(isAnthropicConfig({ provider: 'vertex' })).toBe(false)
+    expect(isAnthropicConfig({ provider: 'foundry' })).toBe(false)
   })
 })

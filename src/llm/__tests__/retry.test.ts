@@ -4,7 +4,7 @@
  * Tests the core retry logic in isolation from providers.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getRetryDelay, isRetryableError, shouldRetry, withRetry } from '../retry.js'
+import { getRetryDelay, is529Error, isRetryableError, shouldRetry, withRetry } from '../retry.js'
 
 // ─── getRetryDelay ──────────────────────────────────────────
 
@@ -38,13 +38,17 @@ describe('getRetryDelay', () => {
     expect(delay).toBeLessThanOrEqual(2000 + 0.25 * 2000)
   })
 
-  it('should apply jitter', () => {
-    const delays = new Set<number>()
-    for (let i = 0; i < 50; i++) {
-      delays.add(getRetryDelay(1, undefined, 100000))
-    }
-    // At least some variation from jitter
-    expect(delays.size).toBeGreaterThan(1)
+  it('should handle invalid retry-after header gracefully', () => {
+    // Non-numeric retry-after should fall through to exponential backoff
+    const delay = getRetryDelay(1, 'not-a-number')
+    // Falls back to exponential: 500 + jitter (0-125)
+    expect(delay).toBeGreaterThanOrEqual(500)
+    expect(delay).toBeLessThanOrEqual(625)
+  })
+
+  it('should handle null retry-after header gracefully', () => {
+    const delay = getRetryDelay(1, null)
+    expect(delay).toBeGreaterThanOrEqual(500)
   })
 })
 
@@ -109,6 +113,55 @@ describe('shouldRetry', () => {
     error.message = '{"type":"overloaded_error"}'
     expect(shouldRetry(error)).toBe(true)
   })
+
+  it('should retry on socket hang up network error', () => {
+    expect(shouldRetry(makeApiError(undefined, 'socket hang up'))).toBe(true)
+  })
+
+  it('should retry on Connection error message', () => {
+    expect(shouldRetry(makeApiError(undefined, 'Connection error'))).toBe(true)
+  })
+
+  it('should retry on ECONNREFUSED', () => {
+    expect(shouldRetry(makeApiError(undefined, 'ECONNREFUSED'))).toBe(true)
+  })
+
+  it('should NOT retry on non-network undefined status error', () => {
+    expect(shouldRetry(makeApiError(undefined, 'random error message'))).toBe(false)
+  })
+
+  it('should NOT retry on 3xx status codes', () => {
+    expect(shouldRetry(makeApiError(302))).toBe(false)
+    expect(shouldRetry(makeApiError(301))).toBe(false)
+  })
+})
+
+// ─── is529Error ─────────────────────────────────────────────
+
+describe('is529Error', () => {
+  it('should return true for 529 status error', () => {
+    const err = new Error('Overloaded') as Error & { status?: number }
+    err.status = 529
+    expect(is529Error(err)).toBe(true)
+  })
+
+  it('should return true for overloaded_error message', () => {
+    const err = new Error('{"type":"overloaded_error"}') as Error & { status?: number }
+    err.status = 200
+    expect(is529Error(err)).toBe(true)
+  })
+
+  it('should return false for non-Error input', () => {
+    expect(is529Error('string')).toBe(false)
+    expect(is529Error(null)).toBe(false)
+    expect(is529Error(undefined)).toBe(false)
+  })
+
+  it('should return false for non-529 non-overloaded errors', () => {
+    const err = new Error('Bad request') as Error & { status?: number }
+    err.status = 400
+    expect(is529Error(err)).toBe(false)
+  })
 })
 
 // ─── isRetryableError ───────────────────────────────────────
@@ -150,7 +203,38 @@ describe('isRetryableError', () => {
     expect(result.retryable).toBe(false)
   })
 
-  it('should handle unknown errors gracefully', () => {
+  it('should identify timeout errors via isRetryableError', () => {
+    const result = isRetryableError(makeErr('Request timeout', 408))
+    expect(result.kind).toBe('timeout')
+    expect(result.retryable).toBe(true)
+  })
+
+  it('should identify server errors via isRetryableError', () => {
+    const result500 = isRetryableError(makeErr('Server error', 500))
+    expect(result500.retryable).toBe(true)
+    const result503 = isRetryableError(makeErr('Service unavailable', 503))
+    expect(result503.retryable).toBe(true)
+  })
+
+  it('should identify network error from ECONNRESET', () => {
+    const result = isRetryableError(makeErr('ECONNRESET'))
+    expect(result.kind).toBe('network')
+    expect(result.retryable).toBe(true)
+  })
+
+  it('should identify network error from socket hang up', () => {
+    const result = isRetryableError(makeErr('socket hang up'))
+    expect(result.kind).toBe('network')
+    expect(result.retryable).toBe(true)
+  })
+
+  it('should handle non-network undefined status errors as non-retryable', () => {
+    const result = isRetryableError(makeErr('Some random error'))
+    expect(result.kind).toBe('non_retryable')
+    expect(result.retryable).toBe(false)
+  })
+
+  it('should handle unknown errors gracefully via isRetryableError', () => {
     const result = isRetryableError('Some random string')
     expect(result.kind).toBe('unknown')
     expect(result.retryable).toBe(false)

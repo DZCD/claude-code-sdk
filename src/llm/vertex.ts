@@ -83,7 +83,7 @@ export class VertexConnector implements LLMConnector {
 
   async *send(
     systemPrompt: string | undefined,
-    messages: Array<{ role: string; content: string }>,
+    messages: Array<{ role: string; content: string | Record<string, unknown>[] }>,
     tools: ToolDefinition[],
     options?: SendOptions,
   ): AsyncIterable<StreamEvent> {
@@ -110,7 +110,7 @@ export class VertexConnector implements LLMConnector {
             model: this._model,
             max_tokens: options?.maxTokens ?? this._maxTokens,
             system: systemPrompt ? [{ type: 'text' as const, text: systemPrompt }] : undefined,
-            messages: vertexMessages,
+            messages: vertexMessages as any[],
             tools: tools.length > 0 ? (tools as unknown as SdkTool[]) : undefined,
             stream: true,
           })) as unknown as Stream<VertexStreamEvent>
@@ -192,14 +192,14 @@ export class VertexConnector implements LLMConnector {
     }
   }
 
-  async countTokens(messages: Array<{ role: string; content: string }>): Promise<number> {
+  async countTokens(messages: Array<{ role: string; content: string | Record<string, unknown>[] }>): Promise<number> {
     try {
       // Vertex SDK supports countTokens via the messages resource
       const response = await (
         this._client.messages as unknown as {
           countTokens: (params: {
             model: string
-            messages: Array<{ role: string; content: string }>
+            messages: Array<{ role: string; content: string | Record<string, unknown>[] }>
           }) => Promise<{ input_tokens: number }>
         }
       ).countTokens({

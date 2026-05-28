@@ -8,7 +8,7 @@
  * @public
  */
 
-export const VERSION = '0.4.0'
+export const VERSION = '0.5.0'
 
 // Config Management
 export { ConfigManager } from './config/index.js'

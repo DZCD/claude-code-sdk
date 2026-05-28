@@ -282,6 +282,153 @@ describe('VertexConnector', () => {
     expect(capturedUsage).toEqual({ inputTokens: 30, outputTokens: 5 })
   })
 
+  // ─── send() — thinking_delta ───────────────────────────
+
+  it('should yield thinking events', async () => {
+    const connector = new VertexConnector(makeConfig())
+    const events = [
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: '' },
+      },
+      {
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'thinking_delta', thinking: 'Analyzing...' },
+      },
+      { type: 'message_stop' },
+    ]
+
+    mockCreateStream.mockResolvedValue(makeStream(events))
+
+    const thinkingChunks: string[] = []
+    for await (const event of connector.send(undefined, [{ role: 'user', content: 'Think' }], [])) {
+      if (event.type === 'thinking') thinkingChunks.push(event.thinking)
+      if (event.type === 'done') break
+    }
+
+    expect(thinkingChunks).toEqual(['Analyzing...'])
+  })
+
+  // ─── send() — input_json_delta ─────────────────────────
+
+  it('should accumulate tool_use input via input_json_delta', async () => {
+    const connector = new VertexConnector(makeConfig())
+    const events = [
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: {
+          type: 'tool_use',
+          id: 'tu_999',
+          name: 'bash',
+          input: {},
+        },
+      },
+      {
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'input_json_delta', partial_json: '{"cmd":' },
+      },
+      {
+        type: 'content_block_delta',
+        index: 0,
+        delta: { type: 'input_json_delta', partial_json: '"ls"}' },
+      },
+      {
+        type: 'message_delta',
+        delta: { stop_reason: 'tool_use', stop_sequence: null },
+        usage: { input_tokens: 20, output_tokens: 8 },
+      },
+      { type: 'message_stop' },
+    ]
+
+    mockCreateStream.mockResolvedValue(makeStream(events))
+
+    let toolOutput = ''
+    for await (const event of connector.send(undefined, [{ role: 'user', content: 'Run' }], [])) {
+      if (event.type === 'tool_use_end') {
+        toolOutput = event.output
+      }
+      if (event.type === 'done') break
+    }
+
+    expect(toolOutput).toBe('{}' + '{"cmd":"ls"}')
+  })
+
+  // ─── send() — ping event ──────────────────────────────
+
+  it('should ignore ping events', async () => {
+    const connector = new VertexConnector(makeConfig())
+    const events = [
+      { type: 'ping' },
+      {
+        type: 'content_block_start',
+        index: 0,
+        content_block: { type: 'text', text: 'After ping' },
+      },
+      { type: 'message_stop' },
+    ]
+
+    mockCreateStream.mockResolvedValue(makeStream(events))
+
+    const texts: string[] = []
+    for await (const event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [])) {
+      if (event.type === 'text') texts.push(event.text)
+      if (event.type === 'done') break
+    }
+
+    expect(texts).toEqual(['After ping'])
+  })
+
+  // ─── send() — Retry event flow ────────────────────────
+
+  it('should yield retry event when retryable error occurs with retries', async () => {
+    const connector = new VertexConnector(makeConfig())
+
+    const retryableErr = new Error('Rate limited') as Error & { status?: number }
+    retryableErr.status = 429
+
+    mockCreateStream
+      .mockRejectedValueOnce(retryableErr)
+      .mockResolvedValueOnce(
+        makeStream([
+          {
+            type: 'content_block_start',
+            index: 0,
+            content_block: { type: 'text', text: 'Success' },
+          },
+          { type: 'message_stop' },
+        ]),
+      )
+
+    const collectedTypes: string[] = []
+    for await (const event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [])) {
+      collectedTypes.push(event.type)
+      if (event.type === 'done') break
+    }
+
+    expect(collectedTypes).toContain('retry')
+    expect(collectedTypes).toContain('text')
+    expect(collectedTypes).toContain('done')
+  })
+
+  // ─── send() — non-Error rejection ─────────────────────
+
+  it('should yield error event on non-Error rejection', async () => {
+    const connector = new VertexConnector(makeConfig())
+    mockCreateStream.mockRejectedValue('string error')
+
+    const errors: Error[] = []
+    for await (const event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [])) {
+      if (event.type === 'error') errors.push(event.error)
+    }
+
+    expect(errors).toHaveLength(1)
+    expect(errors[0]?.message).toBe('string error')
+  })
+
   // ─── isVertexConfig ────────────────────────────────────
 
   it('should identify vertex config', async () => {
@@ -289,5 +436,6 @@ describe('VertexConnector', () => {
     expect(isVertexConfig({ provider: 'vertex' })).toBe(true)
     expect(isVertexConfig({ provider: 'bedrock' })).toBe(false)
     expect(isVertexConfig({ provider: 'foundry' })).toBe(false)
+    expect(isVertexConfig({ provider: 'anthropic' })).toBe(false)
   })
 })

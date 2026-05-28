@@ -88,7 +88,7 @@ export class BedrockConnector implements LLMConnector {
 
   async *send(
     systemPrompt: string | undefined,
-    messages: Array<{ role: string; content: string }>,
+    messages: Array<{ role: string; content: string | Record<string, unknown>[] }>,
     tools: ToolDefinition[],
     options?: SendOptions,
   ): AsyncIterable<StreamEvent> {
@@ -115,7 +115,7 @@ export class BedrockConnector implements LLMConnector {
             model: this._model,
             max_tokens: options?.maxTokens ?? this._maxTokens,
             system: systemPrompt ? [{ type: 'text' as const, text: systemPrompt }] : undefined,
-            messages: bedrockMessages,
+            messages: bedrockMessages as any[],
             tools: tools.length > 0 ? (tools as unknown as SdkTool[]) : undefined,
             stream: true,
           })) as unknown as Stream<BedrockStreamEvent>
@@ -197,7 +197,7 @@ export class BedrockConnector implements LLMConnector {
     }
   }
 
-  async countTokens(messages: Array<{ role: string; content: string }>): Promise<number> {
+  async countTokens(messages: Array<{ role: string; content: string | Record<string, unknown>[] }>): Promise<number> {
     // Bedrock SDK does not support countTokens yet.
     // Fallback: estimate from text length (roughly 4 chars per token).
     return messages.reduce((acc, m) => acc + Math.ceil(m.content.length / 4), 0)

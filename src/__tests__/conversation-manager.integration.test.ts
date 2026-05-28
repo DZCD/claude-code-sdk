@@ -200,12 +200,15 @@ describe('ConversationManager Integration', () => {
         expect(toolUseEvents[0].name).toBe('echo')
       }
 
-      // Check that tool result was added to history
+      // Check that tool result was added to history (as proper ToolResultBlock[])
       const history = cm.getHistory()
       const toolResults = history.filter(
-        (m) => m.role === 'user' && (m as Record<string, unknown>)._toolResult === true,
+        (m) => m.role === 'user' && typeof m.content !== 'string' && m.content.some((c) => c.type === 'tool_result'),
       )
       expect(toolResults).toHaveLength(1)
+      const trMsg = toolResults[0]!
+      const trBlock = (trMsg.content as Array<{ type: string }>).find((c) => c.type === 'tool_result')
+      expect(trBlock).toBeDefined()
     })
 
     it('should handle multiple tool calls in one turn', async () => {
@@ -254,7 +257,7 @@ describe('ConversationManager Integration', () => {
 
       const history = cm.getHistory()
       const toolResults = history.filter(
-        (m) => m.role === 'user' && (m as Record<string, unknown>)._toolResult === true,
+        (m) => m.role === 'user' && typeof m.content !== 'string' && m.content.some((c) => c.type === 'tool_result'),
       )
       expect(toolResults).toHaveLength(2)
     })

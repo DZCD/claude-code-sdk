@@ -66,7 +66,7 @@ export class AnthropicConnector implements LLMConnector {
 
   async *send(
     systemPrompt: string | undefined,
-    messages: Array<{ role: string; content: string }>,
+    messages: Array<{ role: string; content: string | Record<string, unknown>[] }>,
     tools: ToolDefinition[],
     options?: SendOptions,
   ): AsyncIterable<StreamEvent> {
@@ -93,7 +93,7 @@ export class AnthropicConnector implements LLMConnector {
             model: this._model,
             max_tokens: options?.maxTokens ?? this._maxTokens,
             system: systemPrompt ? [{ type: 'text' as const, text: systemPrompt }] : undefined,
-            messages: anthropicMessages,
+            messages: anthropicMessages as Anthropic.Messages.MessageParam[],
             tools: tools.length > 0 ? (tools as Anthropic.Messages.Tool[]) : undefined,
             stream: true,
           })) as unknown as Stream<StreamEvent_>
@@ -180,13 +180,13 @@ export class AnthropicConnector implements LLMConnector {
     }
   }
 
-  async countTokens(messages: Array<{ role: string; content: string }>): Promise<number> {
+  async countTokens(messages: Array<{ role: string; content: string | Record<string, unknown>[] }>): Promise<number> {
     try {
       const response = await (
         this._client.messages as unknown as {
           countTokens: (params: {
             model: string
-            messages: Array<{ role: string; content: string }>
+            messages: Array<{ role: string; content: string | Record<string, unknown>[] }>
           }) => Promise<{ input_tokens: number }>
         }
       ).countTokens({

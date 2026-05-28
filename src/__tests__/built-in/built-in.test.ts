@@ -19,6 +19,7 @@ import { GlobTool } from '../../tools/built-in/glob.js'
 import { GrepTool } from '../../tools/built-in/grep.js'
 import { WebFetchTool } from '../../tools/built-in/web_fetch.js'
 import { WebSearchTool } from '../../tools/built-in/web_search.js'
+import { createTool } from '../../tools/base.js'
 import { ToolRegistry } from '../../tools/registry.js'
 
 // ─── Test Fixtures ───────────────────────────────────────
@@ -631,6 +632,112 @@ describe('ToolRegistry with built-in tools', () => {
     registry.register(new BashTool().toTool())
     const result = await registry.execute('bash', { wrong: 'field' }, makeContext())
     expect(result.isError).toBe(true)
+  })
+})
+
+// ─── ToolRegistry Edge Cases ────────────────────────────
+
+describe('ToolRegistry — Registration Edge Cases', () => {
+  it('should throw when registering duplicate tool name', () => {
+    const registry = new ToolRegistry()
+    registry.register(new BashTool().toTool())
+    expect(() => {
+      registry.register(new BashTool().toTool())
+    }).toThrow('already registered')
+  })
+
+  it('should throw with tool name in error message', () => {
+    const registry = new ToolRegistry()
+    registry.register(new BashTool().toTool())
+    expect(() => {
+      registry.register(new BashTool().toTool())
+    }).toThrow('bash')
+  })
+
+  it('should handle registering and unregistering', () => {
+    const registry = new ToolRegistry()
+    registry.register(new BashTool().toTool())
+    expect(registry.has('bash')).toBe(true)
+    expect(registry.unregister('bash')).toBe(true)
+    expect(registry.has('bash')).toBe(false)
+  })
+
+  it('should return false when unregistering non-existent tool', () => {
+    const registry = new ToolRegistry()
+    expect(registry.unregister('nonexistent_tool')).toBe(false)
+  })
+
+  it('should clear all registered tools', () => {
+    const registry = new ToolRegistry()
+    registry.register(
+      new BashTool().toTool(),
+      new FileReadTool().toTool(),
+      new FileWriteTool().toTool(),
+    )
+    expect(registry.size).toBe(3)
+    registry.clear()
+    expect(registry.size).toBe(0)
+    expect(registry.has('bash')).toBe(false)
+  })
+
+  it('should return frozen array from getTools', () => {
+    const registry = new ToolRegistry()
+    registry.register(new BashTool().toTool())
+    const tools = registry.getTools()
+    expect(Object.isFrozen(tools)).toBe(true)
+  })
+
+  it('should return undefined for non-existent tool', () => {
+    const registry = new ToolRegistry()
+    expect(registry.get('nonexistent')).toBeUndefined()
+  })
+
+  it('should handle empty registry sizes', () => {
+    const registry = new ToolRegistry()
+    expect(registry.size).toBe(0)
+    expect(registry.getAll()).toHaveLength(0)
+    expect(registry.getTools()).toHaveLength(0)
+  })
+
+  it('should get single tool by name', () => {
+    const registry = new ToolRegistry()
+    const bashTool = new BashTool().toTool()
+    registry.register(bashTool)
+    const retrieved = registry.get('bash')
+    expect(retrieved).toBeDefined()
+    expect(retrieved!.name).toBe('bash')
+  })
+
+  it('should execute tool and return error for invalid input via schema', async () => {
+    const registry = new ToolRegistry()
+    registry.register(new BashTool().toTool())
+    const result = await registry.execute('bash', { wrong: 'field' }, makeContext())
+    expect(result.isError).toBe(true)
+    expect(result.content).toContain('Error')
+  })
+
+  it('should return error for unknown tool name', async () => {
+    const registry = new ToolRegistry()
+    const result = await registry.execute('unknown_tool', {}, makeContext())
+    expect(result.isError).toBe(true)
+    expect(result.content).toContain('Unknown tool')
+  })
+
+  it('should handle execute errors gracefully', async () => {
+    const registry = new ToolRegistry()
+    // Create a tool that throws during execute
+    const throwingTool = createTool({
+      name: 'thrower',
+      description: 'A tool that throws errors',
+      inputSchema: z.object({}),
+      async execute() {
+        throw new Error('Intentional test error')
+      },
+    })
+    registry.register(throwingTool)
+    const result = await registry.execute('thrower', {}, makeContext())
+    expect(result.isError).toBe(true)
+    expect(result.content).toContain('Error executing tool')
   })
 })
 

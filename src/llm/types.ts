@@ -95,13 +95,13 @@ export interface LLMConnector {
   /** Send messages and get a streaming response */
   send(
     systemPrompt: string | undefined,
-    messages: Array<{ role: string; content: string }>,
+    messages: Array<{ role: string; content: string | Record<string, unknown>[] }>,
     tools: ToolDefinition[],
     options?: SendOptions,
   ): AsyncIterable<StreamEvent>
 
   /** Count tokens in a set of messages */
-  countTokens(messages: Array<{ role: string; content: string }>): Promise<number>
+  countTokens(messages: Array<{ role: string; content: string | Record<string, unknown>[] }>): Promise<number>
 }
 
 export interface SendOptions {

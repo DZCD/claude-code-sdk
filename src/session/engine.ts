@@ -524,8 +524,8 @@ export class ClaudeCodeSDK {
       throw new Error(`Session has reached maximum turns (${maxTurns}). Start a new conversation.`)
     }
 
-    // Check timeout
-    const timeout = config.timeout ?? 0
+    // Check timeout (support both timeout and idleTimeout)
+    const timeout = config.timeout ?? config.idleTimeout ?? 0
     if (timeout > 0) {
       const elapsed = Date.now() - this._lastActivityTime
       if (elapsed > timeout) {
