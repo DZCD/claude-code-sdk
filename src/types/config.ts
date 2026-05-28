@@ -87,4 +87,8 @@ export interface SDKConfig {
   }
   /** Phase 2-E: Session configuration options */
   session?: SessionConfig
+  /** Phase 3D: Rate limiting configuration */
+  rateLimit?: {
+    enabled?: boolean
+  }
 }

@@ -10,4 +10,7 @@ export type {
   ConfigSchema,
   ConfigSchemaProperty,
   ConfigValidationResult,
+  ValidationError,
+  ValidationResult,
 } from './manager.js'
+export { sdkConfigSchema } from './config-schema.js'

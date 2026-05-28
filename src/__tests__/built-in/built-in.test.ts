@@ -488,8 +488,68 @@ describe('WebFetchTool', () => {
 
 // ─── WebSearchTool Tests ─────────────────────────────────
 
+/**
+ * Generate fake DuckDuckGo HTML search results for testing.
+ * DuckDuckGo's HTML endpoint now blocks automated requests with CAPTCHA,
+ * so we mock the network layer to return controlled test data.
+ */
+function mockDuckDuckGoHTML(query: string): string {
+  const encodedUrl = (url: string) => `https://duckduckgo.com/l/?uddg=${encodeURIComponent(url)}`
+  return `<!DOCTYPE html>
+<html>
+<body>
+<div class="results">
+  <div class="result results_links results_links_deep">
+    <a rel="nofollow" class="result__a" href="${encodedUrl('https://www.typescriptlang.org/')}">TypeScript - JavaScript With Syntax For Types</a>
+    <a class="result__snippet">TypeScript extends JavaScript by adding types to the language.</a>
+  </div>
+  <div class="result results_links results_links_deep">
+    <a rel="nofollow" class="result__a" href="${encodedUrl('https://github.com/microsoft/TypeScript')}">GitHub - microsoft/TypeScript: TypeScript is a superset of JavaScript</a>
+    <a class="result__snippet">TypeScript is a language for application-scale JavaScript development.</a>
+  </div>
+  <div class="result results_links results_links_deep">
+    <a rel="nofollow" class="result__a" href="${encodedUrl('https://www.typescriptlang.org/docs/')}">Documentation - TypeScript</a>
+    <a class="result__snippet">Get started with TypeScript documentation and tutorials.</a>
+  </div>
+  <div class="result results_links results_links_deep">
+    <a rel="nofollow" class="result__a" href="${encodedUrl('https://www.npmjs.com/package/typescript')}">typescript - npm</a>
+    <a class="result__snippet">The TypeScript compiler and language service package.</a>
+  </div>
+  <div class="result results_links results_links_deep">
+    <a rel="nofollow" class="result__a" href="${encodedUrl('https://www.youtube.com/results?search_query=typescript+tutorial')}">TypeScript Tutorial - YouTube</a>
+    <a class="result__snippet">Learn TypeScript from beginner to advanced.</a>
+  </div>
+</div>
+</body>
+</html>`
+}
+
 describe('WebSearchTool', () => {
   const tool = new WebSearchTool()
+
+  let originalFetch: typeof globalThis.fetch
+
+  beforeAll(() => {
+    originalFetch = globalThis.fetch
+    // Mock fetch to intercept DuckDuckGo requests
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+      if (urlStr.includes('html.duckduckgo.com/html/')) {
+        const queryUrl = new URL(urlStr)
+        const query = queryUrl.searchParams.get('q') || 'test'
+        return new Response(mockDuckDuckGoHTML(query), {
+          status: 200,
+          headers: { 'Content-Type': 'text/html; charset=UTF-8' },
+        })
+      }
+      // For non-DDG requests, use the real fetch
+      return originalFetch(input, init)
+    }) as unknown as typeof globalThis.fetch
+  })
+
+  afterAll(() => {
+    globalThis.fetch = originalFetch
+  })
 
   it('should have correct metadata', () => {
     expect(tool.name).toBe('web_search')

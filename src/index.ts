@@ -206,3 +206,23 @@ export type {
   ToolUseBlock as StreamingToolUseBlock,
   ThinkingBlock as StreamingThinkingBlock,
 } from './streaming/types.js'
+
+// Logging — Debug Logging
+export {
+  logForDebugging,
+  enableDebugLogging,
+  isDebugMode,
+  getMinDebugLogLevel,
+  flushDebugLogs,
+} from './logging/index.js'
+export type { DebugLogLevel } from './logging/index.js'
+
+// Rate Limiting — Cooldown
+export {
+  clearCooldown,
+  getRateLimitState,
+  isInCooldown,
+  parseRateLimitHeaders,
+  triggerCooldown,
+} from './rate-limit/index.js'
+export type { CooldownReason, RateLimitHeaders, RateLimitState } from './rate-limit/index.js'

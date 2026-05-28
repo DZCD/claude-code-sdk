@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, unwatchFile, watchFile, 
 import { dirname } from 'node:path'
 import type { LLMConfig, SDKConfig } from '../types/config.js'
 import type { PermissionMode, PermissionRule } from '../types/permission.js'
+import { sdkConfigSchema } from './config-schema.js'
 
 // ========== Phase 2 Types ==========
 
@@ -47,6 +48,20 @@ export interface ConfigValidationResult {
   valid: boolean
   errors: string[]
   warnings?: string[]
+}
+
+// ========== Phase 3D: Zod Validation Types ==========
+
+export interface ValidationError {
+  path: string
+  message: string
+  expected: string
+  actual: unknown
+}
+
+export interface ValidationResult {
+  valid: boolean
+  errors: ValidationError[]
 }
 
 const VALID_PROVIDERS = ['anthropic', 'bedrock', 'vertex', 'foundry'] as const
@@ -357,6 +372,31 @@ export class ConfigManager {
       const wordMatch = e.match(/([\w.]+)/)
       return wordMatch ? wordMatch[1]! : e
     })
+  }
+
+  // ========== Phase 3D: Zod Validation ==========
+
+  /**
+   * Validate the current configuration using Zod schema.
+   * Returns structured errors with path, message, expected, and actual values.
+   *
+   * Uses Zod .safeParse() — no JSON Schema, no standalone validator layer.
+   */
+  validateZod(): ValidationResult {
+    const result = sdkConfigSchema.safeParse(this._config)
+
+    if (result.success) {
+      return { valid: true, errors: [] }
+    }
+
+    const errors: ValidationError[] = result.error.issues.map((issue) => ({
+      path: issue.path.join('.'),
+      message: issue.message,
+      expected: (issue as any).expected ?? 'unknown',
+      actual: (issue as any).received ?? 'unknown',
+    }))
+
+    return { valid: false, errors }
   }
 
   // ========== Phase 2: Change Notification ==========
