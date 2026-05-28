@@ -147,9 +147,12 @@ describe('ConversationManager Integration', () => {
       }
 
       const history = cm.getHistory()
-      expect(history).toHaveLength(1) // just user message (loop doesn't push assistant msgs to array)
+      expect(history).toHaveLength(2) // user message + assistant response
       expect(history[0]?.role).toBe('user')
       expect(history[0]?.content).toBe('Hello there')
+      expect(history[1]?.role).toBe('assistant')
+      expect(Array.isArray(history[1]?.content)).toBe(true)
+      expect((history[1]?.content as Array<{ text: string }>)[0]?.text).toBe('OK')
     })
   })
 
