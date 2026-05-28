@@ -9,6 +9,8 @@ import type { LLMConnector, StreamEvent, TokenUsage } from '../llm/types.js'
 import type { ToolRegistry } from '../tools/registry.js'
 import type { Message, Snowflake } from '../types/message.js'
 import { createAssistantMessage, createUserMessage } from '../types/message.js'
+import type { StreamlinedEntry } from '../types/streamlined-message.js'
+import { streamlineAll } from '../types/streamlined-message.js'
 import { AutoCompactor, type CompactOptions, type CompactResult, type SummaryLLM } from './auto-compact.js'
 import { type LoopOptions, conversationLoop } from './loop.js'
 import { type MicroCompactOptions, MicroCompactor } from './micro-compact.js'
@@ -174,5 +176,16 @@ export class ConversationManager {
    */
   getCompactionHistory(): CompactResult[] {
     return [...this._compactionHistory]
+  }
+
+  /**
+   * Get streamlined conversation history for context window optimization.
+   *
+   * Converts full messages to StreamlinedEntry format, dropping
+   * timestamps, IDs, thinking blocks, and full ContentBlock structures.
+   * Useful before sending to LLM when context budget is tight.
+   */
+  getStreamlinedHistory(): StreamlinedEntry[] {
+    return streamlineAll(this._messages)
   }
 }

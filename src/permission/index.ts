@@ -26,6 +26,24 @@ export {
   SENSITIVE_PATHS,
 } from './pathValidation.js'
 
+// Permission Update (Phase 3D)
+export {
+  permissionUpdateDestinationSchema,
+  permissionBehaviorSchema,
+  permissionRuleValueSchema,
+  permissionModeSchema,
+  permissionUpdateSchema,
+  validatePermissionUpdate,
+  extractRules,
+  hasRules,
+  permissionRuleValueToString,
+  supportsPersistence,
+  applyPermissionUpdate,
+  applyPermissionUpdates,
+  createPermissionUpdateContext,
+  createReadRuleSuggestion,
+} from './permission-update.js'
+
 export type {
   PermissionMode,
   PermissionRequest,
@@ -40,5 +58,20 @@ export type {
   PlanModeConfig,
   DangerousPattern,
 } from '../types/permission.js'
+
+export type {
+  PermissionUpdateDestination,
+  PermissionBehavior,
+  PermissionRuleValue,
+  PermissionUpdate,
+  PermissionAddRulesUpdate,
+  PermissionReplaceRulesUpdate,
+  PermissionRemoveRulesUpdate,
+  PermissionSetModeUpdate,
+  PermissionAddDirectoriesUpdate,
+  PermissionRemoveDirectoriesUpdate,
+} from '../types/permission-update.js'
+
+export type { PermissionUpdateContext } from './permission-update.js'
 
 export { DEFAULT_PLAN_MODE_CONFIG } from '../types/permission.js'

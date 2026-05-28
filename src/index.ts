@@ -131,11 +131,57 @@ export {
   FileWriteTool,
   GlobTool,
   GrepTool,
+  TaskCreateTool,
+  TaskGetTool,
+  TaskListTool,
+  TaskOutputTool,
+  TaskStopTool,
+  TaskUpdateTool,
   registerAllBuiltInTools,
+  registerAllTaskTools,
   WebFetchTool,
   WebSearchTool,
 } from './tools/built-in/index.js'
 export type { SDKConfig } from './types/config.js'
+
+// Task System — Persistent work-item tracking
+export {
+  configureTaskEngine,
+  getTaskListId,
+  getTasksDir,
+  getTaskPath,
+  ensureTasksDir,
+  createTask,
+  getTask,
+  listTasks,
+  updateTask,
+  deleteTask,
+  blockTask,
+  resetTaskList,
+} from './task/engine.js'
+export type {
+  Task,
+  TaskStatus,
+  CreateTaskInput,
+  UpdateTaskInput,
+  TaskEngineConfig,
+} from './types/task.js'
+export type { EffortLevel } from './types/effort.js'
+export { EFFORT_LEVELS, normalizeEffortLevel } from './types/effort.js'
+export type {
+  McpServerStatusValue,
+  McpServerInfo,
+  McpToolAnnotations,
+  McpServerTool,
+  McpServerCapabilities,
+  McpServerStatus,
+} from './types/mcp-status.js'
+export {
+  MCP_SERVER_STATUS_VALUES,
+  isMcpConnected,
+  isMcpErrored,
+  normalizeMcpServerStatus,
+} from './types/mcp-status.js'
 
 // Ask — Tool Call 自动执行循环
 export { ask, askStream } from './ask/index.js'
@@ -176,6 +222,51 @@ export type {
   ToolUseBlock,
   UserMessage,
 } from './types/message.js'
+
+// New Message Model Types (P1)
+export type {
+  StreamlinedEntry,
+  StreamlinedMessage,
+  StreamlinedToolUse,
+  StreamlinedToolSummary,
+} from './types/streamlined-message.js'
+export {
+  createStreamlinedTextMessage,
+  createStreamlinedToolSummaryMessage,
+  isStreamlinedMessage,
+  isStreamlinedToolSummary,
+  reconstructMessageContent,
+  streamlineAll,
+  streamlineMessage,
+} from './types/streamlined-message.js'
+
+export type {
+  PromptRequest,
+  PromptRequestOption,
+  PromptResponse,
+} from './types/prompt-messages.js'
+export {
+  createPromptRequest,
+  createPromptResponse,
+  isPromptRequest,
+  isPromptResponse,
+  promptResponseToKey,
+} from './types/prompt-messages.js'
+
+export type {
+  CommandStatus,
+  LocalCommandOutput,
+} from './types/command-output.js'
+export {
+  COMMAND_OUTPUT_SENTINEL,
+  commandOutputToSystemMessage,
+  commandOutputToText,
+  createCommandOutput,
+  exitCodeToStatus,
+  formatCommandOutput,
+  isCommandOutput,
+  mergeCommandOutputs,
+} from './types/command-output.js'
 
 export type {
   PermissionDecision,
