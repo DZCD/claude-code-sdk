@@ -107,18 +107,90 @@ export class ToolRegistry {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     schema: any,
   ): Record<string, unknown> {
-    // For Zod 3.x, we can use the internal description
-    // Fall back to a simple object schema if we can't introspect
-    try {
-      if (typeof schema?.describe === 'function') {
-        const description = schema.describe()
-        if (description?.type) {
-          return description as Record<string, unknown>
+    if (!schema?._def?.typeName) {
+      return {}
+    }
+
+    const typeName: string = schema._def.typeName
+    const description: string | undefined = schema._def?.description
+
+    // Wrapper types: unwrap and recurse
+    if (typeName === 'ZodOptional' || typeName === 'ZodNullable' || typeName === 'ZodDefault') {
+      return this._zodSchemaToJSONSchema(schema._def.innerType)
+    }
+
+    if (typeName === 'ZodEffects') {
+      return this._zodSchemaToJSONSchema(schema._def.schema)
+    }
+
+    if (typeName === 'ZodObject') {
+      const shape = typeof schema.shape === 'function' ? schema.shape() : schema.shape
+      const properties: Record<string, unknown> = {}
+      const required: string[] = []
+
+      for (const [key, fieldSchema] of Object.entries(shape) as Array<[string, any]>) {
+        const fieldTypeName: string = fieldSchema?._def?.typeName ?? ''
+        let jsonField = this._zodSchemaToJSONSchema(fieldSchema)
+
+        // Only collect description from the field itself (not from unwrapped optional)
+        const fieldDesc = fieldSchema?._def?.description
+        if (fieldDesc && typeof jsonField === 'object' && !Array.isArray(jsonField) && jsonField !== null) {
+          jsonField = { ...jsonField, description: fieldDesc }
+        }
+
+        properties[key] = jsonField
+
+        // Field is required if it's not optional/nullable/default
+        if (
+          fieldTypeName !== 'ZodOptional' &&
+          fieldTypeName !== 'ZodNullable' &&
+          fieldTypeName !== 'ZodDefault'
+        ) {
+          required.push(key)
         }
       }
-    } catch {
-      // Fallback
+
+      const result: Record<string, unknown> = { type: 'object', properties }
+      if (required.length > 0) {
+        result.required = required
+      }
+      if (description) result.description = description
+      return result
     }
-    return { type: 'object' }
+
+    if (typeName === 'ZodString') {
+      const result: Record<string, unknown> = { type: 'string' }
+      if (description) result.description = description
+      return result
+    }
+
+    if (typeName === 'ZodNumber') {
+      const result: Record<string, unknown> = { type: 'number' }
+      if (description) result.description = description
+      return result
+    }
+
+    if (typeName === 'ZodBoolean') {
+      const result: Record<string, unknown> = { type: 'boolean' }
+      if (description) result.description = description
+      return result
+    }
+
+    if (typeName === 'ZodArray') {
+      const items = schema._def?.type
+      const result: Record<string, unknown> = { type: 'array', items: items ? this._zodSchemaToJSONSchema(items) : {} }
+      if (description) result.description = description
+      return result
+    }
+
+    if (typeName === 'ZodEnum') {
+      const values: string[] = Array.from(schema._def?.values ?? [])
+      const result: Record<string, unknown> = { type: 'string', enum: values }
+      if (description) result.description = description
+      return result
+    }
+
+    // Fallback
+    return { type: 'string' }
   }
 }
