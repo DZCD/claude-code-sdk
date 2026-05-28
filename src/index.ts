@@ -226,3 +226,7 @@ export {
   triggerCooldown,
 } from './rate-limit/index.js'
 export type { CooldownReason, RateLimitHeaders, RateLimitState } from './rate-limit/index.js'
+
+// Skill System — Progressive-Exposure Instruction Sets
+export { SkillRegistry, SkillTool } from './skill/index.js'
+export type { Skill, SkillOptions, Skills } from './skill/index.js'
