@@ -1,0 +1,4 @@
+2026-05-28T09:16:36.441Z [INFO] [E2E-test] Starting tool call chain test
+2026-05-28T09:16:36.442Z [DEBUG] [E2E-test] Tool registered: greet_user
+2026-05-28T09:16:36.442Z [INFO] [E2E-test] Hook triggered: preTool audit
+2026-05-28T09:16:36.442Z [DEBUG] [E2E-test] Tool execution completed

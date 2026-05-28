@@ -166,7 +166,8 @@ describe('FeedbackInjector — waitForFeedback Concurrency', () => {
   it('should handle concurrent waitForFeedback calls (parallel safety)', async () => {
     const callback = vi.fn().mockImplementation(async (ctx: FeedbackContext) => {
       await new Promise((r) => setTimeout(r, 5))
-      return { text: `Processed: ${ctx.text.slice(0, 5)}` }
+      const firstWord = ctx.text.split(' ')[0]!
+      return { text: `Processed: ${firstWord}` }
     })
 
     const injector = new FeedbackInjector({ mode: 'manual', onFeedback: callback, timeout: 5000 })
