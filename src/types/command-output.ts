@@ -39,10 +39,12 @@ export type CommandStatus = 'success' | 'error'
 export function isCommandOutput(obj: unknown): obj is LocalCommandOutput {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false
   const o = obj as Record<string, unknown>
-  return typeof o.stdout === 'string' &&
+  return (
+    typeof o.stdout === 'string' &&
     typeof o.stderr === 'string' &&
     typeof o.exitCode === 'number' &&
     Number.isInteger(o.exitCode)
+  )
 }
 
 // ─── Factory Functions ────────────────────────────────
@@ -96,8 +98,14 @@ export function mergeCommandOutputs(outputs: LocalCommandOutput[]): LocalCommand
   if (outputs.length === 0) {
     return { stdout: '', stderr: '', exitCode: 0 }
   }
-  const stdout = outputs.map((o) => o.stdout).filter(Boolean).join('\n')
-  const stderr = outputs.map((o) => o.stderr).filter(Boolean).join('\n')
+  const stdout = outputs
+    .map((o) => o.stdout)
+    .filter(Boolean)
+    .join('\n')
+  const stderr = outputs
+    .map((o) => o.stderr)
+    .filter(Boolean)
+    .join('\n')
   // Take the last non-zero exit code, or 0 if all succeeded
   let exitCode = 0
   for (const o of outputs) {

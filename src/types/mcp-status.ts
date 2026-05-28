@@ -8,12 +8,7 @@
 /**
  * Status values for an MCP server connection.
  */
-export type McpServerStatusValue =
-  | 'connected'
-  | 'failed'
-  | 'needs-auth'
-  | 'pending'
-  | 'disabled'
+export type McpServerStatusValue = 'connected' | 'failed' | 'needs-auth' | 'pending' | 'disabled'
 
 /**
  * All valid MCP server status values.
@@ -115,13 +110,8 @@ export function isMcpErrored(status: McpServerStatusValue): boolean {
  * Normalize an unknown input to a valid McpServerStatusValue.
  * Defaults to 'pending'.
  */
-export function normalizeMcpServerStatus(
-  value: unknown,
-): McpServerStatusValue {
-  if (
-    typeof value === 'string' &&
-    (MCP_SERVER_STATUS_VALUES as readonly string[]).includes(value)
-  ) {
+export function normalizeMcpServerStatus(value: unknown): McpServerStatusValue {
+  if (typeof value === 'string' && (MCP_SERVER_STATUS_VALUES as readonly string[]).includes(value)) {
     return value as McpServerStatusValue
   }
   return 'pending'

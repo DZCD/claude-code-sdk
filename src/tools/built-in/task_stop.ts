@@ -7,9 +7,9 @@
  * there is no separate background task model.
  */
 import { z } from 'zod'
+import { getTask, getTaskListId, updateTask } from '../../task/engine.js'
 import type { ToolContext, ToolResult } from '../../types/tool.js'
 import { BaseTool } from '../base.js'
-import { getTask, getTaskListId, updateTask } from '../../task/engine.js'
 
 // ─── Schema ──────────────────────────────────────────────
 
@@ -29,15 +29,11 @@ export interface TaskStopOutput {
 
 export class TaskStopTool extends BaseTool<typeof taskStopSchema, TaskStopOutput> {
   name = 'TaskStop'
-  description =
-    'Stop a task by setting it to completed. Use this to mark a task as finished or to stop work on a task.'
+  description = 'Stop a task by setting it to completed. Use this to mark a task as finished or to stop work on a task.'
 
   inputSchema = taskStopSchema
 
-  async execute(
-    input: z.infer<typeof taskStopSchema>,
-    _context: ToolContext,
-  ): Promise<ToolResult<TaskStopOutput>> {
+  async execute(input: z.infer<typeof taskStopSchema>, _context: ToolContext): Promise<ToolResult<TaskStopOutput>> {
     const { taskId } = input
     const taskListId = getTaskListId()
 

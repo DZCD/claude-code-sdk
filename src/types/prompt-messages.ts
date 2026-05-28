@@ -58,15 +58,12 @@ function hasStringField(obj: unknown, field: string): obj is Record<string, unkn
 export function isPromptRequest(obj: unknown): obj is PromptRequest {
   if (!obj || typeof obj !== 'object') return false
   const o = obj as Record<string, unknown>
-  return typeof o.prompt === 'string' &&
-    typeof o.message === 'string' &&
-    Array.isArray(o.options)
+  return typeof o.prompt === 'string' && typeof o.message === 'string' && Array.isArray(o.options)
 }
 
 /** Check if an object is a valid PromptResponse */
 export function isPromptResponse(obj: unknown): obj is PromptResponse {
-  return hasStringField(obj, 'prompt_response') &&
-    hasStringField(obj, 'selected')
+  return hasStringField(obj, 'prompt_response') && hasStringField(obj, 'selected')
 }
 
 // ─── Factory Functions ────────────────────────────────
@@ -74,21 +71,14 @@ export function isPromptResponse(obj: unknown): obj is PromptResponse {
 /**
  * Create a PromptRequest.
  */
-export function createPromptRequest(
-  prompt: string,
-  message: string,
-  options: PromptRequestOption[],
-): PromptRequest {
+export function createPromptRequest(prompt: string, message: string, options: PromptRequestOption[]): PromptRequest {
   return { prompt, message, options }
 }
 
 /**
  * Create a PromptResponse.
  */
-export function createPromptResponse(
-  promptResponse: string,
-  selected: string,
-): PromptResponse {
+export function createPromptResponse(promptResponse: string, selected: string): PromptResponse {
   return { prompt_response: promptResponse, selected }
 }
 

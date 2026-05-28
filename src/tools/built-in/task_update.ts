@@ -5,16 +5,10 @@
  * description, owner, metadata, and managing dependencies.
  */
 import { z } from 'zod'
-import type { ToolContext, ToolResult } from '../../types/tool.js'
+import { blockTask, deleteTask, getTask, getTaskListId, updateTask } from '../../task/engine.js'
 import type { TaskStatus } from '../../types/task.js'
+import type { ToolContext, ToolResult } from '../../types/tool.js'
 import { BaseTool } from '../base.js'
-import {
-  blockTask,
-  deleteTask,
-  getTask,
-  getTaskListId,
-  updateTask,
-} from '../../task/engine.js'
 
 // ─── Schema ──────────────────────────────────────────────
 
@@ -22,22 +16,13 @@ export const taskUpdateSchema = z.object({
   taskId: z.string().min(1).describe('The ID of the task to update'),
   subject: z.string().optional().describe('New subject for the task'),
   description: z.string().optional().describe('New description for the task'),
-  activeForm: z
-    .string()
-    .optional()
-    .describe('Present continuous form shown when in_progress (e.g., "Running tests")'),
+  activeForm: z.string().optional().describe('Present continuous form shown when in_progress (e.g., "Running tests")'),
   status: z
     .enum(['pending', 'in_progress', 'completed', 'deleted'])
     .optional()
     .describe('New status for the task. Use "deleted" to remove the task.'),
-  addBlocks: z
-    .array(z.string())
-    .optional()
-    .describe('Task IDs that this task blocks (depends on these tasks)'),
-  addBlockedBy: z
-    .array(z.string())
-    .optional()
-    .describe('Task IDs that block this task'),
+  addBlocks: z.array(z.string()).optional().describe('Task IDs that this task blocks (depends on these tasks)'),
+  addBlockedBy: z.array(z.string()).optional().describe('Task IDs that block this task'),
   owner: z.string().optional().describe('New owner for the task'),
   metadata: z
     .record(z.string(), z.unknown())
@@ -68,22 +53,8 @@ export class TaskUpdateTool extends BaseTool<typeof taskUpdateSchema, TaskUpdate
 
   inputSchema = taskUpdateSchema
 
-  async execute(
-    input: z.infer<typeof taskUpdateSchema>,
-    _context: ToolContext,
-  ): Promise<ToolResult<TaskUpdateOutput>> {
-    const {
-      taskId,
-      subject,
-      description,
-      activeForm,
-      status,
-      owner,
-      addBlocks,
-      addBlockedBy,
-      metadata,
-      output,
-    } = input
+  async execute(input: z.infer<typeof taskUpdateSchema>, _context: ToolContext): Promise<ToolResult<TaskUpdateOutput>> {
+    const { taskId, subject, description, activeForm, status, owner, addBlocks, addBlockedBy, metadata, output } = input
 
     const taskListId = getTaskListId()
 
@@ -112,13 +83,9 @@ export class TaskUpdateTool extends BaseTool<typeof taskUpdateSchema, TaskUpdate
           taskId,
           updatedFields: deleted ? ['deleted'] : [],
           error: deleted ? undefined : 'Failed to delete task',
-          statusChange: deleted
-            ? { from: existingTask.status, to: 'deleted' }
-            : undefined,
+          statusChange: deleted ? { from: existingTask.status, to: 'deleted' } : undefined,
         },
-        content: deleted
-          ? `Task #${taskId} deleted successfully`
-          : `Failed to delete task #${taskId}`,
+        content: deleted ? `Task #${taskId} deleted successfully` : `Failed to delete task #${taskId}`,
       }
     }
 
@@ -174,10 +141,7 @@ export class TaskUpdateTool extends BaseTool<typeof taskUpdateSchema, TaskUpdate
     }
 
     // Apply updates
-    const statusChange =
-      updates.status !== undefined
-        ? { from: existingTask.status, to: updates.status }
-        : undefined
+    const statusChange = updates.status !== undefined ? { from: existingTask.status, to: updates.status } : undefined
 
     if (Object.keys(updates).length > 0) {
       await updateTask(taskListId, taskId, updates)
@@ -185,9 +149,7 @@ export class TaskUpdateTool extends BaseTool<typeof taskUpdateSchema, TaskUpdate
 
     // Add blocks if provided
     if (addBlocks && addBlocks.length > 0) {
-      const newBlocks = addBlocks.filter(
-        id => !existingTask.blocks.includes(id),
-      )
+      const newBlocks = addBlocks.filter((id) => !existingTask.blocks.includes(id))
       for (const blockId of newBlocks) {
         await blockTask(taskListId, taskId, blockId)
       }
@@ -198,9 +160,7 @@ export class TaskUpdateTool extends BaseTool<typeof taskUpdateSchema, TaskUpdate
 
     // Add blockedBy if provided
     if (addBlockedBy && addBlockedBy.length > 0) {
-      const newBlockedBy = addBlockedBy.filter(
-        id => !existingTask.blockedBy.includes(id),
-      )
+      const newBlockedBy = addBlockedBy.filter((id) => !existingTask.blockedBy.includes(id))
       for (const blockerId of newBlockedBy) {
         await blockTask(taskListId, blockerId, taskId)
       }

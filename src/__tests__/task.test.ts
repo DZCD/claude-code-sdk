@@ -147,7 +147,7 @@ describe('Task Engine — File System Storage', () => {
 
       const tasks = await listTasks(TEST_TASK_LIST)
       expect(tasks).toHaveLength(3)
-      expect(tasks.map(t => t.subject)).toEqual(['T1', 'T2', 'T3'])
+      expect(tasks.map((t) => t.subject)).toEqual(['T1', 'T2', 'T3'])
     })
 
     it('should return empty for non-existent directory', async () => {
@@ -184,7 +184,7 @@ describe('Task Engine — File System Storage', () => {
       const originalUpdatedAt = original!.updatedAt
 
       // Small delay to ensure timestamps differ
-      await new Promise(r => setTimeout(r, 10))
+      await new Promise((r) => setTimeout(r, 10))
 
       const updated = await updateTask(TEST_TASK_LIST, id, {
         status: 'completed',
@@ -334,10 +334,14 @@ describe('Task Tools', () => {
       const tool = new TaskCreateTool().toTool()
       registry.register(tool)
 
-      const result = await registry.execute('TaskCreate', {
-        subject: 'Test task',
-        description: 'Test description',
-      }, testContext)
+      const result = await registry.execute(
+        'TaskCreate',
+        {
+          subject: 'Test task',
+          description: 'Test description',
+        },
+        testContext,
+      )
 
       expect(result.isError).toBeFalsy()
       expect(result.data).toMatchObject({
@@ -352,12 +356,16 @@ describe('Task Tools', () => {
       const tool = new TaskCreateTool().toTool()
       registry.register(tool)
 
-      const result = await registry.execute('TaskCreate', {
-        subject: 'Active task',
-        description: 'With active form',
-        activeForm: 'Running tests',
-        metadata: { env: 'staging' },
-      }, testContext)
+      const result = await registry.execute(
+        'TaskCreate',
+        {
+          subject: 'Active task',
+          description: 'With active form',
+          activeForm: 'Running tests',
+          metadata: { env: 'staging' },
+        },
+        testContext,
+      )
 
       expect(result.isError).toBeFalsy()
 
@@ -371,9 +379,13 @@ describe('Task Tools', () => {
       const tool = new TaskCreateTool().toTool()
       registry.register(tool)
 
-      const result = await registry.execute('TaskCreate', {
-        subject: '',
-      }, testContext)
+      const result = await registry.execute(
+        'TaskCreate',
+        {
+          subject: '',
+        },
+        testContext,
+      )
 
       expect(result.isError).toBe(true)
     })
@@ -486,10 +498,14 @@ describe('Task Tools', () => {
       const tool = new TaskUpdateTool().toTool()
       registry.register(tool)
 
-      const result = await registry.execute('TaskUpdate', {
-        taskId: id,
-        status: 'in_progress',
-      }, testContext)
+      const result = await registry.execute(
+        'TaskUpdate',
+        {
+          taskId: id,
+          status: 'in_progress',
+        },
+        testContext,
+      )
 
       expect(result.isError).toBeFalsy()
       expect(result.data.success).toBe(true)
@@ -509,12 +525,16 @@ describe('Task Tools', () => {
       const tool = new TaskUpdateTool().toTool()
       registry.register(tool)
 
-      const result = await registry.execute('TaskUpdate', {
-        taskId: id,
-        subject: 'Updated subject',
-        description: 'Updated desc',
-        owner: 'agent-1',
-      }, testContext)
+      const result = await registry.execute(
+        'TaskUpdate',
+        {
+          taskId: id,
+          subject: 'Updated subject',
+          description: 'Updated desc',
+          owner: 'agent-1',
+        },
+        testContext,
+      )
 
       expect(result.data.success).toBe(true)
       expect(result.data.updatedFields).toContain('subject')
@@ -534,10 +554,14 @@ describe('Task Tools', () => {
       const tool = new TaskUpdateTool().toTool()
       registry.register(tool)
 
-      const result = await registry.execute('TaskUpdate', {
-        taskId: id,
-        status: 'deleted',
-      }, testContext)
+      const result = await registry.execute(
+        'TaskUpdate',
+        {
+          taskId: id,
+          status: 'deleted',
+        },
+        testContext,
+      )
 
       expect(result.data.success).toBe(true)
       expect(result.data.updatedFields).toContain('deleted')
@@ -550,10 +574,14 @@ describe('Task Tools', () => {
       const tool = new TaskUpdateTool().toTool()
       registry.register(tool)
 
-      const result = await registry.execute('TaskUpdate', {
-        taskId: '999',
-        status: 'completed',
-      }, testContext)
+      const result = await registry.execute(
+        'TaskUpdate',
+        {
+          taskId: '999',
+          status: 'completed',
+        },
+        testContext,
+      )
 
       expect(result.data.success).toBe(false)
       expect(result.data.error).toBe('Task not found')
@@ -566,10 +594,14 @@ describe('Task Tools', () => {
       const tool = new TaskUpdateTool().toTool()
       registry.register(tool)
 
-      await registry.execute('TaskUpdate', {
-        taskId: id1,
-        addBlocks: [id2],
-      }, testContext)
+      await registry.execute(
+        'TaskUpdate',
+        {
+          taskId: id1,
+          addBlocks: [id2],
+        },
+        testContext,
+      )
 
       const t1 = await getTask(TEST_TASK_LIST, id1)
       expect(t1!.blocks).toContain(id2)
@@ -585,10 +617,14 @@ describe('Task Tools', () => {
       const tool = new TaskUpdateTool().toTool()
       registry.register(tool)
 
-      await registry.execute('TaskUpdate', {
-        taskId: id,
-        metadata: { newKey: 'added' },
-      }, testContext)
+      await registry.execute(
+        'TaskUpdate',
+        {
+          taskId: id,
+          metadata: { newKey: 'added' },
+        },
+        testContext,
+      )
 
       const task = await getTask(TEST_TASK_LIST, id)
       expect(task!.metadata).toEqual({ existing: 'keep', newKey: 'added' })
@@ -705,10 +741,14 @@ describe('Task Subsystem Integration', () => {
     expect(registry.has('TaskOutput')).toBe(true)
 
     // Use them end-to-end
-    const createResult = await registry.execute('TaskCreate', {
-      subject: 'E2E task',
-      description: 'End-to-end test',
-    }, testContext)
+    const createResult = await registry.execute(
+      'TaskCreate',
+      {
+        subject: 'E2E task',
+        description: 'End-to-end test',
+      },
+      testContext,
+    )
     expect(createResult.isError).toBeFalsy()
     const taskId = createResult.data.taskId
 
@@ -718,11 +758,15 @@ describe('Task Subsystem Integration', () => {
     const getResult = await registry.execute('TaskGet', { taskId }, testContext)
     expect(getResult.data.task.subject).toBe('E2E task')
 
-    const updateResult = await registry.execute('TaskUpdate', {
-      taskId,
-      status: 'completed',
-      output: 'All done',
-    }, testContext)
+    const updateResult = await registry.execute(
+      'TaskUpdate',
+      {
+        taskId,
+        status: 'completed',
+        output: 'All done',
+      },
+      testContext,
+    )
     expect(updateResult.data.success).toBe(true)
 
     const outputResult = await registry.execute('TaskOutput', { taskId }, testContext)

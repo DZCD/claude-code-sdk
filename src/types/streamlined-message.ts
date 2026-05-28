@@ -61,17 +61,14 @@ export type StreamlinedEntry = StreamlinedMessage | StreamlinedToolSummary
 export function isStreamlinedMessage(obj: unknown): obj is StreamlinedMessage {
   if (!obj || typeof obj !== 'object') return false
   const o = obj as Record<string, unknown>
-  return o.type === 'streamlined_text' &&
-    typeof o.text === 'string' &&
-    (o.role === 'user' || o.role === 'assistant')
+  return o.type === 'streamlined_text' && typeof o.text === 'string' && (o.role === 'user' || o.role === 'assistant')
 }
 
 /** Check if an object is a StreamlinedToolSummary */
 export function isStreamlinedToolSummary(obj: unknown): obj is StreamlinedToolSummary {
   if (!obj || typeof obj !== 'object') return false
   const o = obj as Record<string, unknown>
-  return o.type === 'streamlined_tool_use_summary' &&
-    typeof o.toolSummary === 'string'
+  return o.type === 'streamlined_tool_use_summary' && typeof o.toolSummary === 'string'
 }
 
 // ─── Streamlining Functions ───────────────────────────

@@ -4,15 +4,9 @@
  * AgentDefinition describes a custom subagent that can be invoked via the Agent tool.
  */
 import { describe, expect, it } from 'vitest'
-import { z } from 'zod'
-import {
-  AgentDefinitionSchema,
-  AgentMcpServerSpecSchema,
-} from '../types/agent-definition.js'
-import type {
-  AgentDefinition,
-  AgentMcpServerSpec,
-} from '../types/agent-definition.js'
+import type { z } from 'zod'
+import { AgentDefinitionSchema, AgentMcpServerSpecSchema } from '../types/agent-definition.js'
+import type { AgentDefinition, AgentMcpServerSpec } from '../types/agent-definition.js'
 
 // ============================================================================
 // AgentMcpServerSpec

@@ -141,11 +141,7 @@ export class ToolRegistry {
         properties[key] = jsonField
 
         // Field is required if it's not optional/nullable/default
-        if (
-          fieldTypeName !== 'ZodOptional' &&
-          fieldTypeName !== 'ZodNullable' &&
-          fieldTypeName !== 'ZodDefault'
-        ) {
+        if (fieldTypeName !== 'ZodOptional' && fieldTypeName !== 'ZodNullable' && fieldTypeName !== 'ZodDefault') {
           required.push(key)
         }
       }

@@ -3,7 +3,7 @@
  *
  * Tests for SkillRegistry and SkillTool.
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { SkillRegistry } from '../skill/registry.js'
 import { SkillTool } from '../skill/skill-tool.js'
 import type { Skill } from '../types/skill.js'

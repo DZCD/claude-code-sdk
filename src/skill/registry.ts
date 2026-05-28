@@ -64,16 +64,17 @@ export class SkillRegistry {
     const lines: string[] = ['# Available Skills']
 
     for (const skill of this.getAll()) {
-      const trimmedDesc = skill.description.length > MAX_SKILL_LISTING_DESC_CHARS
-        ? skill.description.slice(0, MAX_SKILL_LISTING_DESC_CHARS - 3) + '...'
-        : skill.description
+      const trimmedDesc =
+        skill.description.length > MAX_SKILL_LISTING_DESC_CHARS
+          ? `${skill.description.slice(0, MAX_SKILL_LISTING_DESC_CHARS - 3)}...`
+          : skill.description
 
       lines.push(`- ${skill.name}: ${trimmedDesc}`)
     }
 
     lines.push('')
     lines.push('To use a skill, call the `SkillTool` with the skill name.')
-    lines.push('The skill\'s instructions will be loaded into the conversation.')
+    lines.push("The skill's instructions will be loaded into the conversation.")
 
     return lines.join('\n')
   }

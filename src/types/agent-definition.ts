@@ -49,10 +49,7 @@ const McpSSEConfigSchema = z.object({
  * MCP server config for process transport — union of stdio and SSE.
  * Used as the value type in AgentMcpServerSpec object form.
  */
-const McpServerConfigForProcessTransportSchema = z.union([
-  McpStdioConfigSchema,
-  McpSSEConfigSchema,
-])
+const McpServerConfigForProcessTransportSchema = z.union([McpStdioConfigSchema, McpSSEConfigSchema])
 
 /**
  * MCP server specification — can be a simple server name (string)
@@ -66,10 +63,7 @@ export const AgentMcpServerSpecSchema = z.union([
 /**
  * Effort level for reasoning. Either a named level or an integer.
  */
-const EffortSchema = z.union([
-  z.enum(['low', 'medium', 'high', 'max']),
-  z.number().int(),
-])
+const EffortSchema = z.union([z.enum(['low', 'medium', 'high', 'max']), z.number().int()])
 
 /**
  * Agent memory scope — determines where agent memory files are loaded from.
@@ -125,7 +119,5 @@ export const AgentDefinitionSchema = z.object({
   effort: EffortSchema.optional(),
 
   /** Permission mode controlling how tool executions are handled */
-  permissionMode: z
-    .enum(['default', 'acceptEdits', 'bypassPermissions', 'plan', 'dontAsk'])
-    .optional(),
+  permissionMode: z.enum(['default', 'acceptEdits', 'bypassPermissions', 'plan', 'dontAsk']).optional(),
 })

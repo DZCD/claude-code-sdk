@@ -1,16 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import type { EffortLevel } from '../types/effort.js'
-import {
-  EFFORT_LEVELS,
-  normalizeEffortLevel,
-} from '../types/effort.js'
+import { EFFORT_LEVELS, normalizeEffortLevel } from '../types/effort.js'
 import type {
-  McpServerStatusValue,
-  McpServerInfo,
-  McpToolAnnotations,
-  McpServerTool,
   McpServerCapabilities,
+  McpServerInfo,
   McpServerStatus,
+  McpServerStatusValue,
+  McpServerTool,
+  McpToolAnnotations,
 } from '../types/mcp-status.js'
 import {
   MCP_SERVER_STATUS_VALUES,
@@ -101,25 +98,13 @@ describe('McpServerStatus', () => {
     })
 
     it('should include all expected values in order', () => {
-      expect(MCP_SERVER_STATUS_VALUES).toEqual([
-        'connected',
-        'failed',
-        'needs-auth',
-        'pending',
-        'disabled',
-      ])
+      expect(MCP_SERVER_STATUS_VALUES).toEqual(['connected', 'failed', 'needs-auth', 'pending', 'disabled'])
     })
 
     it('should be read-only typed', () => {
       // `as const` ensures type-level readonly, not runtime Object.freeze
       const arr: readonly McpServerStatusValue[] = MCP_SERVER_STATUS_VALUES
-      expect(arr).toEqual([
-        'connected',
-        'failed',
-        'needs-auth',
-        'pending',
-        'disabled',
-      ])
+      expect(arr).toEqual(['connected', 'failed', 'needs-auth', 'pending', 'disabled'])
     })
   })
 

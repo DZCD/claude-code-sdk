@@ -7,14 +7,14 @@
 import { describe, expect, it } from 'vitest'
 import type { LocalCommandOutput } from '../command-output.js'
 import {
-  createCommandOutput,
-  isCommandOutput,
-  commandOutputToText,
-  mergeCommandOutputs,
+  COMMAND_OUTPUT_SENTINEL,
   commandOutputToSystemMessage,
+  commandOutputToText,
+  createCommandOutput,
   exitCodeToStatus,
   formatCommandOutput,
-  COMMAND_OUTPUT_SENTINEL,
+  isCommandOutput,
+  mergeCommandOutputs,
 } from '../command-output.js'
 import { createSystemMessage } from '../message.js'
 

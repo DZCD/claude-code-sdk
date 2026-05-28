@@ -32,10 +32,7 @@ describe('createLLMConnector — boundary cases', () => {
   })
 
   it('should throw for config with number as provider', () => {
-    expect(() =>
-      // biome-ignore lint/suspicious/noExplicitAny: testing type coercion boundary
-      createLLMConnector({ provider: 123 as any, model: 'test' }),
-    ).toThrow('Unsupported LLM provider')
+    expect(() => createLLMConnector({ provider: 123 as any, model: 'test' })).toThrow('Unsupported LLM provider')
   })
 
   it('should create connector even with missing apiKey (runtime validation deferred)', () => {

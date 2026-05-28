@@ -5,11 +5,7 @@
  * Based on Claude Code's PromptRequestSchema / PromptResponseSchema.
  */
 import { describe, expect, it } from 'vitest'
-import type {
-  PromptRequest,
-  PromptRequestOption,
-  PromptResponse,
-} from '../prompt-messages.js'
+import type { PromptRequest, PromptRequestOption, PromptResponse } from '../prompt-messages.js'
 import {
   createPromptRequest,
   createPromptResponse,
@@ -166,9 +162,7 @@ describe('PromptResponse', () => {
 
   describe('round-trip', () => {
     it('should allow matching request ID to response ID', () => {
-      const req = createPromptRequest('match-test', 'Choose:', [
-        { key: '1', label: 'One' },
-      ])
+      const req = createPromptRequest('match-test', 'Choose:', [{ key: '1', label: 'One' }])
       const res = createPromptResponse('match-test', '1')
 
       expect(res.prompt_response).toBe(req.prompt)

@@ -4,23 +4,16 @@
  * Validates the streamlined message conversion for context window optimization.
  */
 import { describe, expect, it } from 'vitest'
+import { createAssistantMessage, createToolResultMessage, createUserMessage } from '../message.js'
+import type { StreamlinedMessage, StreamlinedToolSummary } from '../streamlined-message.js'
 import {
-  createAssistantMessage,
-  createUserMessage,
-  createToolResultMessage,
-} from '../message.js'
-import type {
-  StreamlinedMessage,
-  StreamlinedToolSummary,
-} from '../streamlined-message.js'
-import {
-  streamlineMessage,
-  streamlineAll,
-  isStreamlinedMessage,
-  isStreamlinedToolSummary,
   createStreamlinedTextMessage,
   createStreamlinedToolSummaryMessage,
+  isStreamlinedMessage,
+  isStreamlinedToolSummary,
   reconstructMessageContent,
+  streamlineAll,
+  streamlineMessage,
 } from '../streamlined-message.js'
 
 describe('StreamlinedMessage', () => {
@@ -96,9 +89,7 @@ describe('StreamlinedMessage', () => {
     })
 
     it('should streamline a tool result message to streamlined_text', () => {
-      const msg = createToolResultMessage([
-        { type: 'tool_result', toolUseId: 'tool-1', content: 'file content here' },
-      ])
+      const msg = createToolResultMessage([{ type: 'tool_result', toolUseId: 'tool-1', content: 'file content here' }])
       const result = streamlineMessage(msg)
 
       expect(result.type).toBe('streamlined_text')
@@ -183,22 +174,14 @@ describe('StreamlinedMessage', () => {
     })
 
     it('should accept optional toolUses', () => {
-      const toolUses = [
-        { id: 't1', name: 'Read', input: { file: 'test.ts' } },
-      ]
+      const toolUses = [{ id: 't1', name: 'Read', input: { file: 'test.ts' } }]
       const msg = createStreamlinedTextMessage('assistant', 'Reading...', toolUses)
 
       expect(msg.toolUses).toEqual(toolUses)
     })
 
     it('should accept optional session_id and uuid', () => {
-      const msg = createStreamlinedTextMessage(
-        'assistant',
-        'text',
-        undefined,
-        'session-123',
-        'uuid-456',
-      )
+      const msg = createStreamlinedTextMessage('assistant', 'text', undefined, 'session-123', 'uuid-456')
 
       expect(msg.session_id).toBe('session-123')
       expect(msg.uuid).toBe('uuid-456')
@@ -207,10 +190,7 @@ describe('StreamlinedMessage', () => {
 
   describe('createStreamlinedToolSummaryMessage', () => {
     it('should create a streamlined_tool_use_summary message', () => {
-      const msg = createStreamlinedToolSummaryMessage(
-        'Read 3 files, wrote 1 file',
-        'session-789',
-      )
+      const msg = createStreamlinedToolSummaryMessage('Read 3 files, wrote 1 file', 'session-789')
 
       expect(msg.type).toBe('streamlined_tool_use_summary')
       expect(msg.toolSummary).toBe('Read 3 files, wrote 1 file')

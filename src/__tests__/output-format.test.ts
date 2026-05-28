@@ -4,13 +4,9 @@
  * OutputFormat constrains LLM responses to JSON Schema structured output.
  */
 import { describe, expect, it } from 'vitest'
-import { z } from 'zod'
-import {
-  OutputFormatSchema,
-  OutputFormatTypeSchema,
-  JsonSchemaOutputFormatSchema,
-} from '../types/output-format.js'
-import type { OutputFormat, OutputFormatType, JsonSchemaOutputFormat } from '../types/output-format.js'
+import type { z } from 'zod'
+import { JsonSchemaOutputFormatSchema, OutputFormatSchema, OutputFormatTypeSchema } from '../types/output-format.js'
+import type { JsonSchemaOutputFormat, OutputFormat, OutputFormatType } from '../types/output-format.js'
 
 // ============================================================================
 // Type-level tests

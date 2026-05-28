@@ -5,9 +5,9 @@
  * for reading the results of a completed task's execution.
  */
 import { z } from 'zod'
+import { getTask, getTaskListId } from '../../task/engine.js'
 import type { ToolContext, ToolResult } from '../../types/tool.js'
 import { BaseTool } from '../base.js'
-import { getTask, getTaskListId } from '../../task/engine.js'
 
 // ─── Schema ──────────────────────────────────────────────
 
@@ -29,15 +29,11 @@ export interface TaskOutputOutput {
 
 export class TaskOutputTool extends BaseTool<typeof taskOutputSchema, TaskOutputOutput> {
   name = 'TaskOutput'
-  description =
-    'Retrieve the captured output from a task. Use this to read results after a task has been completed.'
+  description = 'Retrieve the captured output from a task. Use this to read results after a task has been completed.'
 
   inputSchema = taskOutputSchema
 
-  async execute(
-    input: z.infer<typeof taskOutputSchema>,
-    _context: ToolContext,
-  ): Promise<ToolResult<TaskOutputOutput>> {
+  async execute(input: z.infer<typeof taskOutputSchema>, _context: ToolContext): Promise<ToolResult<TaskOutputOutput>> {
     const { taskId } = input
     const taskListId = getTaskListId()
 
@@ -64,9 +60,7 @@ export class TaskOutputTool extends BaseTool<typeof taskOutputSchema, TaskOutput
         status: task.status,
         output,
       },
-      content: output
-        ? `<output>\n${output}\n</output>`
-        : `Task #${task.id} (${task.subject}) has no output`,
+      content: output ? `<output>\n${output}\n</output>` : `Task #${task.id} (${task.subject}) has no output`,
     }
   }
 

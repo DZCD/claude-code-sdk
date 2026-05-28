@@ -9,7 +9,7 @@
  *
  * Default baseDir: ~/.claude/tasks
  */
-import { mkdir, readdir, readFile, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { CreateTaskInput, Task, TaskEngineConfig, UpdateTaskInput } from '../types/task.js'
@@ -21,7 +21,7 @@ const HIGH_WATER_MARK_FILE = '.highwatermark'
 
 // ─── Config ───────────────────────────────────────────────
 
-let _config: Required<TaskEngineConfig> = {
+const _config: Required<TaskEngineConfig> = {
   baseDir: join(homedir(), '.claude', 'tasks'),
   taskListId: 'default',
 }
@@ -77,8 +77,8 @@ async function readHighWaterMark(taskListId: string): Promise<number> {
   const path = getHighWaterMarkPath(taskListId)
   try {
     const content = (await readFile(path, 'utf-8')).trim()
-    const value = parseInt(content, 10)
-    return isNaN(value) ? 0 : value
+    const value = Number.parseInt(content, 10)
+    return Number.isNaN(value) ? 0 : value
   } catch {
     return 0
   }
@@ -122,8 +122,8 @@ async function findHighestTaskIdFromFiles(taskListId: string): Promise<number> {
     if (!file.endsWith('.json') || file.startsWith('.')) {
       continue
     }
-    const taskId = parseInt(file.replace('.json', ''), 10)
-    if (!isNaN(taskId) && taskId > highest) {
+    const taskId = Number.parseInt(file.replace('.json', ''), 10)
+    if (!Number.isNaN(taskId) && taskId > highest) {
       highest = taskId
     }
   }
@@ -157,10 +157,7 @@ async function generateTaskId(taskListId: string): Promise<string> {
  * Task IDs are sequential numeric strings starting from "1".
  * The task is persisted as a JSON file on disk.
  */
-export async function createTask(
-  taskListId: string,
-  input: CreateTaskInput,
-): Promise<string> {
+export async function createTask(taskListId: string, input: CreateTaskInput): Promise<string> {
   await ensureTasksDir(taskListId)
 
   const id = await generateTaskId(taskListId)
@@ -190,10 +187,7 @@ export async function createTask(
  * Retrieve a task by its ID.
  * Returns null if the task does not exist or cannot be parsed.
  */
-export async function getTask(
-  taskListId: string,
-  taskId: string,
-): Promise<Task | null> {
+export async function getTask(taskListId: string, taskId: string): Promise<Task | null> {
   const path = getTaskPath(taskListId, taskId)
   try {
     const content = await readFile(path, 'utf-8')
@@ -225,11 +219,9 @@ export async function listTasks(taskListId: string): Promise<Task[]> {
   } catch {
     return []
   }
-  const taskIds = files
-    .filter(f => f.endsWith('.json') && !f.startsWith('.'))
-    .map(f => f.replace('.json', ''))
+  const taskIds = files.filter((f) => f.endsWith('.json') && !f.startsWith('.')).map((f) => f.replace('.json', ''))
 
-  const results = await Promise.all(taskIds.map(id => getTask(taskListId, id)))
+  const results = await Promise.all(taskIds.map((id) => getTask(taskListId, id)))
   return results.filter((t): t is Task => t !== null)
 }
 
@@ -237,20 +229,14 @@ export async function listTasks(taskListId: string): Promise<Task[]> {
  * Update an existing task with partial data.
  * Returns the updated task or null if the task does not exist.
  */
-export async function updateTask(
-  taskListId: string,
-  taskId: string,
-  updates: UpdateTaskInput,
-): Promise<Task | null> {
+export async function updateTask(taskListId: string, taskId: string, updates: UpdateTaskInput): Promise<Task | null> {
   const existing = await getTask(taskListId, taskId)
   if (!existing) {
     return null
   }
 
   // Handle metadata merge: merge input metadata into existing metadata
-  let metadata: Record<string, unknown> | undefined = existing.metadata
-    ? { ...existing.metadata }
-    : undefined
+  let metadata: Record<string, unknown> | undefined = existing.metadata ? { ...existing.metadata } : undefined
   if (updates.metadata !== undefined) {
     if (metadata === undefined) {
       metadata = {}
@@ -291,16 +277,13 @@ export async function updateTask(
  * Delete a task by its ID.
  * Returns true if the task was deleted, false if it did not exist.
  */
-export async function deleteTask(
-  taskListId: string,
-  taskId: string,
-): Promise<boolean> {
+export async function deleteTask(taskListId: string, taskId: string): Promise<boolean> {
   const path = getTaskPath(taskListId, taskId)
 
   try {
     // Update high water mark to prevent ID reuse
-    const numericId = parseInt(taskId, 10)
-    if (!isNaN(numericId)) {
+    const numericId = Number.parseInt(taskId, 10)
+    if (!Number.isNaN(numericId)) {
       const currentMark = await readHighWaterMark(taskListId)
       if (numericId > currentMark) {
         await writeHighWaterMark(taskListId, numericId)
@@ -312,12 +295,9 @@ export async function deleteTask(
     // Remove references to this task from other tasks
     const allTasks = await listTasks(taskListId)
     for (const task of allTasks) {
-      const newBlocks = task.blocks.filter(id => id !== taskId)
-      const newBlockedBy = task.blockedBy.filter(id => id !== taskId)
-      if (
-        newBlocks.length !== task.blocks.length ||
-        newBlockedBy.length !== task.blockedBy.length
-      ) {
+      const newBlocks = task.blocks.filter((id) => id !== taskId)
+      const newBlockedBy = task.blockedBy.filter((id) => id !== taskId)
+      if (newBlocks.length !== task.blocks.length || newBlockedBy.length !== task.blockedBy.length) {
         await updateTask(taskListId, task.id, {
           blocks: newBlocks,
           blockedBy: newBlockedBy,
@@ -339,15 +319,8 @@ export async function deleteTask(
  * Set up a dependency: `fromTaskId` blocks `toTaskId`.
  * Returns true if both tasks exist and the relationship was established.
  */
-export async function blockTask(
-  taskListId: string,
-  fromTaskId: string,
-  toTaskId: string,
-): Promise<boolean> {
-  const [fromTask, toTask] = await Promise.all([
-    getTask(taskListId, fromTaskId),
-    getTask(taskListId, toTaskId),
-  ])
+export async function blockTask(taskListId: string, fromTaskId: string, toTaskId: string): Promise<boolean> {
+  const [fromTask, toTask] = await Promise.all([getTask(taskListId, fromTaskId), getTask(taskListId, toTaskId)])
   if (!fromTask || !toTask) {
     return false
   }

@@ -35,9 +35,7 @@ export type FastModeState = z.infer<typeof FastModeStateSchema>
  */
 export const FastModeStateSchema = z
   .enum(['off', 'cooldown', 'on'])
-  .describe(
-    'Fast mode state: off, in cooldown after rate limit, or actively enabled.',
-  )
+  .describe('Fast mode state: off, in cooldown after rate limit, or actively enabled.')
 
 // ============================================================================
 // Helpers

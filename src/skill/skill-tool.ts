@@ -15,7 +15,8 @@ import type { SkillRegistry } from './registry.js'
 
 export class SkillTool extends BaseTool {
   readonly name = 'SkillTool'
-  readonly description = 'Load a skill\'s instructions into the conversation. Call this when you need to execute a specific skill that matches the current task.'
+  readonly description =
+    "Load a skill's instructions into the conversation. Call this when you need to execute a specific skill that matches the current task."
 
   readonly inputSchema = z.object({
     skill_name: z.string().describe('The name of the skill to load'),
@@ -44,7 +45,10 @@ export class SkillTool extends BaseTool {
     const skill = this._registry.get(input.skill_name)
 
     if (!skill) {
-      const available = this._registry.getAll().map((s) => s.name).join(', ')
+      const available = this._registry
+        .getAll()
+        .map((s) => s.name)
+        .join(', ')
       return {
         data: null,
         content: `Error: Skill "${input.skill_name}" not found. Available skills: ${available || '(none)'}`,
@@ -53,11 +57,7 @@ export class SkillTool extends BaseTool {
     }
 
     // Return the full instruction as content — this gets injected into conversation
-    const parts: string[] = [
-      `# Skill: ${skill.name}`,
-      '',
-      skill.instruction,
-    ]
+    const parts: string[] = [`# Skill: ${skill.name}`, '', skill.instruction]
 
     if (skill.allowedTools && skill.allowedTools.length > 0) {
       parts.push('', '## Allowed Tools', '', skill.allowedTools.map((t) => `- ${t}`).join('\n'))

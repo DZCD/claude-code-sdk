@@ -23,8 +23,4 @@ export function normalizeEffortLevel(value: unknown): EffortLevel {
 /**
  * All valid EffortLevel values.
  */
-export const EFFORT_LEVELS: readonly EffortLevel[] = [
-  'low',
-  'medium',
-  'high',
-] as const
+export const EFFORT_LEVELS: readonly EffortLevel[] = ['low', 'medium', 'high'] as const

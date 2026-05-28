@@ -86,7 +86,7 @@ describe('FastModeState — type safety', () => {
 
   it('should have exactly 3 possible values', () => {
     const validValues = ['off', 'cooldown', 'on'] as const
-    const allPass = validValues.every(v => FastModeStateSchema.safeParse(v).success)
+    const allPass = validValues.every((v) => FastModeStateSchema.safeParse(v).success)
     expect(allPass).toBe(true)
   })
 
@@ -131,21 +131,21 @@ describe('FastModeState — state transitions', () => {
   }
 
   it('should validate allowed transitions from off', () => {
-    VALID_TRANSITIONS.off.forEach(target => {
+    VALID_TRANSITIONS.off.forEach((target) => {
       const result = FastModeStateSchema.safeParse(target)
       expect(result.success).toBe(true)
     })
   })
 
   it('should validate allowed transitions from cooldown', () => {
-    VALID_TRANSITIONS.cooldown.forEach(target => {
+    VALID_TRANSITIONS.cooldown.forEach((target) => {
       const result = FastModeStateSchema.safeParse(target)
       expect(result.success).toBe(true)
     })
   })
 
   it('should validate allowed transitions from on', () => {
-    VALID_TRANSITIONS.on.forEach(target => {
+    VALID_TRANSITIONS.on.forEach((target) => {
       const result = FastModeStateSchema.safeParse(target)
       expect(result.success).toBe(true)
     })
@@ -153,7 +153,7 @@ describe('FastModeState — state transitions', () => {
 
   it('should support full lifecycle: off → on → cooldown → off', () => {
     const lifecycle: FastModeState[] = ['off', 'on', 'cooldown', 'off']
-    lifecycle.forEach(state => {
+    lifecycle.forEach((state) => {
       const result = FastModeStateSchema.safeParse(state)
       expect(result.success).toBe(true)
     })
