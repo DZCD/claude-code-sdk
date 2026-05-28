@@ -16,16 +16,16 @@ import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { describe, expect, it, beforeAll, afterAll, vi } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
-import { ClaudeCodeSDK } from '../../session/engine.js'
-import { createTool } from '../../tools/base.js'
 import { HookSystem } from '../../hooks/index.js'
 import { HookRegistry } from '../../hooks/registry.js'
-import { enableDebugLogging, logForDebugging, resetDebugCaches } from '../../logging/index.js'
-import { isInCooldown, clearCooldown } from '../../rate-limit/index.js'
 import type { StreamEvent } from '../../llm/types.js'
+import { enableDebugLogging, logForDebugging, resetDebugCaches } from '../../logging/index.js'
+import { clearCooldown, isInCooldown } from '../../rate-limit/index.js'
+import { ClaudeCodeSDK } from '../../session/engine.js'
+import { createTool } from '../../tools/base.js'
 
 // ─── Shared Config ───────────────────────────────────────────
 
@@ -80,9 +80,7 @@ describe('1. SDK Full Lifecycle', () => {
 
     // 验证初始化
     expect(sdk).toBeInstanceOf(ClaudeCodeSDK)
-    expect(sdk.getSessionId()).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-    )
+    expect(sdk.getSessionId()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
     expect(sdk.getSessionStatus()).toBe('active')
     expect(sdk.getTurnCount()).toBe(0)
 
@@ -451,12 +449,9 @@ describe('3. Error Recovery', () => {
     try {
       // 通过 llm connector 直接测试 abort
       const llm = sdk.getLLM()
-      const result = llm.send(
-        'test system prompt',
-        [{ role: 'user', content: 'test' }],
-        [],
-        { signal: controller.signal },
-      )
+      const result = llm.send('test system prompt', [{ role: 'user', content: 'test' }], [], {
+        signal: controller.signal,
+      })
 
       let errorReceived = false
       for await (const event of result) {
@@ -715,7 +710,7 @@ describe('5. MCP + Built-in Tools Mixed', () => {
         return { content: [{ type: 'text' as const, text: `Weather in ${args.city}: 22°C, sunny` }] }
       }
       if (name === 'mcp_calculator') {
-        return { content: [{ type: 'text' as const, text: `Result: 42` }] }
+        return { content: [{ type: 'text' as const, text: 'Result: 42' }] }
       }
       return { content: [{ type: 'text' as const, text: 'MCP executed' }] }
     }

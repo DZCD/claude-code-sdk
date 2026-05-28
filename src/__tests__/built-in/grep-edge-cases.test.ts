@@ -72,10 +72,7 @@ describe('GrepTool — Edge Cases', () => {
   // ─── Non-existent Path ──────────────────────────────────
 
   it('should return error for non-existent path', async () => {
-    const result = await tool.execute(
-      { pattern: 'test', path: '/tmp/nonexistent-grep-path-99999' },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: 'test', path: '/tmp/nonexistent-grep-path-99999' }, makeContext())
     expect(result.isError).toBe(true)
     expect(result.content).toContain('does not exist')
   })
@@ -83,10 +80,7 @@ describe('GrepTool — Edge Cases', () => {
   // ─── Single File Search ─────────────────────────────────
 
   it('should search a single file', async () => {
-    const result = await tool.execute(
-      { pattern: 'green', path: join(tmpDir, 'colors.txt') },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: 'green', path: join(tmpDir, 'colors.txt') }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.numMatches).toBe(1)
     expect(result.data.results[0]).toBeDefined()
@@ -95,10 +89,7 @@ describe('GrepTool — Edge Cases', () => {
   })
 
   it('should search a single file with no matches', async () => {
-    const result = await tool.execute(
-      { pattern: 'zzznonexistent', path: join(tmpDir, 'colors.txt') },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: 'zzznonexistent', path: join(tmpDir, 'colors.txt') }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.numMatches).toBe(0)
   })
@@ -106,10 +97,7 @@ describe('GrepTool — Edge Cases', () => {
   // ─── Case-Insensitive Search ────────────────────────────
 
   it('should find case-insensitive matches with -i flag', async () => {
-    const result = await tool.execute(
-      { pattern: 'red', path: tmpDir, '-i': true },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: 'red', path: tmpDir, '-i': true }, makeContext())
     expect(result.isError).toBeFalsy()
     // Should find 'red' in colors.txt AND 'Red1' in mix.txt
     expect(result.data.numMatches).toBeGreaterThanOrEqual(2)
@@ -118,20 +106,14 @@ describe('GrepTool — Edge Cases', () => {
   // ─── Glob Filtering ─────────────────────────────────────
 
   it('should filter by glob pattern for directory search', async () => {
-    const result = await tool.execute(
-      { pattern: 'deep', path: tmpDir, glob: '*.js' },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: 'deep', path: tmpDir, glob: '*.js' }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.numMatches).toBeGreaterThan(0)
     expect(result.data.results.every((r) => r.file.endsWith('.js'))).toBe(true)
   })
 
   it('should return empty when glob filter excludes all files', async () => {
-    const result = await tool.execute(
-      { pattern: 'red', path: tmpDir, glob: '*.xyz' },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: 'red', path: tmpDir, glob: '*.xyz' }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.numMatches).toBe(0)
   })
@@ -139,10 +121,7 @@ describe('GrepTool — Edge Cases', () => {
   // ─── Empty File ─────────────────────────────────────────
 
   it('should return empty results for empty file', async () => {
-    const result = await tool.execute(
-      { pattern: '.', path: join(tmpDir, 'empty.txt') },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: '.', path: join(tmpDir, 'empty.txt') }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.numMatches).toBe(0)
   })
@@ -150,19 +129,13 @@ describe('GrepTool — Edge Cases', () => {
   // ─── Large File ─────────────────────────────────────────
 
   it('should handle large files without issues', async () => {
-    const result = await tool.execute(
-      { pattern: 'content', path: join(tmpDir, 'large.txt') },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: 'content', path: join(tmpDir, 'large.txt') }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.numMatches).toBe(2000) // All 2000 lines contain "content"
   })
 
   it('should cap results at 1000 for directory search', async () => {
-    const result = await tool.execute(
-      { pattern: 'content', path: tmpDir },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: 'content', path: tmpDir }, makeContext())
     expect(result.isError).toBeFalsy()
     // Should find matches in large.txt (2000) but cap at 1000
     expect(result.data.numMatches).toBeLessThanOrEqual(1000)
@@ -174,10 +147,7 @@ describe('GrepTool — Edge Cases', () => {
     // The special.txt contains: a+b*c?d(e)f[g]{h}
     // Use . to match each char individually - the full string is 17 chars
     // a+b*c?d(e)f[g]{h} (positions 0-16)
-    const result = await tool.execute(
-      { pattern: 'a.b.c.d.e.f.g.', path: join(tmpDir, 'special.txt') },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: 'a.b.c.d.e.f.g.', path: join(tmpDir, 'special.txt') }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.numMatches).toBe(1)
   })
@@ -194,10 +164,7 @@ describe('GrepTool — Edge Cases', () => {
   // ─── Multiple Files Search ──────────────────────────────
 
   it('should search across multiple files in a directory', async () => {
-    const result = await tool.execute(
-      { pattern: '^(red|one|const)', path: tmpDir },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: '^(red|one|const)', path: tmpDir }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.numMatches).toBeGreaterThanOrEqual(3)
   })
@@ -227,19 +194,13 @@ describe('GrepTool — Edge Cases', () => {
   // ─── Content Preview Formatting ────────────────────────
 
   it('should format content preview with file:line:content format for matches', async () => {
-    const result = await tool.execute(
-      { pattern: 'green', path: join(tmpDir, 'colors.txt') },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: 'green', path: join(tmpDir, 'colors.txt') }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.content).toContain('Found 1 match(es)')
   })
 
   it('should show "No matches found" when no results', async () => {
-    const result = await tool.execute(
-      { pattern: 'zzznonexistentpattern', path: tmpDir },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: 'zzznonexistentpattern', path: tmpDir }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.content).toContain('No matches found')
   })

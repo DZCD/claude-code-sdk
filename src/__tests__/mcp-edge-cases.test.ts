@@ -35,7 +35,11 @@ describe('MCPServerManager — Connection Failure', () => {
     // Inject a mix of "good" and "bad" servers via internal state
     const goodServer = {
       config: { name: 'good-server', type: 'stdio' as const, commandOrUrl: 'echo' },
-      client: { getServerCapabilities: () => ({ tools: true }), listTools: async () => ({ tools: [] }), callTool: vi.fn() },
+      client: {
+        getServerCapabilities: () => ({ tools: true }),
+        listTools: async () => ({ tools: [] }),
+        callTool: vi.fn(),
+      },
       tools: [],
       connection: { serverName: 'good-server', tools: [], capabilities: ['tools'] },
     }
@@ -66,16 +70,15 @@ describe('MCPServerManager — Multi-Server', () => {
     const serverA = {
       config: { name: 'server-a', type: 'stdio' as const, commandOrUrl: 'echo' },
       client: {},
-      tools: [toolA].map(t => adaptMCPTool(t, vi.fn())),
+      tools: [toolA].map((t) => adaptMCPTool(t, vi.fn())),
       connection: { serverName: 'server-a', tools: [toolA], capabilities: ['tools'] },
     }
     const serverB = {
       config: { name: 'server-b', type: 'stdio' as const, commandOrUrl: 'echo' },
       client: {},
-      tools: [toolB].map(t => adaptMCPTool(t, vi.fn())),
+      tools: [toolB].map((t) => adaptMCPTool(t, vi.fn())),
       connection: { serverName: 'server-b', tools: [toolB], capabilities: ['tools'] },
     }
-
     ;(manager as any)._servers.set('server-a', serverA)
     ;(manager as any)._servers.set('server-b', serverB)
     ;(manager as any)._connected = true
@@ -83,7 +86,9 @@ describe('MCPServerManager — Multi-Server', () => {
     const registered = new Set<string>()
     const registry = {
       has: (name: string) => registered.has(name),
-      register: (tool: any) => { registered.add(tool.name) },
+      register: (tool: any) => {
+        registered.add(tool.name)
+      },
     } as unknown as ToolRegistry
 
     const count = manager.registerAllTools(registry)
@@ -107,15 +112,14 @@ describe('MCPServerManager — Multi-Server', () => {
       tools: [adaptMCPTool({ name: 'tool-b', inputSchema: { type: 'object' } }, vi.fn())],
       connection: { serverName: 'server-b', tools: [{ name: 'tool-b' }], capabilities: ['tools'] },
     }
-
     ;(manager as any)._servers.set('server-a', serverA)
     ;(manager as any)._servers.set('server-b', serverB)
     ;(manager as any)._connected = true
 
     const all = manager.getAllTools()
     expect(all).toHaveLength(2)
-    expect(all.map(t => t.name)).toContain('tool-a')
-    expect(all.map(t => t.name)).toContain('tool-b')
+    expect(all.map((t) => t.name)).toContain('tool-a')
+    expect(all.map((t) => t.name)).toContain('tool-b')
   })
 })
 
@@ -149,10 +153,7 @@ describe('Tool Adapter — Schema Edge Cases', () => {
     const mcpTool: MCPToolDefinition = {
       name: 'oneof_tool',
       inputSchema: {
-        oneOf: [
-          { type: 'string' },
-          { type: 'integer' },
-        ],
+        oneOf: [{ type: 'string' }, { type: 'integer' }],
       },
     }
 
@@ -170,10 +171,7 @@ describe('Tool Adapter — Schema Edge Cases', () => {
     const mcpTool: MCPToolDefinition = {
       name: 'anyof_tool',
       inputSchema: {
-        anyOf: [
-          { type: 'number' },
-          { type: 'boolean' },
-        ],
+        anyOf: [{ type: 'number' }, { type: 'boolean' }],
       },
     }
 
@@ -347,9 +345,7 @@ describe('MCPServerManager — Tool Filtering', () => {
       toolConfiguration: { enabled: false },
     }
 
-    const tools = [
-      { name: 'some-tool', description: '', inputSchema: { type: 'object' } },
-    ]
+    const tools = [{ name: 'some-tool', description: '', inputSchema: { type: 'object' } }]
 
     const filtered = (manager as any)._filterTools(config, tools)
     expect(filtered).toEqual([])

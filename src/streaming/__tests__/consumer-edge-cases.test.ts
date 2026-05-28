@@ -92,9 +92,7 @@ describe('streamToBlocks — Abnormal Input', () => {
   })
 
   it('should handle stream that errors immediately', async () => {
-    const stream = mockStream([
-      { type: 'error', error: new Error('Immediate failure') },
-    ])
+    const stream = mockStream([{ type: 'error', error: new Error('Immediate failure') }])
 
     const text = await collect(streamToText(stream))
     expect(text).toEqual([])
@@ -228,9 +226,7 @@ describe('StreamConsumer — Edge Cases', () => {
   })
 
   it('should consume stream with only done event', async () => {
-    const consumer = new StreamConsumer(
-      mockStream([{ type: 'done', usage: { inputTokens: 0, outputTokens: 0 } }]),
-    )
+    const consumer = new StreamConsumer(mockStream([{ type: 'done', usage: { inputTokens: 0, outputTokens: 0 } }]))
     await expect(consumer.consume()).resolves.toBeUndefined()
   })
 
@@ -285,11 +281,7 @@ describe('StreamConsumer — Edge Cases', () => {
 
   it('should handle unsubscribe for onEvent', async () => {
     const handler = vi.fn()
-    const consumer = new StreamConsumer(
-      mockStream([
-        { type: 'done', usage: { inputTokens: 0, outputTokens: 0 } },
-      ]),
-    )
+    const consumer = new StreamConsumer(mockStream([{ type: 'done', usage: { inputTokens: 0, outputTokens: 0 } }]))
 
     const unsub = consumer.onEvent(handler)
     unsub()

@@ -14,12 +14,12 @@ import { existsSync } from 'node:fs'
 import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { z } from 'zod'
 import type { LLMConnector, StreamEvent, TokenUsage } from '../llm/types.js'
 import { AttributionManager } from '../session/attribution.js'
 import { ClaudeCodeSDK } from '../session/engine.js'
 import { SessionPersistence, type SessionSnapshot } from '../session/persistence.js'
 import { createTool } from '../tools/base.js'
-import { z } from 'zod'
 
 // ─── Mock LLM ─────────────────────────────────────────────
 
@@ -510,13 +510,17 @@ describe('Persistence — Full Roundtrip with Attribution', () => {
         createdAt: new Date().toISOString(),
       },
     ]
-    const snapshot = persistence.buildSnapshot(messages, { inputTokens: 10, outputTokens: 5 }, {
-      id: 'meta-test',
-      label: 'Metadata Test',
-      tags: ['unit', 'test'],
-      modelName: 'deepseek-v4-flash',
-      systemPrompt: 'You are Claude',
-    })
+    const snapshot = persistence.buildSnapshot(
+      messages,
+      { inputTokens: 10, outputTokens: 5 },
+      {
+        id: 'meta-test',
+        label: 'Metadata Test',
+        tags: ['unit', 'test'],
+        modelName: 'deepseek-v4-flash',
+        systemPrompt: 'You are Claude',
+      },
+    )
 
     const sessionId = await persistence.save(snapshot)
     const loaded = await persistence.load(sessionId)
@@ -582,8 +586,12 @@ describe('Session Config — Boundary Values', () => {
   })
 
   describe('timeout / idleTimeout', () => {
-    beforeEach(() => { vi.useFakeTimers() })
-    afterEach(() => { vi.useRealTimers() })
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
 
     it('should enforce timeout = 1ms (minimum positive)', async () => {
       const sdk = new ClaudeCodeSDK({
@@ -697,11 +705,15 @@ describe('Persistence — Static loadSession comprehensive', () => {
       { id: 'm1', role: 'user' as const, content: 'Hello', createdAt: new Date().toISOString() },
       { id: 'm2', role: 'assistant' as const, content: 'Hi there!', createdAt: new Date().toISOString() },
     ]
-    const snapshot = p.buildSnapshot(messages as any, { inputTokens: 10, outputTokens: 5 }, {
-      id: 'restore-me',
-      label: 'Restore Test',
-      tags: ['test'],
-    })
+    const snapshot = p.buildSnapshot(
+      messages as any,
+      { inputTokens: 10, outputTokens: 5 },
+      {
+        id: 'restore-me',
+        label: 'Restore Test',
+        tags: ['test'],
+      },
+    )
     snapshot.attribution = {
       totalTurns: 1,
       userMessageCount: 1,
@@ -723,14 +735,16 @@ describe('Persistence — Static loadSession comprehensive', () => {
 
   it('should attribute snapshot metadata in load result', async () => {
     const p = new SessionPersistence(TEST_LOAD_DIR)
-    const messages = [
-      { id: 'm1', role: 'user' as const, content: 'Test', createdAt: new Date().toISOString() },
-    ]
-    const snapshot = p.buildSnapshot(messages as any, { inputTokens: 5, outputTokens: 3 }, {
-      id: 'meta-restore',
-      label: 'Meta',
-      modelName: 'deepseek-v4-flash',
-    })
+    const messages = [{ id: 'm1', role: 'user' as const, content: 'Test', createdAt: new Date().toISOString() }]
+    const snapshot = p.buildSnapshot(
+      messages as any,
+      { inputTokens: 5, outputTokens: 3 },
+      {
+        id: 'meta-restore',
+        label: 'Meta',
+        modelName: 'deepseek-v4-flash',
+      },
+    )
     await p.save(snapshot)
 
     const result = await ClaudeCodeSDK.loadSession('meta-restore', {
@@ -793,7 +807,9 @@ describe('Session — Full Lifecycle with Mock', () => {
     await sdk.send('send1')
     expect(sdk.getTurnCount()).toBe(1)
 
-    for await (const _ of sdk.stream('stream1')) { /* drain */ }
+    for await (const _ of sdk.stream('stream1')) {
+      /* drain */
+    }
     expect(sdk.getTurnCount()).toBe(2)
 
     await sdk.send('send2')

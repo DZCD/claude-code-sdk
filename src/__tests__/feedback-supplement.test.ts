@@ -55,9 +55,7 @@ describe('FeedbackInjector — Three Mode Verification', () => {
         { id: 't1', name: 'read', input: { path: '/file.txt' }, result: 'Content', isError: false },
         { id: 't2', name: 'write', input: { path: '/out.txt', content: 'data' }, result: 'Written', isError: true },
       ],
-      messages: [
-        { id: 'm1', role: 'user', content: 'Do something', createdAt: '2026-01-01T00:00:00Z' },
-      ],
+      messages: [{ id: 'm1', role: 'user', content: 'Do something', createdAt: '2026-01-01T00:00:00Z' }],
     }
 
     await injector.waitForFeedback(ctx)
@@ -79,9 +77,7 @@ describe('FeedbackInjector — Three Mode Verification', () => {
 
   it('auto mode — getAutoFeedback returns null when no tools fail', () => {
     const injector = new FeedbackInjector({ mode: 'auto' })
-    const result = injector.getAutoFeedback([
-      { id: 't1', name: 'ls', input: {}, result: 'files', isError: false },
-    ])
+    const result = injector.getAutoFeedback([{ id: 't1', name: 'ls', input: {}, result: 'files', isError: false }])
     expect(result).toBeNull()
   })
 })
@@ -99,9 +95,7 @@ describe('FeedbackInjector — Context Injection Edge Cases', () => {
 
   it('should apply feedback where toolOverrides have no match and text is present (no note)', () => {
     const injector = new FeedbackInjector({ mode: 'manual' })
-    const messages = [
-      { id: 'm1', role: 'user' as const, content: 'Original', createdAt: '2026-01-01T00:00:00Z' },
-    ]
+    const messages = [{ id: 'm1', role: 'user' as const, content: 'Original', createdAt: '2026-01-01T00:00:00Z' }]
     const result = injector.applyFeedback(messages, {
       text: 'Correction text',
       toolOverrides: [{ toolUseId: 'unknown-id', correctedResult: 'fixed' }],
@@ -115,7 +109,10 @@ describe('FeedbackInjector — Context Injection Edge Cases', () => {
     const injector = new FeedbackInjector({ mode: 'manual' })
     const messages = [
       {
-        id: 'm1', role: 'user' as const, content: 'Original result', createdAt: '2026-01-01T00:00:00Z',
+        id: 'm1',
+        role: 'user' as const,
+        content: 'Original result',
+        createdAt: '2026-01-01T00:00:00Z',
         _toolUseId: 't1',
       },
     ]
@@ -135,9 +132,7 @@ describe('FeedbackInjector — Context Injection Edge Cases', () => {
 
   it('should handle toolOverrides with empty array', () => {
     const injector = new FeedbackInjector({ mode: 'manual' })
-    const messages = [
-      { id: 'm1', role: 'user' as const, content: 'Hello', createdAt: '2026-01-01T00:00:00Z' },
-    ]
+    const messages = [{ id: 'm1', role: 'user' as const, content: 'Hello', createdAt: '2026-01-01T00:00:00Z' }]
     const result = injector.applyFeedback(messages, {
       text: 'Correction',
       toolOverrides: [],
@@ -148,9 +143,7 @@ describe('FeedbackInjector — Context Injection Edge Cases', () => {
 
   it('should not modify original messages array', () => {
     const injector = new FeedbackInjector({ mode: 'manual' })
-    const messages = [
-      { id: 'm1', role: 'user' as const, content: 'Hello', createdAt: '2026-01-01T00:00:00Z' },
-    ]
+    const messages = [{ id: 'm1', role: 'user' as const, content: 'Hello', createdAt: '2026-01-01T00:00:00Z' }]
     const originalLength = messages.length
     injector.applyFeedback(messages, { text: 'Feedback' })
     // Original array should not have been modified
@@ -159,9 +152,7 @@ describe('FeedbackInjector — Context Injection Edge Cases', () => {
 
   it('should handle FeedbackInput with empty text string', () => {
     const injector = new FeedbackInjector({ mode: 'manual' })
-    const messages = [
-      { id: 'm1', role: 'user' as const, content: 'Hello', createdAt: '2026-01-01T00:00:00Z' },
-    ]
+    const messages = [{ id: 'm1', role: 'user' as const, content: 'Hello', createdAt: '2026-01-01T00:00:00Z' }]
     const result = injector.applyFeedback(messages, { text: '' })
     // Empty string is truthy in terms of existence... actually '' is falsy
     // But the code checks if (input.text) which is false for empty string

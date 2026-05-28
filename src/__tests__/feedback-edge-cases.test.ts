@@ -67,7 +67,10 @@ describe('FeedbackInjector — Injection Timing', () => {
     const messages = [
       { id: 'm1', role: 'user' as const, content: 'Do it', createdAt: '2026-01-01T00:00:00Z' },
       {
-        id: 'm2', role: 'user' as const, content: 'Result A', createdAt: '2026-01-01T00:00:01Z',
+        id: 'm2',
+        role: 'user' as const,
+        content: 'Result A',
+        createdAt: '2026-01-01T00:00:01Z',
         _toolUseId: 'tool-a',
       },
     ]
@@ -92,15 +95,11 @@ describe('FeedbackInjector — Injection Timing', () => {
   it('should only add override note when toolOverrides have unmatched items and no text', () => {
     const injector = new FeedbackInjector({ mode: 'manual' })
 
-    const messages = [
-      { id: 'm1', role: 'user' as const, content: 'Hi', createdAt: '2026-01-01T00:00:00Z' },
-    ]
+    const messages = [{ id: 'm1', role: 'user' as const, content: 'Hi', createdAt: '2026-01-01T00:00:00Z' }]
 
     // All unmatched, no text
     const result = injector.applyFeedback(messages, {
-      toolOverrides: [
-        { toolUseId: 't1', correctedResult: 'fixed' },
-      ],
+      toolOverrides: [{ toolUseId: 't1', correctedResult: 'fixed' }],
     })
 
     expect(result).toHaveLength(2)
@@ -113,15 +112,16 @@ describe('FeedbackInjector — Injection Timing', () => {
 
     const messages = [
       {
-        id: 'm1', role: 'user' as const, content: 'Result 1', createdAt: '2026-01-01T00:00:00Z',
+        id: 'm1',
+        role: 'user' as const,
+        content: 'Result 1',
+        createdAt: '2026-01-01T00:00:00Z',
         _toolUseId: 't1',
       },
     ]
 
     const result = injector.applyFeedback(messages, {
-      toolOverrides: [
-        { toolUseId: 't1', correctedResult: 'fixed' },
-      ],
+      toolOverrides: [{ toolUseId: 't1', correctedResult: 'fixed' }],
     })
 
     // t1 matched, all matched, no text → no extra note added
@@ -132,15 +132,11 @@ describe('FeedbackInjector — Injection Timing', () => {
   it('should NOT add override note when text is also provided (even with unmatched)', () => {
     const injector = new FeedbackInjector({ mode: 'manual' })
 
-    const messages = [
-      { id: 'm1', role: 'user' as const, content: 'Hi', createdAt: '2026-01-01T00:00:00Z' },
-    ]
+    const messages = [{ id: 'm1', role: 'user' as const, content: 'Hi', createdAt: '2026-01-01T00:00:00Z' }]
 
     const result = injector.applyFeedback(messages, {
       text: 'User correction',
-      toolOverrides: [
-        { toolUseId: 't1', correctedResult: 'fixed' },
-      ],
+      toolOverrides: [{ toolUseId: 't1', correctedResult: 'fixed' }],
     })
 
     // Should have 2: original + text correction (no note because text is present)
@@ -245,11 +241,17 @@ describe('FeedbackInjector — Multiple Overrides', () => {
     const injector = new FeedbackInjector({ mode: 'manual' })
     const messages = [
       {
-        id: 'm1', role: 'user' as const, content: 'First', createdAt: '2026-01-01T00:00:00Z',
+        id: 'm1',
+        role: 'user' as const,
+        content: 'First',
+        createdAt: '2026-01-01T00:00:00Z',
         _toolUseId: 't1',
       },
       {
-        id: 'm2', role: 'user' as const, content: 'Second', createdAt: '2026-01-01T00:00:01Z',
+        id: 'm2',
+        role: 'user' as const,
+        content: 'Second',
+        createdAt: '2026-01-01T00:00:01Z',
         _toolUseId: 't2',
       },
     ]
@@ -270,7 +272,10 @@ describe('FeedbackInjector — Multiple Overrides', () => {
     const injector = new FeedbackInjector({ mode: 'manual' })
     const messages = [
       {
-        id: 'm1', role: 'user' as const, content: 'Original', createdAt: '2026-01-01T00:00:00Z',
+        id: 'm1',
+        role: 'user' as const,
+        content: 'Original',
+        createdAt: '2026-01-01T00:00:00Z',
         _toolUseId: 't1',
       },
     ]

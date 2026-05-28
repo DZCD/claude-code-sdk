@@ -11,8 +11,8 @@
  * @group real-api
  */
 import { describe, expect, it } from 'vitest'
-import { ClaudeCodeSDK } from '../../session/engine.js'
 import type { StreamEvent } from '../../llm/types.js'
+import { ClaudeCodeSDK } from '../../session/engine.js'
 
 // ─── DeepSeek API Config ─────────────────────────────────
 
@@ -59,7 +59,9 @@ describe('Session Engine E2E — DeepSeek API', () => {
       expect(response.usage.outputTokens).toBeGreaterThan(0)
       expect(sdk.getTurnCount()).toBe(1)
 
-      console.log(`[E2E-send] Turn: ${sdk.getTurnCount()}, in: ${response.usage.inputTokens}, out: ${response.usage.outputTokens}`)
+      console.log(
+        `[E2E-send] Turn: ${sdk.getTurnCount()}, in: ${response.usage.inputTokens}, out: ${response.usage.outputTokens}`,
+      )
     }, 60_000)
 
     it('should start with empty toolCalls for plain chat', async () => {
@@ -182,18 +184,24 @@ describe('Session Engine E2E — DeepSeek API', () => {
 
       // Before any messages
       let stats = sdk.getAttributionStats()!
-      console.log(`[E2E-attr] Initial: turns=${stats.totalTurns}, user=${stats.userMessageCount}, asst=${stats.assistantMessageCount}`)
+      console.log(
+        `[E2E-attr] Initial: turns=${stats.totalTurns}, user=${stats.userMessageCount}, asst=${stats.assistantMessageCount}`,
+      )
 
       await sdk.send('Say "Turn one"')
       stats = sdk.getAttributionStats()!
-      console.log(`[E2E-attr] After 1: turns=${stats.totalTurns}, user=${stats.userMessageCount}, asst=${stats.assistantMessageCount}`)
+      console.log(
+        `[E2E-attr] After 1: turns=${stats.totalTurns}, user=${stats.userMessageCount}, asst=${stats.assistantMessageCount}`,
+      )
       expect(stats.totalTurns).toBeGreaterThanOrEqual(1)
       expect(stats.userMessageCount).toBeGreaterThanOrEqual(1)
       expect(stats.assistantMessageCount).toBeGreaterThanOrEqual(1)
 
       await sdk.send('Say "Turn two"')
       stats = sdk.getAttributionStats()!
-      console.log(`[E2E-attr] After 2: turns=${stats.totalTurns}, user=${stats.userMessageCount}, asst=${stats.assistantMessageCount}`)
+      console.log(
+        `[E2E-attr] After 2: turns=${stats.totalTurns}, user=${stats.userMessageCount}, asst=${stats.assistantMessageCount}`,
+      )
       expect(stats.totalTurns).toBeGreaterThanOrEqual(2)
       expect(stats.userMessageCount).toBeGreaterThanOrEqual(2)
       expect(stats.assistantMessageCount).toBeGreaterThanOrEqual(2)
@@ -207,8 +215,7 @@ describe('Session Engine E2E — DeepSeek API', () => {
       const stats = sdk.getAttributionStats()!
       expect(() => new Date(stats.startTime)).not.toThrow()
       expect(() => new Date(stats.lastActivityTime)).not.toThrow()
-      expect(new Date(stats.lastActivityTime).getTime())
-        .toBeGreaterThanOrEqual(new Date(stats.startTime).getTime())
+      expect(new Date(stats.lastActivityTime).getTime()).toBeGreaterThanOrEqual(new Date(stats.startTime).getTime())
     }, 60_000)
   })
 
@@ -261,7 +268,7 @@ describe('Session Engine E2E — DeepSeek API', () => {
         const response = await sdk.send(`Reply with the word "Turn${i}" only`)
         expect(response.content.length).toBeGreaterThan(0)
         console.log(`[E2E-rapid] Turn ${i}: ${response.content.slice(0, 40)}`)
-        await new Promise(r => setTimeout(r, 500))
+        await new Promise((r) => setTimeout(r, 500))
       }
     }, 180_000)
   })

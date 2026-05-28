@@ -10,9 +10,9 @@
  * @requires DEEPSEEK_API_KEY
  */
 import { describe, expect, it } from 'vitest'
-import { ClaudeCodeSDK } from '../../session/engine.js'
 import { AnthropicConnector } from '../../llm/client.js'
 import type { LLMConfig, StreamEvent } from '../../llm/types.js'
+import { ClaudeCodeSDK } from '../../session/engine.js'
 
 const DEEPSEEK_API_KEY = 'sk-af3a84b5661b44f5b5695b47cb39dcd2'
 const BASE_URL = 'https://api.deepseek.com/anthropic'
@@ -39,7 +39,9 @@ describe('LLM Connection — DeepSeek Real API', () => {
     expect(response.usage).toBeDefined()
     expect(response.usage.inputTokens).toBeGreaterThan(0)
     expect(response.usage.outputTokens).toBeGreaterThan(0)
-    console.log(`[llm-connection] Input tokens: ${response.usage.inputTokens}, Output tokens: ${response.usage.outputTokens}`)
+    console.log(
+      `[llm-connection] Input tokens: ${response.usage.inputTokens}, Output tokens: ${response.usage.outputTokens}`,
+    )
     console.log(`[llm-connection] Response: "${response.content.slice(0, 100)}..."`)
   }, 60_000)
 
@@ -138,8 +140,12 @@ describe('LLM Connection — DeepSeek Real API', () => {
     expect(postStreamUsage.inputTokens).toBe(streamUsage!.inputTokens)
     expect(postStreamUsage.outputTokens).toBe(streamUsage!.outputTokens)
 
-    console.log(`[llm-token-consistency] Stream: input=${streamUsage!.inputTokens}, output=${streamUsage!.outputTokens}`)
-    console.log(`[llm-token-consistency] getTokenUsage: input=${postStreamUsage.inputTokens}, output=${postStreamUsage.outputTokens}`)
+    console.log(
+      `[llm-token-consistency] Stream: input=${streamUsage!.inputTokens}, output=${streamUsage!.outputTokens}`,
+    )
+    console.log(
+      `[llm-token-consistency] getTokenUsage: input=${postStreamUsage.inputTokens}, output=${postStreamUsage.outputTokens}`,
+    )
   }, 60_000)
 
   it('should stream events in correct order (text before done)', async () => {
@@ -154,7 +160,7 @@ describe('LLM Connection — DeepSeek Real API', () => {
     expect(eventTypes[eventTypes.length - 1]).toBe('done')
 
     // No error events in normal flow
-    expect(eventTypes.filter(t => t === 'error')).toHaveLength(0)
+    expect(eventTypes.filter((t) => t === 'error')).toHaveLength(0)
 
     console.log(`[llm-event-order] Event types: ${eventTypes.join(' -> ')}`)
   }, 60_000)
@@ -236,7 +242,7 @@ describe('LLM Connection — DeepSeek Real API', () => {
       for await (const event of sdk.stream('Write a long essay about AI safety.', { signal: controller.signal })) {
         eventTypes.push(event.type)
         // Stop early if we start getting meaningful data
-        if (event.type === 'text' && eventTypes.filter(t => t === 'text').length >= 3) {
+        if (event.type === 'text' && eventTypes.filter((t) => t === 'text').length >= 3) {
           controller.abort()
         }
       }
@@ -249,7 +255,9 @@ describe('LLM Connection — DeepSeek Real API', () => {
 
     // We should have collected some events before abort
     expect(eventTypes.length).toBeGreaterThan(0)
-    console.log(`[llm-abort] Events collected before abort: ${eventTypes.length}, types: ${[...new Set(eventTypes)].join(', ')}`)
+    console.log(
+      `[llm-abort] Events collected before abort: ${eventTypes.length}, types: ${[...new Set(eventTypes)].join(', ')}`,
+    )
   }, 60_000)
 
   // ─── 新增: 直接 AnthropicConnector 连通性 ─────────────────
@@ -267,7 +275,11 @@ describe('LLM Connection — DeepSeek Real API', () => {
     expect(connector.provider).toBe('anthropic')
 
     const textChunks: string[] = []
-    for await (const event of connector.send('Reply concisely.', [{ role: 'user', content: 'Say hello in 3 words' }], [])) {
+    for await (const event of connector.send(
+      'Reply concisely.',
+      [{ role: 'user', content: 'Say hello in 3 words' }],
+      [],
+    )) {
       if (event.type === 'text') {
         textChunks.push(event.text)
       }
@@ -301,7 +313,9 @@ explore ways to make these systems more reliable, interpretable, and beneficial 
     const response = await sdk.send(longMessage)
     expect(response.content.length).toBeGreaterThan(0)
     expect(response.usage.inputTokens).toBeGreaterThan(0)
-    console.log(`[llm-long-input] Input tokens: ${response.usage.inputTokens}, Output length: ${response.content.length}`)
+    console.log(
+      `[llm-long-input] Input tokens: ${response.usage.inputTokens}, Output length: ${response.content.length}`,
+    )
   }, 60_000)
 
   it('should handle a stream with multiple events beyond just text and done', async () => {

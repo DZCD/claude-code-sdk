@@ -11,7 +11,7 @@
  * - Hidden directory filtering
  * - Miscellaneous uncovered branches
  */
-import { mkdir, mkdtemp, rm, symlink, writeFile, chmod } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -76,19 +76,13 @@ describe('GlobTool — Edge Cases', () => {
   // ─── Permission Error Handling ──────────────────────────
 
   it('should gracefully handle non-existent directory', async () => {
-    const result = await tool.execute(
-      { pattern: '*.ts', path: '/tmp/nonexistent-glob-path-xyz-99999' },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: '*.ts', path: '/tmp/nonexistent-glob-path-xyz-99999' }, makeContext())
     expect(result.isError).toBe(true)
     expect(result.content).toContain('does not exist')
   })
 
   it('should handle the case where path is a file, not a directory', async () => {
-    const result = await tool.execute(
-      { pattern: '*.ts', path: join(tmpDir, 'deep', 'a', 'file1.ts') },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: '*.ts', path: join(tmpDir, 'deep', 'a', 'file1.ts') }, makeContext())
     expect(result.isError).toBe(true)
     expect(result.content).toContain('Not a directory')
   })
@@ -208,10 +202,7 @@ describe('GlobTool — Edge Cases', () => {
   })
 
   it('should handle pattern with regex special characters like +', async () => {
-    const result = await tool.execute(
-      { pattern: 'file+*.txt', path: tmpDir },
-      makeContext(),
-    )
+    const result = await tool.execute({ pattern: 'file+*.txt', path: tmpDir }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.files).toContain('file+plus.txt')
   })

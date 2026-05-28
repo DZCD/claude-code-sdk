@@ -13,11 +13,11 @@ import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { LLMConnector, StreamEvent } from '../llm/types.js'
+import { AttributionManager } from '../session/attribution.js'
 import { ClaudeCodeSDK } from '../session/engine.js'
-import { type Message, createUserMessage } from '../types/message.js'
 import type { SessionSnapshot } from '../session/persistence.js'
 import { SessionPersistence } from '../session/persistence.js'
-import { AttributionManager } from '../session/attribution.js'
+import { type Message, createUserMessage } from '../types/message.js'
 
 // ─── Mock LLM Helpers ────────────────────────────────────
 
@@ -367,9 +367,7 @@ describe('AttributionManager — Edge Cases', () => {
       }
       // Each subsequent timestamp should be >= previous
       for (let i = 1; i < timestamps.length; i++) {
-        expect(new Date(timestamps[i]).getTime()).toBeGreaterThanOrEqual(
-          new Date(timestamps[i - 1]).getTime(),
-        )
+        expect(new Date(timestamps[i]).getTime()).toBeGreaterThanOrEqual(new Date(timestamps[i - 1]).getTime())
       }
     })
   })
@@ -453,9 +451,7 @@ describe('SessionPersistence — IO Error Handling', () => {
       updatedAt: new Date().toISOString(),
       messageCount: 1,
       tokenUsage: { inputTokens: 10, outputTokens: 5 },
-      messages: [
-        { id: 'msg-1', role: 'user', content: 'Hello', createdAt: new Date().toISOString() },
-      ],
+      messages: [{ id: 'msg-1', role: 'user', content: 'Hello', createdAt: new Date().toISOString() }],
       metadata: { id, label: 'Test' },
     }
   }
@@ -592,31 +588,25 @@ describe('SessionPersistence — IO Error Handling', () => {
 describe('ClaudeCodeSDK Persistence — Config Missing', () => {
   it('should throw when saveSession is called without storageDir', async () => {
     const sdk = createMinimalSDK()
-    await expect(sdk.saveSession()).rejects.toThrow(
-      'Session persistence is not configured',
-    )
+    await expect(sdk.saveSession()).rejects.toThrow('Session persistence is not configured')
   })
 
   it('should throw when listSavedSessions is called without storageDir', async () => {
     const sdk = createMinimalSDK()
-    await expect(sdk.listSavedSessions()).rejects.toThrow(
-      'Session persistence is not configured',
-    )
+    await expect(sdk.listSavedSessions()).rejects.toThrow('Session persistence is not configured')
   })
 
   it('should throw when deleteSession is called without storageDir', async () => {
     const sdk = createMinimalSDK()
-    await expect(sdk.deleteSession('any-id')).rejects.toThrow(
-      'Session persistence is not configured',
-    )
+    await expect(sdk.deleteSession('any-id')).rejects.toThrow('Session persistence is not configured')
   })
 
   it('should return null from static loadSession without storageDir', async () => {
     const config = {
       llm: { provider: 'anthropic' as const, apiKey: 'sk-test', model: 'test-model' },
     }
-    await expect(
-      ClaudeCodeSDK.loadSession('any-id', config),
-    ).rejects.toThrow('Session persistence requires session.storageDir')
+    await expect(ClaudeCodeSDK.loadSession('any-id', config)).rejects.toThrow(
+      'Session persistence requires session.storageDir',
+    )
   })
 })

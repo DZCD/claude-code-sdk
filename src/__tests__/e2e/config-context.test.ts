@@ -152,7 +152,9 @@ describe('Config & Context Integration — Real API', () => {
     afterAll(() => {
       try {
         execSync(`rm -rf ${gitRepoDir}`, { timeout: 5000 })
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     })
 
     it('should build context with real git repo status', async () => {
@@ -206,7 +208,11 @@ describe('Config & Context Integration — Real API', () => {
         // Outside git repo, no context should be produced
         expect(context).toBe('')
       } finally {
-        try { execSync(`rm -rf ${nonGitDir}`, { timeout: 5000 }) } catch { /* ignore */ }
+        try {
+          execSync(`rm -rf ${nonGitDir}`, { timeout: 5000 })
+        } catch {
+          /* ignore */
+        }
       }
     })
   })
@@ -231,7 +237,11 @@ describe('Config & Context Integration — Real API', () => {
     })
 
     afterAll(() => {
-      try { execSync(`rm -rf ${testDir}`, { timeout: 5000 }) } catch { /* ignore */ }
+      try {
+        execSync(`rm -rf ${testDir}`, { timeout: 5000 })
+      } catch {
+        /* ignore */
+      }
     })
 
     it('should merge file + env + cliArgs with correct priority order', async () => {
@@ -293,7 +303,11 @@ describe('Config & Context Integration — Real API', () => {
     const testDir = mkdtempSync(join(tmpdir(), 'e2e-env-pri-'))
 
     afterAll(() => {
-      try { execSync(`rm -rf ${testDir}`, { timeout: 5000 }) } catch { /* ignore */ }
+      try {
+        execSync(`rm -rf ${testDir}`, { timeout: 5000 })
+      } catch {
+        /* ignore */
+      }
     })
 
     it('should allow env ANTHROPIC_API_KEY to set anthropic provider', async () => {
@@ -313,9 +327,9 @@ describe('Config & Context Integration — Real API', () => {
       if (savedKey !== undefined) {
         process.env.ANTHROPIC_API_KEY = savedKey
       } else {
-        delete process.env.ANTHROPIC_API_KEY
+        process.env.ANTHROPIC_API_KEY = undefined
       }
-      delete process.env.ANTHROPIC_MODEL
+      process.env.ANTHROPIC_MODEL = undefined
     })
 
     it('should prioritize cliArgs over env in loadFromSources', async () => {
@@ -363,9 +377,21 @@ describe('Config & Context Integration — Real API', () => {
       }
 
       // Restore
-      if (savedAccessKey !== undefined) { process.env.AWS_ACCESS_KEY_ID = savedAccessKey } else { delete process.env.AWS_ACCESS_KEY_ID }
-      if (savedSecretKey !== undefined) { process.env.AWS_SECRET_ACCESS_KEY = savedSecretKey } else { delete process.env.AWS_SECRET_ACCESS_KEY }
-      if (savedRegion !== undefined) { process.env.AWS_REGION = savedRegion } else { delete process.env.AWS_REGION }
+      if (savedAccessKey !== undefined) {
+        process.env.AWS_ACCESS_KEY_ID = savedAccessKey
+      } else {
+        process.env.AWS_ACCESS_KEY_ID = undefined
+      }
+      if (savedSecretKey !== undefined) {
+        process.env.AWS_SECRET_ACCESS_KEY = savedSecretKey
+      } else {
+        process.env.AWS_SECRET_ACCESS_KEY = undefined
+      }
+      if (savedRegion !== undefined) {
+        process.env.AWS_REGION = savedRegion
+      } else {
+        process.env.AWS_REGION = undefined
+      }
     })
   })
 
@@ -423,7 +449,11 @@ describe('Config & Context Integration — Real API', () => {
     })
 
     afterAll(() => {
-      try { execSync(`rm -rf ${testDir}`, { timeout: 5000 }) } catch { /* ignore */ }
+      try {
+        execSync(`rm -rf ${testDir}`, { timeout: 5000 })
+      } catch {
+        /* ignore */
+      }
     })
 
     it('should trigger change event when config file is externally modified', async () => {
@@ -467,7 +497,9 @@ describe('Config & Context Integration — Real API', () => {
       cm.loadFromFile(configPath)
 
       const events: string[] = []
-      cm.onDidChange((event) => { events.push(event.key) })
+      cm.onDidChange((event) => {
+        events.push(event.key)
+      })
 
       cm.update({ permissionMode: 'plan', defaultTools: false })
 
@@ -512,7 +544,9 @@ describe('Config & Context Integration — Real API', () => {
       expect(beforeReset.outputTokens).toBeGreaterThan(0)
       expect(afterReset.outputTokens).toBeGreaterThan(0)
 
-      console.log(`[config-context] Before reset - Input: ${beforeReset.inputTokens}, Output: ${beforeReset.outputTokens}`)
+      console.log(
+        `[config-context] Before reset - Input: ${beforeReset.inputTokens}, Output: ${beforeReset.outputTokens}`,
+      )
       console.log(`[config-context] After reset - Input: ${afterReset.inputTokens}, Output: ${afterReset.outputTokens}`)
     }, 120_000)
 
@@ -540,7 +574,9 @@ describe('Config & Context Integration — Real API', () => {
       // Simulate what estimateContextTokens would see
       // The SDK internally tracks messages — verify the last response has good output
       expect(response.content.length).toBeGreaterThan(0)
-      console.log(`[config-context] Response tokens - Input: ${response.usage.inputTokens}, Output: ${response.usage.outputTokens}`)
+      console.log(
+        `[config-context] Response tokens - Input: ${response.usage.inputTokens}, Output: ${response.usage.outputTokens}`,
+      )
     }, 60_000)
   })
 })

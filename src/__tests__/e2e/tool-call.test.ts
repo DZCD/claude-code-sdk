@@ -27,10 +27,7 @@ const sdkConfig = {
 }
 
 // Helper to create SDK with tools and send a message
-async function sendWithTools(
-  message: string,
-  ...tools: Array<ReturnType<typeof createTool>>
-) {
+async function sendWithTools(message: string, ...tools: Array<ReturnType<typeof createTool>>) {
   const sdk = ClaudeCodeSDK.create(sdkConfig)
   for (const tool of tools) {
     sdk.use(tool)
@@ -89,7 +86,7 @@ describe('Tool Call — Real API', () => {
     console.log(`[tool-call-bash] Content: "${response.content.slice(0, 200)}"`)
 
     if (response.toolCalls.length > 0) {
-      const bashCall = response.toolCalls.find(tc => tc.toolName === 'bash')
+      const bashCall = response.toolCalls.find((tc) => tc.toolName === 'bash')
       if (bashCall) {
         expect(bashCall.toolName).toBe('bash')
         expect(bashCall.output).toBeDefined()
@@ -115,7 +112,7 @@ describe('Tool Call — Real API', () => {
     console.log(`[tool-call-fileread] Content: "${response.content.slice(0, 200)}"`)
 
     if (response.toolCalls.length > 0) {
-      const frCall = response.toolCalls.find(tc => tc.toolName === 'file_read')
+      const frCall = response.toolCalls.find((tc) => tc.toolName === 'file_read')
       if (frCall) {
         expect(frCall.toolName).toBe('file_read')
         expect(frCall.output).toBeDefined()
@@ -159,9 +156,7 @@ describe('Tool Call — Real API', () => {
     }
 
     // Step 2: Ask the LLM to read back the file
-    const readResponse = await sdk.send(
-      `Read the file at path "${testFilePath}" and tell me exactly what it says`,
-    )
+    const readResponse = await sdk.send(`Read the file at path "${testFilePath}" and tell me exactly what it says`)
 
     console.log(`[multi-tool-read] Content: "${readResponse.content.slice(0, 200)}"`)
     console.log(`[multi-tool-read] Tool calls: ${JSON.stringify(readResponse.toolCalls, null, 2)}`)
@@ -341,7 +336,7 @@ describe('Tool Call — Real API', () => {
     console.log(`[tool-call-webfetch] Tool calls: ${JSON.stringify(response.toolCalls, null, 2)}`)
 
     if (response.toolCalls.length > 0) {
-      const wfCall = response.toolCalls.find(tc => tc.toolName === 'web_fetch')
+      const wfCall = response.toolCalls.find((tc) => tc.toolName === 'web_fetch')
       if (wfCall) {
         expect(wfCall.toolName).toBe('web_fetch')
         expect(wfCall.output).toBeDefined()
@@ -367,7 +362,7 @@ describe('Tool Call — Real API', () => {
     console.log(`[tool-call-websearch] Tool calls: ${JSON.stringify(response.toolCalls, null, 2)}`)
 
     if (response.toolCalls.length > 0) {
-      const wsCall = response.toolCalls.find(tc => tc.toolName === 'web_search')
+      const wsCall = response.toolCalls.find((tc) => tc.toolName === 'web_search')
       if (wsCall) {
         expect(wsCall.toolName).toBe('web_search')
         expect(wsCall.output).toBeDefined()
@@ -406,7 +401,7 @@ describe('Tool Call — Real API', () => {
     console.log(`[tool-call-all8] Tool calls: ${JSON.stringify(response.toolCalls, null, 2)}`)
 
     if (response.toolCalls.length > 0) {
-      const bashCall = response.toolCalls.find(tc => tc.toolName === 'bash')
+      const bashCall = response.toolCalls.find((tc) => tc.toolName === 'bash')
       if (bashCall) {
         expect(bashCall.toolName).toBe('bash')
         expect(bashCall.output).toBeDefined()

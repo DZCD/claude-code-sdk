@@ -18,21 +18,17 @@ describe('createLLMConnector — boundary cases', () => {
   })
 
   it('should throw for config with undefined provider', () => {
-    expect(() =>
-      createLLMConnector({ provider: undefined, model: 'test' } as never),
-    ).toThrow('Unsupported LLM provider')
+    expect(() => createLLMConnector({ provider: undefined, model: 'test' } as never)).toThrow(
+      'Unsupported LLM provider',
+    )
   })
 
   it('should throw for config with null provider', () => {
-    expect(() =>
-      createLLMConnector({ provider: null, model: 'test' } as never),
-    ).toThrow('Unsupported LLM provider')
+    expect(() => createLLMConnector({ provider: null, model: 'test' } as never)).toThrow('Unsupported LLM provider')
   })
 
   it('should throw for config with empty string provider', () => {
-    expect(() =>
-      createLLMConnector({ provider: '', model: 'test' } as never),
-    ).toThrow('Unsupported LLM provider')
+    expect(() => createLLMConnector({ provider: '', model: 'test' } as never)).toThrow('Unsupported LLM provider')
   })
 
   it('should throw for config with number as provider', () => {
@@ -63,9 +59,7 @@ describe('createLLMConnector — boundary cases', () => {
   })
 
   it('should include the unsupported provider name in the error message', () => {
-    expect(() =>
-      createLLMConnector({ provider: 'gpt-5' } as never),
-    ).toThrow('Unsupported LLM provider: gpt-5')
+    expect(() => createLLMConnector({ provider: 'gpt-5' } as never)).toThrow('Unsupported LLM provider: gpt-5')
   })
 
   it('should throw for config with extra unknown fields gracefully', () => {
@@ -260,9 +254,9 @@ describe('Token statistics — edge cases', () => {
 
   it('should handle multiple messages with different sizes', () => {
     const messages = [
-      { role: 'user', content: 'hi' },       // ceil(2/4) = 1
+      { role: 'user', content: 'hi' }, // ceil(2/4) = 1
       { role: 'assistant', content: 'hello' }, // ceil(5/4) = 2
-      { role: 'user', content: 'world' },      // ceil(5/4) = 2
+      { role: 'user', content: 'world' }, // ceil(5/4) = 2
     ]
     expect(estimateTokens(messages)).toBe(5)
   })
@@ -302,9 +296,7 @@ describe('withRetry — limit scenarios', () => {
   })
 
   it('should reject unknown provider configs at factory level', () => {
-    expect(() =>
-      createLLMConnector({ provider: 'openai' } as never),
-    ).toThrow('Unsupported LLM provider: openai')
+    expect(() => createLLMConnector({ provider: 'openai' } as never)).toThrow('Unsupported LLM provider: openai')
   })
 
   it('should reject config with provider name collision', () => {

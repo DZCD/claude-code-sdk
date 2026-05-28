@@ -11,10 +11,10 @@
  * @group real-api
  */
 import { describe, expect, it, vi } from 'vitest'
-import { ClaudeCodeSDK } from '../../session/engine.js'
-import type { StreamEvent } from '../../llm/types.js'
 import { HookRegistry } from '../../hooks/registry.js'
-import { StreamConsumer, createStreamConsumer, streamToText, streamToBlocks } from '../../streaming/consumer.js'
+import type { StreamEvent } from '../../llm/types.js'
+import { ClaudeCodeSDK } from '../../session/engine.js'
+import { StreamConsumer, createStreamConsumer, streamToBlocks, streamToText } from '../../streaming/consumer.js'
 
 const DEEPSEEK_API_KEY = 'sk-af3a84b5661b44f5b5695b47cb39dcd2'
 const BASE_URL = 'https://api.deepseek.com/anthropic'
@@ -56,7 +56,9 @@ describe('StreamConsumer — Real API Integration', () => {
     }
 
     const consumer = new StreamConsumer(
-      (async function* () { yield* events })(),
+      (async function* () {
+        yield* events
+      })(),
     )
 
     const result = await consumer.toPromise()
@@ -75,7 +77,9 @@ describe('StreamConsumer — Real API Integration', () => {
     }
 
     const consumer = new StreamConsumer(
-      (async function* () { yield* events })(),
+      (async function* () {
+        yield* events
+      })(),
     )
 
     const textParts: string[] = []
@@ -98,7 +102,9 @@ describe('StreamConsumer — Real API Integration', () => {
     }
 
     const consumer = new StreamConsumer(
-      (async function* () { yield* events })(),
+      (async function* () {
+        yield* events
+      })(),
     )
 
     const blocks: unknown[] = []
@@ -124,7 +130,9 @@ describe('StreamConsumer — Real API Integration', () => {
     }
 
     const consumer = new StreamConsumer(
-      (async function* () { yield* events })(),
+      (async function* () {
+        yield* events
+      })(),
     )
 
     const textHandler = vi.fn()
@@ -137,7 +145,9 @@ describe('StreamConsumer — Real API Integration', () => {
     expect(textHandler).toHaveBeenCalled()
     // All handler should be called for each event
     expect(allHandler).toHaveBeenCalled()
-    console.log(`[on/onEvent] text events: ${textHandler.mock.calls.length}, total events: ${allHandler.mock.calls.length}`)
+    console.log(
+      `[on/onEvent] text events: ${textHandler.mock.calls.length}, total events: ${allHandler.mock.calls.length}`,
+    )
   }, 60_000)
 })
 
@@ -152,7 +162,9 @@ describe('streamToText / streamToBlocks — Real API', () => {
       events.push(event)
     }
 
-    const stream = (async function* () { yield* events })()
+    const stream = (async function* () {
+      yield* events
+    })()
     const textParts: string[] = []
     for await (const chunk of streamToText(stream)) {
       textParts.push(chunk)
@@ -172,7 +184,9 @@ describe('streamToText / streamToBlocks — Real API', () => {
       events.push(event)
     }
 
-    const stream = (async function* () { yield* events })()
+    const stream = (async function* () {
+      yield* events
+    })()
     const blocks: unknown[] = []
     for await (const block of streamToBlocks(stream)) {
       blocks.push(block)
@@ -203,9 +217,13 @@ describe('Hooks — Real API Integration', () => {
       return { allowed: true }
     })
 
-    hookRegistry.register('postTool', 'e2e-post', async (toolName: string, input: Record<string, unknown>, result: unknown) => {
-      postToolCalled(toolName, input, result)
-    })
+    hookRegistry.register(
+      'postTool',
+      'e2e-post',
+      async (toolName: string, input: Record<string, unknown>, result: unknown) => {
+        postToolCalled(toolName, input, result)
+      },
+    )
 
     sdk.withHooks(hookRegistry)
 
@@ -217,9 +235,11 @@ describe('Hooks — Real API Integration', () => {
 
     // The SDK may or may not have tools available, but hooks should still fire
     // At minimum, the stream should complete successfully
-    const doneEvent = events.find(e => e.type === 'done')
+    const doneEvent = events.find((e) => e.type === 'done')
     expect(doneEvent).toBeDefined()
-    console.log(`[Hooks] preTool called: ${preToolCalled.mock.calls.length}, postTool called: ${postToolCalled.mock.calls.length}`)
+    console.log(
+      `[Hooks] preTool called: ${preToolCalled.mock.calls.length}, postTool called: ${postToolCalled.mock.calls.length}`,
+    )
   }, 60_000)
 
   it('should trigger preTurn hook and allow proceeding', async () => {
@@ -247,7 +267,9 @@ describe('Hooks — Real API Integration', () => {
 
     expect(events.length).toBeGreaterThan(0)
     expect(preTurnCalled).toHaveBeenCalled()
-    console.log(`[Hooks] preTurn called: ${preTurnCalled.mock.calls.length}, postTurn called: ${postTurnCalled.mock.calls.length}`)
+    console.log(
+      `[Hooks] preTurn called: ${preTurnCalled.mock.calls.length}, postTurn called: ${postTurnCalled.mock.calls.length}`,
+    )
   }, 60_000)
 
   it('should handle blocking hook that stops tool execution', async () => {
@@ -267,7 +289,7 @@ describe('Hooks — Real API Integration', () => {
       events.push(event)
     }
 
-    const doneEvent = events.find(e => e.type === 'done')
+    const doneEvent = events.find((e) => e.type === 'done')
     expect(doneEvent).toBeDefined()
     console.log(`[Hooks] Blocking hook test completed, ${events.length} events`)
   }, 60_000)
@@ -285,7 +307,10 @@ describe('Multi-turn Streaming — Real API', () => {
       events1.push(event)
     }
 
-    const text1 = events1.filter(e => e.type === 'text').map(e => (e as any).text).join('')
+    const text1 = events1
+      .filter((e) => e.type === 'text')
+      .map((e) => (e as any).text)
+      .join('')
     expect(text1.length).toBeGreaterThan(0)
     console.log(`[Multi-turn] Turn 1: "${text1.slice(0, 80)}"`)
 
@@ -295,7 +320,10 @@ describe('Multi-turn Streaming — Real API', () => {
       events2.push(event)
     }
 
-    const text2 = events2.filter(e => e.type === 'text').map(e => (e as any).text).join('')
+    const text2 = events2
+      .filter((e) => e.type === 'text')
+      .map((e) => (e as any).text)
+      .join('')
     expect(text2.length).toBeGreaterThan(0)
     expect(text2).toContain('42')
     console.log(`[Multi-turn] Turn 2: "${text2.slice(0, 100)}"`)
@@ -314,7 +342,7 @@ describe('Streaming Edge Cases — Real API', () => {
     }
 
     expect(events.length).toBeGreaterThan(0)
-    const doneEvent = events.find(e => e.type === 'done')
+    const doneEvent = events.find((e) => e.type === 'done')
     expect(doneEvent).toBeDefined()
     console.log(`[Edge] Short input: ${events.length} events`)
   }, 60_000)
@@ -327,7 +355,10 @@ describe('Streaming Edge Cases — Real API', () => {
       for await (const event of sdk.stream(`Say: "Message ${i + 1}"`)) {
         events.push(event)
       }
-      const text = events.filter(e => e.type === 'text').map(e => (e as any).text).join('')
+      const text = events
+        .filter((e) => e.type === 'text')
+        .map((e) => (e as any).text)
+        .join('')
       expect(text.length).toBeGreaterThan(0)
       console.log(`[Consecutive] Message ${i + 1} length: ${text.length}`)
     }
@@ -352,7 +383,10 @@ describe('Streaming Edge Cases — Real API', () => {
       events2.push(event)
     }
 
-    const text2 = events2.filter(e => e.type === 'text').map(e => (e as any).text).join('')
+    const text2 = events2
+      .filter((e) => e.type === 'text')
+      .map((e) => (e as any).text)
+      .join('')
     // Should not contain the original secret since conversation was reset
     expect(text2.toLowerCase()).not.toContain('abc123')
     console.log(`[Reset] After reset, response: "${text2.slice(0, 100)}"`)
@@ -370,7 +404,9 @@ describe('createStreamConsumer — Real API', () => {
       events.push(event)
     }
 
-    const stream = (async function* () { yield* events })()
+    const stream = (async function* () {
+      yield* events
+    })()
     const consumer = createStreamConsumer(stream)
     const result = await consumer.toPromise()
 
@@ -388,7 +424,9 @@ describe('createStreamConsumer — Real API', () => {
     }
 
     const ac = new AbortController()
-    const stream = (async function* () { yield* events })()
+    const stream = (async function* () {
+      yield* events
+    })()
     const consumer = createStreamConsumer(stream, ac.signal)
 
     const result = await consumer.toPromise()
@@ -420,11 +458,15 @@ describe('Token Usage — Real API Streaming', () => {
   it('should accumulate token usage across multiple sends', async () => {
     const sdk = ClaudeCodeSDK.create(sdkConfig)
 
-    for await (const _ of sdk.stream('Say "first"')) { /* consume */ }
+    for await (const _ of sdk.stream('Say "first"')) {
+      /* consume */
+    }
     const usage1 = sdk.getTokenUsage()
     expect(usage1.inputTokens).toBeGreaterThan(0)
 
-    for await (const _ of sdk.stream('Say "second"')) { /* consume */ }
+    for await (const _ of sdk.stream('Say "second"')) {
+      /* consume */
+    }
     const usage2 = sdk.getTokenUsage()
     expect(usage2.inputTokens).toBeGreaterThan(usage1.inputTokens)
 

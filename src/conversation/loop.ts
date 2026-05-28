@@ -225,11 +225,15 @@ export async function* conversationLoop(
       }
 
       // Add tool result to messages (properly typed ToolResultBlock[])
-      messages.push(createToolResultMessage([{
-        type: 'tool_result',
-        toolUseId: toolUse.id,
-        content: typeof result.content === 'string' ? result.content : JSON.stringify(result.content),
-      }]))
+      messages.push(
+        createToolResultMessage([
+          {
+            type: 'tool_result',
+            toolUseId: toolUse.id,
+            content: typeof result.content === 'string' ? result.content : JSON.stringify(result.content),
+          },
+        ]),
+      )
     }
   }
 

@@ -12,11 +12,11 @@
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import {
+  type SearchResult,
   WebSearchTool,
   deduplicateResults,
   duckDuckGoSearch,
   exaSearch,
-  type SearchResult,
 } from '../../tools/built-in/web_search.js'
 
 const makeContext = () => ({ signal: new AbortController().signal })
@@ -82,9 +82,7 @@ describe('WebSearchTool — deduplicateResults', () => {
   })
 
   it('should handle single result', () => {
-    const results: SearchResult[] = [
-      { title: 'Only', url: 'https://example.com/', snippet: 'only', source: 'exa' },
-    ]
+    const results: SearchResult[] = [{ title: 'Only', url: 'https://example.com/', snippet: 'only', source: 'exa' }]
     const deduped = deduplicateResults(results)
     expect(deduped).toHaveLength(1)
   })
@@ -99,12 +97,12 @@ describe('WebSearchTool — exaSearch', () => {
     if (originalKey) {
       process.env.EXA_API_KEY = originalKey
     } else {
-      delete process.env.EXA_API_KEY
+      process.env.EXA_API_KEY = undefined
     }
   })
 
   it('should return empty when no API key is set', async () => {
-    delete process.env.EXA_API_KEY
+    process.env.EXA_API_KEY = undefined
     const results = await exaSearch('test query')
     expect(results).toEqual([])
   })
@@ -270,7 +268,7 @@ describe('WebSearchTool — Execute Edge Cases', () => {
   const originalKey = process.env.EXA_API_KEY
 
   beforeAll(() => {
-    delete process.env.EXA_API_KEY // Ensure no Exa key for DDG testing
+    process.env.EXA_API_KEY // Ensure no Exa key for DDG testing = undefined // Ensure no Exa key for DDG testing
   })
 
   afterAll(() => {
@@ -337,18 +335,13 @@ describe('WebSearchTool — Execute Edge Cases', () => {
 
   it('should accept livecrawl parameter', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response(
-        mockDuckDuckGoHTML([
-          { url: 'https://example.com/1', title: 'Live', snippet: 'Crawl test' },
-        ]),
-        { status: 200, headers: { 'Content-Type': 'text/html' } },
-      ),
+      new Response(mockDuckDuckGoHTML([{ url: 'https://example.com/1', title: 'Live', snippet: 'Crawl test' }]), {
+        status: 200,
+        headers: { 'Content-Type': 'text/html' },
+      }),
     )
 
-    const result = await tool.execute(
-      { query: 'test', livecrawl: 'preferred', type: 'fast' },
-      makeContext(),
-    )
+    const result = await tool.execute({ query: 'test', livecrawl: 'preferred', type: 'fast' }, makeContext())
     expect(result.isError).toBeFalsy()
   })
 
@@ -428,7 +421,7 @@ describe('WebSearchTool — exaSearch with API key (mocked)', () => {
     if (originalKey) {
       process.env.EXA_API_KEY = originalKey
     } else {
-      delete process.env.EXA_API_KEY
+      process.env.EXA_API_KEY = undefined
     }
   })
 
@@ -456,9 +449,7 @@ describe('WebSearchTool — exaSearch with API key (mocked)', () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          results: [
-            { title: 'Has Summary', url: 'https://exa.ai/s', summary: 'Summary text', text: 'Full text body' },
-          ],
+          results: [{ title: 'Has Summary', url: 'https://exa.ai/s', summary: 'Summary text', text: 'Full text body' }],
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
       ),
@@ -502,9 +493,7 @@ describe('WebSearchTool — exaSearch with API key (mocked)', () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          results: [
-            { title: 'Exa Auto', url: 'https://exa.ai/auto', text: 'Auto result' },
-          ],
+          results: [{ title: 'Exa Auto', url: 'https://exa.ai/auto', text: 'Auto result' }],
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
       ),
@@ -526,9 +515,7 @@ describe('WebSearchTool — exaSearch with API key (mocked)', () => {
         throw new Error('Exa API error')
       }
       return new Response(
-        mockDuckDuckGoHTML([
-          { url: 'https://ddg-fallback.com', title: 'DDG Fallback', snippet: 'Fallback result' },
-        ]),
+        mockDuckDuckGoHTML([{ url: 'https://ddg-fallback.com', title: 'DDG Fallback', snippet: 'Fallback result' }]),
         { status: 200, headers: { 'Content-Type': 'text/html' } },
       )
     })

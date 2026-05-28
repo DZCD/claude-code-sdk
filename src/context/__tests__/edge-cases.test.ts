@@ -40,7 +40,7 @@ describe('Git Diff — Large Files & Edge Cases', () => {
   })
 
   it('should handle very large added lines in numstat', () => {
-    const result = parseGitNumstat(`99999\t0\thuge-file.ts\n`)
+    const result = parseGitNumstat('99999\t0\thuge-file.ts\n')
     expect(result.stats.filesCount).toBe(1)
     expect(result.stats.linesAdded).toBe(99999)
     expect(result.stats.linesRemoved).toBe(0)

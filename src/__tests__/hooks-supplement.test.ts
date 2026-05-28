@@ -72,9 +72,15 @@ describe('HookSystem — postTool Trigger Scenarios', () => {
     const registry = new HookRegistry()
     const calls: string[] = []
 
-    registry.register('postTool', 'first', async (name: string) => { calls.push(`first:${name}`) })
-    registry.register('postTool', 'second', async (name: string) => { calls.push(`second:${name}`) })
-    registry.register('postTool', 'third', async (name: string) => { calls.push(`third:${name}`) })
+    registry.register('postTool', 'first', async (name: string) => {
+      calls.push(`first:${name}`)
+    })
+    registry.register('postTool', 'second', async (name: string) => {
+      calls.push(`second:${name}`)
+    })
+    registry.register('postTool', 'third', async (name: string) => {
+      calls.push(`third:${name}`)
+    })
 
     await executePostToolHooks(registry, 'multi-tool', { key: 'val' }, { data: 'result' })
     expect(calls).toEqual(['first:multi-tool', 'second:multi-tool', 'third:multi-tool'])
@@ -103,10 +109,7 @@ describe('HookSystem — preTurn Message Modification', () => {
     const registry = new HookRegistry()
     registry.register('preTurn', 'systemInjector', async (messages: unknown[]) => ({
       proceed: true,
-      modifiedMessages: [
-        { role: 'system', content: 'You are a helpful assistant.' },
-        ...messages,
-      ],
+      modifiedMessages: [{ role: 'system', content: 'You are a helpful assistant.' }, ...messages],
     }))
 
     const original = [{ role: 'user', content: 'Hello' }]
@@ -200,9 +203,15 @@ describe('HookSystem — postTurn Callback Verification', () => {
     const registry = new HookRegistry()
     const order: number[] = []
 
-    registry.register('postTurn', 'a', async () => { order.push(1) })
-    registry.register('postTurn', 'b', async () => { order.push(2) })
-    registry.register('postTurn', 'c', async () => { order.push(3) })
+    registry.register('postTurn', 'a', async () => {
+      order.push(1)
+    })
+    registry.register('postTurn', 'b', async () => {
+      order.push(2)
+    })
+    registry.register('postTurn', 'c', async () => {
+      order.push(3)
+    })
 
     await executePostTurnHooks(registry, [], 'response')
     expect(order).toEqual([1, 2, 3])
@@ -238,20 +247,15 @@ describe('HookSystem — Four-Phase Lifecycle Integration', () => {
     await executePreToolHooks(registry, 'test-tool', { cmd: 'test' })
     await executePostToolHooks(registry, 'test-tool', { cmd: 'test' }, { ok: true })
 
-    expect(executionLog).toEqual([
-      'preTurn',
-      'postTurn',
-      'preTool:test-tool',
-      'postTool:test-tool',
-    ])
+    expect(executionLog).toEqual(['preTurn', 'postTurn', 'preTool:test-tool', 'postTool:test-tool'])
 
     // Verify summary
     const summary = registry.getSummary()
     expect(summary).toHaveLength(4)
-    expect(summary.map(s => s.name)).toContain('audit')
-    expect(summary.map(s => s.name)).toContain('log')
-    expect(summary.map(s => s.name)).toContain('inject')
-    expect(summary.map(s => s.name)).toContain('save')
+    expect(summary.map((s) => s.name)).toContain('audit')
+    expect(summary.map((s) => s.name)).toContain('log')
+    expect(summary.map((s) => s.name)).toContain('inject')
+    expect(summary.map((s) => s.name)).toContain('save')
   })
 
   it('should allow hooks to be registered after previous execution', async () => {

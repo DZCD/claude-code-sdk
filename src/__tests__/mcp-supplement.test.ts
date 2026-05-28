@@ -43,9 +43,7 @@ describe('MCPServerManager — Server Management', () => {
     const ac = new AbortController()
     ac.abort() // Already aborted
 
-    const configs: MCPServerConfig[] = [
-      { name: 'canceled', type: 'stdio', commandOrUrl: 'echo' },
-    ]
+    const configs: MCPServerConfig[] = [{ name: 'canceled', type: 'stdio', commandOrUrl: 'echo' }]
 
     // Pre-aborted signal should cause connection to fail
     await expect(manager.connectAll(configs, ac.signal)).rejects.toThrow()
@@ -246,7 +244,9 @@ describe('MCPServerManager — registerAllTools Edge Cases', () => {
     const registeredSet = new Set<string>()
     const registry = {
       has: (name: string) => registeredSet.has(name),
-      register: (tool: any) => { registeredSet.add(tool.name) },
+      register: (tool: any) => {
+        registeredSet.add(tool.name)
+      },
     } as unknown as ToolRegistry
 
     // First pass: register both

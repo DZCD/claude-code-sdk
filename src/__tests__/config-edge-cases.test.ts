@@ -36,10 +36,12 @@ describe('ConfigManager — Multi-source Merge Conflict Scenarios', () => {
   afterEach(() => {
     try {
       rmSync(tmpDir, { recursive: true, force: true })
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     for (const [key, value] of Object.entries(originalEnv)) {
       if (value !== undefined) {
-        (process.env as any)[key] = value
+        ;(process.env as any)[key] = value
       } else {
         delete (process.env as any)[key]
       }
@@ -135,7 +137,9 @@ describe('ConfigManager — Multi-source Merge Conflict Scenarios', () => {
 
     const cm = new ConfigManager()
     const changes: ConfigChangeEvent[] = []
-    cm.onDidChange((event) => { changes.push(event) })
+    cm.onDidChange((event) => {
+      changes.push(event)
+    })
 
     cm.loadFromSources({
       filePath: configPath,
@@ -163,7 +167,11 @@ describe('ConfigManager — Invalid File Watch Error Handling', () => {
   })
 
   afterEach(() => {
-    try { rmSync(tmpDir, { recursive: true, force: true }) } catch { /* ignore */ }
+    try {
+      rmSync(tmpDir, { recursive: true, force: true })
+    } catch {
+      /* ignore */
+    }
   })
 
   it('should handle watch on non-existent file gracefully', () => {
@@ -414,7 +422,9 @@ describe('ConfigManager — Change Notification Listener Edge Cases', () => {
   it('should still call other listeners after one throws', () => {
     const cm = new ConfigManager()
     const goodSpy = vi.fn()
-    cm.onDidChange(() => { throw new Error('bad listener') })
+    cm.onDidChange(() => {
+      throw new Error('bad listener')
+    })
     cm.onDidChange(goodSpy)
 
     cm.update({ permissionMode: 'manual' })
@@ -598,7 +608,11 @@ describe('ConfigManager — saveToFile compact storage edge cases', () => {
   })
 
   afterEach(() => {
-    try { rmSync(tmpDir, { recursive: true, force: true }) } catch { /* ignore */ }
+    try {
+      rmSync(tmpDir, { recursive: true, force: true })
+    } catch {
+      /* ignore */
+    }
   })
 
   it('should not save nested objects that match defaults exactly', () => {

@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
+import { createTool } from '../../tools/base.js'
 import { BashTool } from '../../tools/built-in/bash.js'
 import { FileEditTool } from '../../tools/built-in/file_edit.js'
 import { FileReadTool } from '../../tools/built-in/file_read.js'
@@ -19,7 +20,6 @@ import { GlobTool } from '../../tools/built-in/glob.js'
 import { GrepTool } from '../../tools/built-in/grep.js'
 import { WebFetchTool } from '../../tools/built-in/web_fetch.js'
 import { WebSearchTool } from '../../tools/built-in/web_search.js'
-import { createTool } from '../../tools/base.js'
 import { ToolRegistry } from '../../tools/registry.js'
 
 // ─── Test Fixtures ───────────────────────────────────────
@@ -669,11 +669,7 @@ describe('ToolRegistry — Registration Edge Cases', () => {
 
   it('should clear all registered tools', () => {
     const registry = new ToolRegistry()
-    registry.register(
-      new BashTool().toTool(),
-      new FileReadTool().toTool(),
-      new FileWriteTool().toTool(),
-    )
+    registry.register(new BashTool().toTool(), new FileReadTool().toTool(), new FileWriteTool().toTool())
     expect(registry.size).toBe(3)
     registry.clear()
     expect(registry.size).toBe(0)

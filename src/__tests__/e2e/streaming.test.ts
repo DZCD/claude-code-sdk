@@ -9,8 +9,8 @@
  * @group real-api
  */
 import { describe, expect, it } from 'vitest'
-import { ClaudeCodeSDK } from '../../session/engine.js'
 import type { StreamEvent } from '../../llm/types.js'
+import { ClaudeCodeSDK } from '../../session/engine.js'
 
 const DEEPSEEK_API_KEY = 'sk-af3a84b5661b44f5b5695b47cb39dcd2'
 const BASE_URL = 'https://api.deepseek.com/anthropic'
@@ -39,18 +39,20 @@ describe('Streaming — Real API', () => {
     expect(events.length).toBeGreaterThan(0)
 
     // At least one text event
-    const textEvents = events.filter(e => e.type === 'text')
+    const textEvents = events.filter((e) => e.type === 'text')
     expect(textEvents.length).toBeGreaterThan(0)
 
     // Text should be non-empty
-    const allText = textEvents.map(e => (e as { text: string }).text).join('')
+    const allText = textEvents.map((e) => (e as { text: string }).text).join('')
     expect(allText.length).toBeGreaterThan(0)
 
     // Should end with done event
     const lastEvent = events[events.length - 1]
     expect(lastEvent?.type).toBe('done')
 
-    console.log(`[stream-text] Total events: ${events.length}, Text events: ${textEvents.length}, Total chars: ${allText.length}`)
+    console.log(
+      `[stream-text] Total events: ${events.length}, Text events: ${textEvents.length}, Total chars: ${allText.length}`,
+    )
   }, 60_000)
 
   it('should yield done event with usage data', async () => {
@@ -125,7 +127,7 @@ describe('Streaming — Real API', () => {
     }
 
     expect(events.length).toBeGreaterThan(0)
-    const textEvents = events.filter(e => e.type === 'text')
+    const textEvents = events.filter((e) => e.type === 'text')
     expect(textEvents.length).toBeGreaterThan(0)
   }, 60_000)
 })

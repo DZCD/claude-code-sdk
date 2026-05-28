@@ -7,19 +7,11 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import type { Message } from '../../types/message.js'
-import {
-  createAssistantMessage,
-  createToolResultMessage,
-  createUserMessage,
-} from '../../types/message.js'
+import { createAssistantMessage, createToolResultMessage, createUserMessage } from '../../types/message.js'
 import { AutoCompactor, type SummaryLLM } from '../auto-compact.js'
 import { MicroCompactor } from '../micro-compact.js'
 import { TokenBudget, parseTokenBudget } from '../token-budget.js'
-import {
-  TokenTracker,
-  estimateContextTokens,
-  getCurrentUsage,
-} from '../token-tracker.js'
+import { TokenTracker, estimateContextTokens, getCurrentUsage } from '../token-tracker.js'
 
 // ─── TokenBudget Edge Cases ──────────────────────────────
 
@@ -143,10 +135,7 @@ describe('TokenTracker — Edge Cases', () => {
 
   it('should handle estimateContextSize with only user messages', () => {
     const tracker = new TokenTracker()
-    const messages: Message[] = [
-      createUserMessage('Hello'),
-      createUserMessage('How are you?'),
-    ]
+    const messages: Message[] = [createUserMessage('Hello'), createUserMessage('How are you?')]
     const estimate = tracker.estimateContextSize(messages)
     expect(estimate).toBeGreaterThan(0)
   })
@@ -156,11 +145,7 @@ describe('TokenTracker — Edge Cases', () => {
     const toolResult = createToolResultMessage([
       { type: 'tool_result', toolUseId: 't1', content: 'Large result data here' },
     ])
-    const messages: Message[] = [
-      createUserMessage('test'),
-      createAssistantMessage('response'),
-      toolResult,
-    ]
+    const messages: Message[] = [createUserMessage('test'), createAssistantMessage('response'), toolResult]
     const estimate = tracker.estimateContextSize(messages)
     expect(estimate).toBeGreaterThan(0)
   })
@@ -168,13 +153,8 @@ describe('TokenTracker — Edge Cases', () => {
 
 describe('estimateContextTokens — Edge Cases', () => {
   it('should handle messages with tool_result content type', () => {
-    const toolResult = createToolResultMessage([
-      { type: 'tool_result' as any, toolUseId: 't1', content: 'result' },
-    ])
-    const messages: Message[] = [
-      createAssistantMessage('response'),
-      toolResult,
-    ]
+    const toolResult = createToolResultMessage([{ type: 'tool_result' as any, toolUseId: 't1', content: 'result' }])
+    const messages: Message[] = [createAssistantMessage('response'), toolResult]
     const estimate = estimateContextTokens(messages)
     expect(estimate).toBeGreaterThan(0)
   })
@@ -291,11 +271,7 @@ describe('AutoCompactor — Edge Cases', () => {
 
     it('should return no candidates when exactly at keepRecentMessages count', () => {
       const compactor = new AutoCompactor({ keepRecentMessages: 3 })
-      const messages: Message[] = [
-        createUserMessage('a'),
-        createUserMessage('b'),
-        createUserMessage('c'),
-      ]
+      const messages: Message[] = [createUserMessage('a'), createUserMessage('b'), createUserMessage('c')]
       expect(compactor.getCompactCandidates(messages)).toEqual([])
     })
 
@@ -314,9 +290,7 @@ describe('AutoCompactor — Edge Cases', () => {
         contextWindowSize: 10000,
       })
       // Many long messages to exceed threshold
-      const messages: Message[] = Array.from({ length: 50 }, (_, i) =>
-        createUserMessage(`Message ${i} `.repeat(100)),
-      )
+      const messages: Message[] = Array.from({ length: 50 }, (_, i) => createUserMessage(`Message ${i} `.repeat(100)))
       const result = await compactor.compact(messages, null)
       expect(result.compacted).toBe(true)
       expect(result.originalCount).toBe(50)
@@ -335,9 +309,7 @@ describe('AutoCompactor — Edge Cases', () => {
         summarize: vi.fn().mockResolvedValue('LLM generated summary'),
       }
 
-      const messages: Message[] = Array.from({ length: 10 }, (_, i) =>
-        createUserMessage(`M ${i} `.repeat(30)),
-      )
+      const messages: Message[] = Array.from({ length: 10 }, (_, i) => createUserMessage(`M ${i} `.repeat(30)))
       const result = await compactor.compact(messages, mockLLM)
       expect(result.compacted).toBe(true)
       expect(mockLLM.summarize).toHaveBeenCalled()
@@ -350,9 +322,7 @@ describe('AutoCompactor — Edge Cases', () => {
         keepRecentMessages: 100,
         contextWindowSize: 1000,
       })
-      const messages: Message[] = Array.from({ length: 5 }, (_, i) =>
-        createUserMessage(`Message ${i}`),
-      )
+      const messages: Message[] = Array.from({ length: 5 }, (_, i) => createUserMessage(`Message ${i}`))
       const result = await compactor.compact(messages, null)
       expect(result.compacted).toBe(false)
       // Should still report counts
@@ -376,9 +346,7 @@ describe('AutoCompactor — Edge Cases', () => {
       })
       expect(compactor.compactCount).toBe(0)
 
-      const messages: Message[] = Array.from({ length: 10 }, (_, i) =>
-        createUserMessage(`M ${i} `.repeat(30)),
-      )
+      const messages: Message[] = Array.from({ length: 10 }, (_, i) => createUserMessage(`M ${i} `.repeat(30)))
       await compactor.compact(messages, null)
       expect(compactor.compactCount).toBe(1)
 
@@ -441,9 +409,7 @@ describe('MicroCompactor — Edge Cases', () => {
 
     it('should handle tool result with empty content', () => {
       const compactor = new MicroCompactor()
-      const msg = createToolResultMessage([
-        { type: 'tool_result', toolUseId: 't1', content: '' },
-      ])
+      const msg = createToolResultMessage([{ type: 'tool_result', toolUseId: 't1', content: '' }])
       const result = compactor.compactMessage(msg)
       if (typeof result.content !== 'string') {
         const block = result.content[0] as any
@@ -473,13 +439,8 @@ describe('MicroCompactor — Edge Cases', () => {
 
     it('should not merge user messages with non-string content', () => {
       const compactor = new MicroCompactor()
-      const toolResult = createToolResultMessage([
-        { type: 'tool_result', toolUseId: 't1', content: 'result' },
-      ])
-      const messages: Message[] = [
-        { role: 'user', content: 'text message' },
-        toolResult,
-      ]
+      const toolResult = createToolResultMessage([{ type: 'tool_result', toolUseId: 't1', content: 'result' }])
+      const messages: Message[] = [{ role: 'user', content: 'text message' }, toolResult]
       const result = compactor.mergeAdjacentUserMessages(messages)
       expect(result).toHaveLength(2) // not merged because tool_result is not a user text message
     })
@@ -512,10 +473,7 @@ describe('MicroCompactor — Edge Cases', () => {
         maxMessageLength: 10,
         mergeAdjacentUserMessages: true,
       })
-      const messages: Message[] = [
-        createUserMessage('Hello World Long'),
-        createUserMessage('Second Long Message'),
-      ]
+      const messages: Message[] = [createUserMessage('Hello World Long'), createUserMessage('Second Long Message')]
       const result = compactor.compactAll(messages)
       // Merged into 1 user message, then truncated
       expect(result).toHaveLength(1)
@@ -530,10 +488,7 @@ describe('MicroCompactor — Edge Cases', () => {
         mergeAdjacentUserMessages: false,
         maxMessageLength: 100,
       })
-      const messages: Message[] = [
-        createUserMessage('First'),
-        createUserMessage('Second'),
-      ]
+      const messages: Message[] = [createUserMessage('First'), createUserMessage('Second')]
       const result = compactor.compactAll(messages)
       // With merging disabled, both messages should remain separate
       expect(result).toHaveLength(2)

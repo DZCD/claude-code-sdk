@@ -51,10 +51,7 @@ describe('FileEditTool — Edge Cases', () => {
   it('should append content with empty old_string', async () => {
     const filePath = join(tmpDir, 'append-edge.txt')
     await writeFile(filePath, 'base\n', 'utf-8')
-    const result = await tool.execute(
-      { file_path: filePath, old_string: '', new_string: 'appended\n' },
-      makeContext(),
-    )
+    const result = await tool.execute({ file_path: filePath, old_string: '', new_string: 'appended\n' }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.type).toBe('update')
 
@@ -85,10 +82,7 @@ describe('FileEditTool — Edge Cases', () => {
       // chmod might not be supported on all platforms
     }
 
-    const result = await tool.execute(
-      { file_path: roFile, old_string: 'can', new_string: 'cannot' },
-      makeContext(),
-    )
+    const result = await tool.execute({ file_path: roFile, old_string: 'can', new_string: 'cannot' }, makeContext())
 
     // The result depends on whether chmod was effective
     // On some platforms (Windows, some containers), chmod may not affect write permissions
@@ -272,10 +266,7 @@ describe('FileWriteTool — Edge Cases', () => {
   it('should handle write error (permission denied)', async () => {
     // This is tricky to test deterministically; try writing to a path
     // that likely won't be writable
-    const result = await tool.execute(
-      { file_path: '/root/forbidden-file.txt', content: 'test' },
-      makeContext(),
-    )
+    const result = await tool.execute({ file_path: '/root/forbidden-file.txt', content: 'test' }, makeContext())
 
     if (result.isError) {
       expect(result.content).toContain('Error writing file')

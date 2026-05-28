@@ -27,7 +27,11 @@ describe('FileReadTool — Edge Cases', () => {
   beforeAll(async () => {
     tmpDir = await mkdtemp(join(tmpdir(), 'sdk-read-edge-'))
     // Multi-line test file
-    await writeFile(join(tmpDir, 'multi.txt'), 'line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\n', 'utf-8')
+    await writeFile(
+      join(tmpDir, 'multi.txt'),
+      'line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\n',
+      'utf-8',
+    )
     // Large file
     const manyLines: string[] = []
     for (let i = 0; i < 10000; i++) {
@@ -91,10 +95,7 @@ describe('FileReadTool — Edge Cases', () => {
   // ─── Offset / Limit Edge Cases ───────────────────────
 
   it('should read from a specific offset to end of file', async () => {
-    const result = await tool.execute(
-      { file_path: join(tmpDir, 'multi.txt'), offset: 5, limit: 10 },
-      makeContext(),
-    )
+    const result = await tool.execute({ file_path: join(tmpDir, 'multi.txt'), offset: 5, limit: 10 }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.content).toContain('line 5')
     expect(result.data.content).toContain('line 10')
@@ -102,40 +103,28 @@ describe('FileReadTool — Edge Cases', () => {
   })
 
   it('should handle offset beyond file length returning empty content', async () => {
-    const result = await tool.execute(
-      { file_path: join(tmpDir, 'multi.txt'), offset: 100 },
-      makeContext(),
-    )
+    const result = await tool.execute({ file_path: join(tmpDir, 'multi.txt'), offset: 100 }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.content).toBe('')
     expect(result.data.numLines).toBe(0)
   })
 
   it('should handle limit greater than available lines', async () => {
-    const result = await tool.execute(
-      { file_path: join(tmpDir, 'single.txt'), offset: 1, limit: 1000 },
-      makeContext(),
-    )
+    const result = await tool.execute({ file_path: join(tmpDir, 'single.txt'), offset: 1, limit: 1000 }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.content).toContain('just one line')
     expect(result.data.numLines).toBe(1)
   })
 
   it('should handle limit of 1 returning single line', async () => {
-    const result = await tool.execute(
-      { file_path: join(tmpDir, 'multi.txt'), offset: 3, limit: 1 },
-      makeContext(),
-    )
+    const result = await tool.execute({ file_path: join(tmpDir, 'multi.txt'), offset: 3, limit: 1 }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.content).toBe('line 3')
     expect(result.data.numLines).toBe(1)
   })
 
   it('should handle offset of 1 reading from first line', async () => {
-    const result = await tool.execute(
-      { file_path: join(tmpDir, 'multi.txt'), offset: 1, limit: 2 },
-      makeContext(),
-    )
+    const result = await tool.execute({ file_path: join(tmpDir, 'multi.txt'), offset: 1, limit: 2 }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.content).toContain('line 1')
     expect(result.data.content).toContain('line 2')
@@ -144,10 +133,7 @@ describe('FileReadTool — Edge Cases', () => {
   // ─── Large File ──────────────────────────────────────
 
   it('should read a very large file (10000 lines)', async () => {
-    const result = await tool.execute(
-      { file_path: join(tmpDir, 'large.txt') },
-      makeContext(),
-    )
+    const result = await tool.execute({ file_path: join(tmpDir, 'large.txt') }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.totalLines).toBe(10000)
     expect(result.data.content).toContain('line number 0')
@@ -155,10 +141,7 @@ describe('FileReadTool — Edge Cases', () => {
   })
 
   it('should read a portion of large file with offset and limit', async () => {
-    const result = await tool.execute(
-      { file_path: join(tmpDir, 'large.txt'), offset: 5000, limit: 5 },
-      makeContext(),
-    )
+    const result = await tool.execute({ file_path: join(tmpDir, 'large.txt'), offset: 5000, limit: 5 }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.numLines).toBe(5)
     expect(result.data.content).toContain('line number 5000')
@@ -179,16 +162,13 @@ describe('FileReadTool — Edge Cases', () => {
   // ─── Non-existent Path ───────────────────────────────
 
   it('should return error for non-existent file in nonexistent directory', async () => {
-    const result = await tool.execute(
-      { file_path: '/nonexistent-dir-xyz-99999/no-file.txt' },
-      makeContext(),
-    )
+    const result = await tool.execute({ file_path: '/nonexistent-dir-xyz-99999/no-file.txt' }, makeContext())
     expect(result.isError).toBe(true)
     // The error could mention "does not exist" or "ENOENT"
     expect(
       result.content.includes('does not exist') ||
-      result.content.includes('ENOENT') ||
-      result.content.includes('Error'),
+        result.content.includes('ENOENT') ||
+        result.content.includes('Error'),
     ).toBe(true)
   })
 

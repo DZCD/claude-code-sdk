@@ -7,10 +7,16 @@
  * - Simultaneous Hook + Logging + RateLimit interaction
  */
 import { describe, expect, it, vi } from 'vitest'
+import {
+  HookRegistry,
+  executePostToolHooks,
+  executePostTurnHooks,
+  executePreToolHooks,
+  executePreTurnHooks,
+} from '../../hooks/registry.js'
+import { isDebugToStdErr, logForDebugging, resetDebugCaches, setHasFormattedOutput } from '../../logging/index.js'
+import { clearCooldown, getRateLimitState, isInCooldown, triggerCooldown } from '../../rate-limit/cooldown.js'
 import { ClaudeCodeSDK } from '../../session/engine.js'
-import { HookRegistry, executePreToolHooks, executePostToolHooks, executePreTurnHooks, executePostTurnHooks } from '../../hooks/registry.js'
-import { resetDebugCaches, isDebugToStdErr, logForDebugging, setHasFormattedOutput } from '../../logging/index.js'
-import { getRateLimitState, triggerCooldown, clearCooldown, isInCooldown } from '../../rate-limit/cooldown.js'
 
 const DEEPSEEK_API_KEY = 'sk-af3a84b5661b44f5b5695b47cb39dcd2'
 const BASE_URL = 'https://api.deepseek.com/anthropic'
@@ -40,10 +46,7 @@ describe('Platform E2E — Hook in Real API Calls', () => {
       hookExecutionLog.push(`preTurn at ${timestamp}`)
       return {
         proceed: true,
-        modifiedMessages: [
-          { role: 'system', content: `Current time is ${timestamp}` },
-          ...(messages as any[]),
-        ],
+        modifiedMessages: [{ role: 'system', content: `Current time is ${timestamp}` }, ...(messages as any[])],
       }
     })
 
@@ -62,10 +65,10 @@ describe('Platform E2E — Hook in Real API Calls', () => {
 
     // Verify hooks were triggered
     expect(hookExecutionLog.length).toBeGreaterThanOrEqual(1)
-    const preTurnEntries = hookExecutionLog.filter(e => e.startsWith('preTurn at'))
+    const preTurnEntries = hookExecutionLog.filter((e) => e.startsWith('preTurn at'))
     expect(preTurnEntries.length).toBeGreaterThanOrEqual(1)
 
-    const doneEvent = events.find(e => e.type === 'done')
+    const doneEvent = events.find((e) => e.type === 'done')
     expect(doneEvent).toBeDefined()
     expect(doneEvent!.usage.inputTokens).toBeGreaterThan(0)
     console.log(`[E2E Hook] Execution log (${hookExecutionLog.length} entries):`, hookExecutionLog.slice(0, 4))
@@ -94,11 +97,11 @@ describe('Platform E2E — Hook in Real API Calls', () => {
     }
 
     // Stream should complete successfully
-    const doneEvent = events.find(e => e.type === 'done')
+    const doneEvent = events.find((e) => e.type === 'done')
     expect(doneEvent).toBeDefined()
 
     // Even if no tools are used, the stream should not error
-    const errorEvent = events.find(e => e.type === 'error')
+    const errorEvent = events.find((e) => e.type === 'error')
     expect(errorEvent).toBeUndefined()
 
     console.log(`[E2E Tool Hooks] ${toolHooksTriggered.length} tool hook calls:`, toolHooksTriggered)
@@ -133,7 +136,7 @@ describe('Platform E2E — Logging in Real LLM Calls', () => {
       }
     }
 
-    const doneEvent = events.find(e => e.type === 'done')
+    const doneEvent = events.find((e) => e.type === 'done')
     expect(doneEvent).toBeDefined()
     expect(doneEvent!.usage.inputTokens).toBeGreaterThan(0)
 
@@ -253,9 +256,9 @@ describe('Platform E2E — Hook + Logging + RateLimit Combined', () => {
     // Verify the full pipeline worked
     expect(integratedLog.length).toBeGreaterThanOrEqual(4)
     expect(integratedLog[0]).toContain('beforeStream')
-    expect(integratedLog.some(l => l.includes('preTurn'))).toBe(true)
+    expect(integratedLog.some((l) => l.includes('preTurn'))).toBe(true)
 
-    const doneEvent = events.find(e => e.type === 'done')
+    const doneEvent = events.find((e) => e.type === 'done')
     expect(doneEvent).toBeDefined()
     expect(doneEvent!.usage.inputTokens).toBeGreaterThan(0)
 
@@ -283,7 +286,7 @@ describe('Platform E2E — Hook + Logging + RateLimit Combined', () => {
     for await (const event of sdk.stream('Say "First"')) {
       events1.push(event)
     }
-    expect(events1.find(e => e.type === 'done')).toBeDefined()
+    expect(events1.find((e) => e.type === 'done')).toBeDefined()
 
     // Trigger cooldown between calls
     triggerCooldown(Date.now() + 60000, 'rate_limit')
@@ -294,7 +297,7 @@ describe('Platform E2E — Hook + Logging + RateLimit Combined', () => {
     for await (const event of sdk.stream('Say "Second"')) {
       events2.push(event)
     }
-    expect(events2.find(e => e.type === 'done')).toBeDefined()
+    expect(events2.find((e) => e.type === 'done')).toBeDefined()
 
     // Clear cooldown
     clearCooldown()
@@ -305,11 +308,13 @@ describe('Platform E2E — Hook + Logging + RateLimit Combined', () => {
     for await (const event of sdk.stream('Say "Third"')) {
       events3.push(event)
     }
-    expect(events3.find(e => e.type === 'done')).toBeDefined()
+    expect(events3.find((e) => e.type === 'done')).toBeDefined()
 
     // Hooks should have fired for all three turns
     expect(turnCounts.length).toBe(3)
-    console.log(`[E2E RateLimit Before/After] Turns: ${turnCounts.length}, Events: ${events1.length}/${events2.length}/${events3.length}`)
+    console.log(
+      `[E2E RateLimit Before/After] Turns: ${turnCounts.length}, Events: ${events1.length}/${events2.length}/${events3.length}`,
+    )
   }, 120_000)
 
   it('should handle Hook execution functions directly without SDK', async () => {

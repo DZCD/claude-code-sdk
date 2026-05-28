@@ -54,9 +54,7 @@ describe('AnthropicConnector', () => {
   })
 
   it('should create connector with custom baseUrl', () => {
-    const connector = new AnthropicConnector(
-      makeConfig({ baseUrl: 'https://api.deepseek.com/anthropic' }),
-    )
+    const connector = new AnthropicConnector(makeConfig({ baseUrl: 'https://api.deepseek.com/anthropic' }))
     expect(connector.provider).toBe('anthropic')
   })
 
@@ -281,9 +279,7 @@ describe('AnthropicConnector', () => {
     const connector = new AnthropicConnector(makeConfig())
     mockCountTokens.mockRejectedValue(new Error('API not available'))
 
-    const count = await connector.countTokens([
-      { role: 'user', content: 'Hello' },
-    ])
+    const count = await connector.countTokens([{ role: 'user', content: 'Hello' }])
 
     // "Hello" = 5 chars / 4 = 1.25 → ceil = 2
     expect(count).toBe(2)
@@ -471,18 +467,16 @@ describe('AnthropicConnector', () => {
     const retryableErr = new Error('Rate limited') as Error & { status?: number }
     retryableErr.status = 429
 
-    mockCreateStream
-      .mockRejectedValueOnce(retryableErr)
-      .mockResolvedValueOnce(
-        makeStream([
-          {
-            type: 'content_block_start',
-            index: 0,
-            content_block: { type: 'text', text: 'Success' },
-          },
-          { type: 'message_stop' },
-        ]),
-      )
+    mockCreateStream.mockRejectedValueOnce(retryableErr).mockResolvedValueOnce(
+      makeStream([
+        {
+          type: 'content_block_start',
+          index: 0,
+          content_block: { type: 'text', text: 'Success' },
+        },
+        { type: 'message_stop' },
+      ]),
+    )
 
     const collectedTypes: string[] = []
     for await (const event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [])) {

@@ -22,14 +22,22 @@ const originalArgv = [...process.argv]
 function withArgv(args: string[], fn: () => void) {
   const prev = [...process.argv]
   process.argv = [...prev.slice(0, 2), ...args]
-  try { fn() } finally { process.argv = prev }
+  try {
+    fn()
+  } finally {
+    process.argv = prev
+  }
 }
 
 function withEnv(key: string, value: string | undefined, fn: () => void) {
   const prev = process.env[key]
   if (value === undefined) delete process.env[key]
   else process.env[key] = value
-  try { fn() } finally { process.env[key] = prev as string }
+  try {
+    fn()
+  } finally {
+    process.env[key] = prev as string
+  }
 }
 
 describe('Logging — Debug Level Filtering', () => {
@@ -147,7 +155,7 @@ describe('Logging — Cache / Reset Behavior', () => {
 describe('Logging — Large Volume Performance', () => {
   afterEach(() => {
     process.env = { ...originalEnv }
-      process.argv = [...originalArgv]
+    process.argv = [...originalArgv]
     resetDebugCaches()
   })
 

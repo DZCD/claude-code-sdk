@@ -396,18 +396,16 @@ describe('BedrockConnector', () => {
     const retryableErr = new Error('Rate limited') as Error & { status?: number }
     retryableErr.status = 429
 
-    mockCreateStream
-      .mockRejectedValueOnce(retryableErr)
-      .mockResolvedValueOnce(
-        makeStream([
-          {
-            type: 'content_block_start',
-            index: 0,
-            content_block: { type: 'text', text: 'Success' },
-          },
-          { type: 'message_stop' },
-        ]),
-      )
+    mockCreateStream.mockRejectedValueOnce(retryableErr).mockResolvedValueOnce(
+      makeStream([
+        {
+          type: 'content_block_start',
+          index: 0,
+          content_block: { type: 'text', text: 'Success' },
+        },
+        { type: 'message_stop' },
+      ]),
+    )
 
     const collectedTypes: string[] = []
     for await (const event of connector.send(undefined, [{ role: 'user', content: 'Hi' }], [])) {

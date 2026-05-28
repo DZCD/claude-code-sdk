@@ -13,8 +13,8 @@
  * @group real-api
  */
 import { describe, expect, it } from 'vitest'
-import { ClaudeCodeSDK } from '../../session/engine.js'
 import type { StreamEvent } from '../../llm/types.js'
+import { ClaudeCodeSDK } from '../../session/engine.js'
 
 // ─── Shared Config ───────────────────────────────────────
 
@@ -75,7 +75,9 @@ describe('Session — Full Lifecycle (Real API)', () => {
       expect(response.usage.outputTokens).toBeGreaterThan(0)
       expect(sdk.getTurnCount()).toBe(1)
 
-      console.log(`[send-basic] Turn: ${sdk.getTurnCount()}, Tokens in: ${response.usage.inputTokens}, out: ${response.usage.outputTokens}`)
+      console.log(
+        `[send-basic] Turn: ${sdk.getTurnCount()}, Tokens in: ${response.usage.inputTokens}, out: ${response.usage.outputTokens}`,
+      )
     }, 60_000)
 
     it('should return empty toolCalls for plain text exchange', async () => {
@@ -110,10 +112,10 @@ describe('Session — Full Lifecycle (Real API)', () => {
       const events = await collectEvents(sdk.stream('Count from 1 to 3, one per line.'))
 
       expect(events.length).toBeGreaterThan(0)
-      const textEvents = events.filter(e => e.type === 'text')
+      const textEvents = events.filter((e) => e.type === 'text')
       expect(textEvents.length).toBeGreaterThan(0)
 
-      const fullText = textEvents.map(e => (e as { text: string }).text).join('')
+      const fullText = textEvents.map((e) => (e as { text: string }).text).join('')
       expect(fullText.length).toBeGreaterThan(0)
 
       // Must end with done
@@ -171,11 +173,7 @@ describe('Session — Full Lifecycle (Real API)', () => {
     it('should remember context across 3+ turns', async () => {
       const sdk = ClaudeCodeSDK.create(sdkConfig)
 
-      const turns = [
-        'My name is Alice.',
-        'What is my name?',
-        'Tell me a fun fact about space.',
-      ]
+      const turns = ['My name is Alice.', 'What is my name?', 'Tell me a fun fact about space.']
 
       for (let i = 0; i < turns.length; i++) {
         const response = await sdk.send(turns[i])
@@ -194,18 +192,24 @@ describe('Session — Full Lifecycle (Real API)', () => {
 
       // Initially zero
       let stats = sdk.getAttributionStats()!
-      console.log(`[attr-stats] Initial: turns=${stats.totalTurns}, user=${stats.userMessageCount}, asst=${stats.assistantMessageCount}`)
+      console.log(
+        `[attr-stats] Initial: turns=${stats.totalTurns}, user=${stats.userMessageCount}, asst=${stats.assistantMessageCount}`,
+      )
 
       await sdk.send('Say "One"')
       stats = sdk.getAttributionStats()!
-      console.log(`[attr-stats] After turn 1: turns=${stats.totalTurns}, user=${stats.userMessageCount}, asst=${stats.assistantMessageCount}`)
+      console.log(
+        `[attr-stats] After turn 1: turns=${stats.totalTurns}, user=${stats.userMessageCount}, asst=${stats.assistantMessageCount}`,
+      )
       expect(stats.totalTurns).toBeGreaterThanOrEqual(1)
       expect(stats.userMessageCount).toBeGreaterThanOrEqual(1)
       expect(stats.assistantMessageCount).toBeGreaterThanOrEqual(1)
 
       await sdk.send('Say "Two"')
       stats = sdk.getAttributionStats()!
-      console.log(`[attr-stats] After turn 2: turns=${stats.totalTurns}, user=${stats.userMessageCount}, asst=${stats.assistantMessageCount}`)
+      console.log(
+        `[attr-stats] After turn 2: turns=${stats.totalTurns}, user=${stats.userMessageCount}, asst=${stats.assistantMessageCount}`,
+      )
       expect(stats.totalTurns).toBeGreaterThanOrEqual(2)
     }, 120_000)
   })
@@ -284,9 +288,7 @@ describe('Session — Full Lifecycle (Real API)', () => {
   describe('6. Session metadata & attribution', () => {
     it('should provide session ID and status', async () => {
       const sdk = ClaudeCodeSDK.create(sdkConfig)
-      expect(sdk.getSessionId()).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-      )
+      expect(sdk.getSessionId()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
       expect(sdk.getSessionStatus()).toBe('active')
     })
 
@@ -310,7 +312,9 @@ describe('Session — Full Lifecycle (Real API)', () => {
       // Ensure timestamps are valid
       expect(() => new Date(stats.startTime)).not.toThrow()
       expect(() => new Date(stats.lastActivityTime)).not.toThrow()
-      console.log(`[attr-e2e] Turns: ${stats.totalTurns}, User: ${stats.userMessageCount}, Asst: ${stats.assistantMessageCount}`)
+      console.log(
+        `[attr-e2e] Turns: ${stats.totalTurns}, User: ${stats.userMessageCount}, Asst: ${stats.assistantMessageCount}`,
+      )
     }, 60_000)
   })
 
@@ -342,7 +346,7 @@ describe('Session — Full Lifecycle (Real API)', () => {
         expect(response.content.length).toBeGreaterThan(0)
         console.log(`[rapid] Turn ${i}: ${response.content.slice(0, 40)}`)
         // Small delay to avoid rate limit
-        await new Promise(r => setTimeout(r, 500))
+        await new Promise((r) => setTimeout(r, 500))
       }
     }, 180_000)
   })

@@ -8,6 +8,13 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  type DebugFilter,
+  extractDebugCategories,
+  parseDebugFilter,
+  shouldShowDebugCategories,
+  shouldShowDebugMessage,
+} from '../logging/debugFilter.js'
+import {
   type DebugLogLevel,
   enableDebugLogging,
   flushDebugLogs,
@@ -21,13 +28,6 @@ import {
   resetDebugCaches,
   setHasFormattedOutput,
 } from '../logging/index.js'
-import {
-  type DebugFilter,
-  extractDebugCategories,
-  parseDebugFilter,
-  shouldShowDebugCategories,
-  shouldShowDebugMessage,
-} from '../logging/debugFilter.js'
 
 const originalEnv = { ...process.env }
 const originalArgv = [...process.argv]
@@ -35,14 +35,22 @@ const originalArgv = [...process.argv]
 function withArgv(args: string[], fn: () => void) {
   const prev = [...process.argv]
   process.argv = [...prev.slice(0, 2), ...args]
-  try { fn() } finally { process.argv = prev }
+  try {
+    fn()
+  } finally {
+    process.argv = prev
+  }
 }
 
 function withEnv(key: string, value: string | undefined, fn: () => void) {
   const prev = process.env[key]
   if (value === undefined) delete process.env[key]
   else process.env[key] = value
-  try { fn() } finally { process.env[key] = prev as string }
+  try {
+    fn()
+  } finally {
+    process.env[key] = prev as string
+  }
 }
 
 afterEach(() => {
@@ -273,7 +281,7 @@ describe('debugFilter — extractDebugCategories All Patterns', () => {
     expect(result).toContain('mcp')
     expect(result).toContain('filesystem')
     // Should not also match as prefix "mcp server"
-    expect(result.filter(c => c === 'mcp server')).toHaveLength(0)
+    expect(result.filter((c) => c === 'mcp server')).toHaveLength(0)
   })
 
   it('should extract "[CATEGORY]" bracket pattern', () => {
