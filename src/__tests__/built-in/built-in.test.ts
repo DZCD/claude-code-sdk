@@ -463,15 +463,15 @@ describe('WebFetchTool', () => {
   })
 
   it('should fetch content from a real URL', async () => {
-    const result = await tool.execute({ url: 'https://httpbin.org/get' }, makeContext())
+    const result = await tool.execute({ url: 'https://example.com' }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.content).toBeTruthy()
-    expect(result.data.url).toBe('https://httpbin.org/get')
+    expect(result.data.url).toBe('https://example.com')
     expect(typeof result.data.content).toBe('string')
   }, 15000)
 
   it('should respect maxChars parameter', async () => {
-    const result = await tool.execute({ url: 'https://httpbin.org/get', maxChars: 100 }, makeContext())
+    const result = await tool.execute({ url: 'https://example.com', maxChars: 100 }, makeContext())
     expect(result.isError).toBeFalsy()
     expect(result.data.content.length).toBeLessThanOrEqual(100)
   }, 15000)
