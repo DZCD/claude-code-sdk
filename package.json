@@ -1,6 +1,6 @@
 {
   "name": "claude-code-sdk-ts",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "A standalone TypeScript SDK for Claude Code - decoupled from Claude Code runtime",
   "type": "module",
   "main": "./dist/index.js",
