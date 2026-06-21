@@ -1,0 +1,21 @@
+{
+  "name": "claude-code-sdk-docs-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "generate": "npx tsx scripts/generate-content.ts",
+    "predeploy": "npm run generate",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "^4.7.0",
+    "marked": "^15.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.0.0"
+  }
+}

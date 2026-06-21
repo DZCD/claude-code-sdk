@@ -106,7 +106,7 @@ export class BashTool extends BaseTool<typeof bashSchema, { stdout: string; stde
    */
   private runSecurityChecks(
     command: string,
-    context: ToolContext,
+    context?: ToolContext,
   ): ToolResult<{ stdout: string; stderr: string; exitCode: number }> | null {
     // 1. Command safety check
     const safetyResult = bashCommandIsSafe(command)
@@ -137,7 +137,7 @@ export class BashTool extends BaseTool<typeof bashSchema, { stdout: string; stde
     }
 
     // 3. Permission mode check (bypass/acceptEdits)
-    if (context.permissionContext) {
+    if (context?.permissionContext) {
       const modeResult = checkPermissionMode(command, context.permissionContext as PermissionContext)
       if (modeResult.behavior === 'deny') {
         return {

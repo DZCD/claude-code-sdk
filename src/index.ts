@@ -11,7 +11,7 @@
 export const VERSION = '0.5.0'
 
 // Config Management
-export { ConfigManager } from './config/index.js'
+export { ConfigManager, sdkConfigSchema } from './config/index.js'
 export type {
   ConfigChangeCallback,
   ConfigChangeEvent,
@@ -168,6 +168,16 @@ export type {
 } from './types/task.js'
 export type { EffortLevel } from './types/effort.js'
 export { EFFORT_LEVELS, normalizeEffortLevel } from './types/effort.js'
+
+// FastMode — Concurrent Tool Execution State Management
+export {
+  FastModeStateSchema,
+  isFastModeAvailable,
+  isFastModeEnabled,
+  getFastModeStateDescription,
+} from './types/fast-mode.js'
+export type { FastModeState } from './types/fast-mode.js'
+
 export type {
   McpServerStatusValue,
   McpServerInfo,

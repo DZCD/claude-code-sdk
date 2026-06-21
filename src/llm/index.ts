@@ -10,6 +10,7 @@ export {
   FoundryConnector,
   getSupportedProviders,
 } from './client.js'
+export { withRetry } from './retry.js'
 export type {
   LLMConfig,
   AnthropicConfig,

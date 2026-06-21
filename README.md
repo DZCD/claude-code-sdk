@@ -2,7 +2,7 @@
 
 > A standalone TypeScript SDK for Claude Code — decoupled from Claude Code runtime.
 
-[![npm version](https://img.shields.io/badge/version-0.1.0--beta.0-blue)](https://github.com/DZCD/claude-code-sdk)
+[![npm version](https://img.shields.io/badge/version-0.5.0-blue)](https://github.com/DZCD/claude-code-sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![Tests](https://img.shields.io/badge/tests-234%20%E2%9C%94%EF%B8%8F-brightgreen)]()
@@ -14,9 +14,10 @@
 ## 特性
 
 - **4 种 LLM Provider** — Anthropic Direct / AWS Bedrock / Google Vertex / Azure Foundry
-- **8 个内置工具** — Bash、文件读写编辑、Glob、Grep、WebFetch、WebSearch（DuckDuckGo）
+- **14 个内置工具** — Bash、文件读写编辑、Glob、Grep、WebFetch、WebSearch、Task 系列（6 个）
 - **MCP 协议集成** — 连接任何 MCP 兼容的工具服务器（stdio / HTTP）
 - **流式 + 非流式双 API** — `send()` 和 `stream()` 两种模式
+- **ask / askStream 高层 API** — 自动工具调用循环，一行代码完成"提问→执行→结果"
 - **权限系统** — auto / manual / plan / bypass 四种模式
 - **工具调用循环** — 自动多轮工具调用，最大深度可配置
 - **对话管理** — 消息历史、Token 追踪、自动压缩
@@ -28,7 +29,7 @@
 ## 安装
 
 ```bash
-npm install claude-code-sdk
+npm install claude-code-sdk-ts
 ```
 
 ### 依赖
@@ -44,7 +45,7 @@ npm install claude-code-sdk
 ### Anthropic Direct API
 
 ```typescript
-import { ClaudeCodeSDK, registerAllBuiltInTools } from 'claude-code-sdk'
+import { ClaudeCodeSDK, registerAllBuiltInTools } from 'claude-code-sdk-ts'
 
 // 创建 SDK 实例
 const sdk = ClaudeCodeSDK.create({
@@ -71,6 +72,22 @@ for await (const event of stream) {
   if (event.type === 'text') {
     process.stdout.write(event.text)
   }
+}
+```
+
+### send() 返回值
+
+`sdk.send()` 返回的 `SessionResponse` 包含三个字段：
+
+```typescript
+interface SessionResponse {
+  content: string          // 模型最终回复文本
+  usage: TokenUsage        // Token 用量（inputTokens / outputTokens）
+  toolCalls: Array<{       // 本轮执行的工具调用记录
+    toolName: string
+    input: Record<string, unknown>
+    output: unknown
+  }>
 }
 ```
 
@@ -139,6 +156,8 @@ for await (const event of stream) {
 
 所有内置工具可通过 `registerAllBuiltInTools()` 一键注册，也可单独使用。
 
+### 基础工具（8 个）
+
 | 工具 | 说明 |
 |:---|:---|
 | `BashTool` | 执行 Shell 命令 |
@@ -150,10 +169,85 @@ for await (const event of stream) {
 | `WebFetchTool` | URL 抓取 → Markdown |
 | `WebSearchTool` | DuckDuckGo 网页搜索 |
 
+### Task 工具（6 个）
+
+可通过 `registerAllTaskTools()` 单独注册。
+
+| 工具 | 说明 |
+|:---|:---|
+| `TaskCreateTool` | 创建任务 |
+| `TaskGetTool` | 查询任务详情 |
+| `TaskListTool` | 列出所有任务 |
+| `TaskUpdateTool` | 更新任务状态 |
+| `TaskStopTool` | 停止任务 |
+| `TaskOutputTool` | 获取任务输出 |
+
 ```typescript
-import { BashTool, FileReadTool } from 'claude-code-sdk'
+import { BashTool, FileReadTool } from 'claude-code-sdk-ts'
 sdk.use(new BashTool().toTool(), new FileReadTool().toTool())
+
+// 也可以只注册 Task 工具
+import { registerAllTaskTools } from 'claude-code-sdk-ts'
+registerAllTaskTools(sdk.getTools())
 ```
+
+---
+
+## ask / askStream — 高层 API
+
+除了 `send()` / `stream()`，SDK 还提供了 `ask()` 和 `askStream()` 两个高层函数，自动完成"发送→工具调用→返回结果"的完整循环，无需手动管理 SDK 实例。
+
+### ask()
+
+```typescript
+import { ask, ToolRegistry, createLLMConnector } from 'claude-code-sdk-ts'
+
+const llm = createLLMConnector({
+  provider: 'anthropic',
+  model: 'claude-sonnet-4-6',
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
+
+const tools = new ToolRegistry()
+registerAllBuiltInTools(tools)
+
+const result = await ask(llm, {
+  systemPrompt: 'You are a helpful assistant.',
+  messages: [{ role: 'user', content: '列出当前目录的文件', id: '1', createdAt: new Date().toISOString() }],
+  tools,
+})
+
+console.log(result.text)       // 最终回复文本
+console.log(result.usage)      // Token 用量
+console.log(result.toolCalls)  // 工具调用记录
+```
+
+### askStream()
+
+```typescript
+const stream = askStream(llm, {
+  messages: [{ role: 'user', content: 'Tell me a joke', id: '1', createdAt: new Date().toISOString() }],
+  tools,
+})
+
+for await (const event of stream) {
+  if (event.type === 'text') {
+    process.stdout.write(event.text)
+  }
+  if (event.type === 'result') {
+    console.log('\nDone:', event.result.usage)
+  }
+}
+```
+
+### AskOptions
+
+| 参数 | 类型 | 说明 |
+|:---|:---|:---|
+| `autoExecuteTools` | `boolean` | 是否自动执行工具调用（默认 `true`） |
+| `onToolCall` | `(name, input) => Promise<boolean>` | 工具执行前钩子，返回 `false` 跳过 |
+| `maxToolCallDepth` | `number` | 最大工具调用深度（默认 `10`） |
+| `feedback` | `FeedbackOptions` | 反馈选项（manual / auto） |
 
 ---
 
@@ -187,7 +281,9 @@ const sdk = ClaudeCodeSDK.create({
 ### 编程式集成
 
 ```typescript
-const sdk = new ClaudeCodeSDK({ llm: { provider: 'anthropic', ... } })
+// ClaudeCodeSDK.create() 和 new ClaudeCodeSDK() 等价
+// create() 只是简单调用 new，推荐使用 create()
+const sdk = ClaudeCodeSDK.create({ llm: { provider: 'anthropic', ... } })
 await sdk.connectMCPServers({
   name: 'my-server',
   type: 'stdio',
@@ -216,7 +312,7 @@ await sdk.connectMCPServers({
 
 | 方法 | 说明 |
 |:---|:---|
-| `ClaudeCodeSDK.create(config)` | 工厂方法创建实例 |
+| `ClaudeCodeSDK.create(config)` | 工厂方法创建实例（与 `new ClaudeCodeSDK(config)` 等价） |
 | `sdk.use(...tools)` | 注册工具（链式调用） |
 | `sdk.send(message)` | 发送消息，获取完整响应 |
 | `sdk.stream(message)` | 发送消息，流式获取事件 |
@@ -234,8 +330,9 @@ await sdk.connectMCPServers({
 |:---|:---|
 | `registry.register(...tools)` | 注册一个或多个工具 |
 | `registry.get(name)` | 按名称获取工具 |
+| `registry.getAll()` | 获取所有已注册工具 |
+| `registry.getTools()` | 获取只读工具数组 |
 | `registry.has(name)` | 检查工具是否已注册 |
-| `registry.listTools()` | 列出所有已注册工具 |
 | `registry.execute(name, input)` | 执行指定工具 |
 
 ---
@@ -264,9 +361,12 @@ npm run type-check
 
 ```
 src/
+├── ask/             # 高层 ask / askStream API
 ├── config/          # 配置管理（多源合并、环境变量）
 ├── context/         # 上下文构建（Git 状态、CLAUDE.md）
 ├── conversation/    # 对话管理（消息历史、工具调用循环）
+├── feedback/        # 反馈注入机制
+├── hooks/           # 事件钩子系统
 ├── llm/             # LLM 通信层
 │   ├── anthropic.ts  # Anthropic Direct API
 │   ├── bedrock.ts    # AWS Bedrock

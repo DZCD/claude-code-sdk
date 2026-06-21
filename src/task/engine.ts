@@ -166,7 +166,7 @@ export async function createTask(taskListId: string, input: CreateTaskInput): Pr
   const task: Task = {
     id,
     subject: input.subject,
-    description: input.description,
+    description: input.description ?? '',
     activeForm: input.activeForm,
     status: 'pending',
     owner: input.owner,
